@@ -12,7 +12,22 @@ export type RespuestaHttp = {
   json: () => Promise<unknown>
 }
 
-export type FetchModelos = (url: string, init: { headers: Record<string, string> }) => Promise<RespuestaHttp>
+export type FetchModelos = (url: string, init: { headers: Record<string, string>; signal?: AbortSignal }) => Promise<RespuestaHttp>
+
+// Tope de espera opcional: con `timeoutMs` cada `fetch` lleva `AbortSignal.timeout` y un proveedor colgado falla con un error de
+// negocio (`..._TIMEOUT`, sin detalle del proveedor) en vez de ocupar el proceso hasta el límite de la plataforma.
+export type OpcionesTransporte = { timeoutMs?: number }
+
+function esAbortoPorTiempo(error: unknown): boolean {
+  let nombre: unknown
+  try { nombre = error && typeof error === 'object' ? (error as { name?: unknown }).name : undefined } catch { nombre = undefined }
+  return nombre === 'TimeoutError' || nombre === 'AbortError'
+}
+
+function senal(opciones?: OpcionesTransporte): { signal: AbortSignal } | Record<string, never> {
+  const ms = opciones?.timeoutMs
+  return typeof ms === 'number' && Number.isFinite(ms) && ms > 0 ? { signal: AbortSignal.timeout(ms) } : {}
+}
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('RESPUESTA_MODELOS_IA_INVALIDA')
@@ -53,14 +68,23 @@ export async function descubrirModelos(
   codigoProveedor: string,
   clave: string,
   fetchModelos: FetchModelos,
+  opciones?: OpcionesTransporte,
 ): Promise<ModeloDescubierto[]> {
   const proveedor = proveedorDelCatalogo(codigoProveedor)
-  const response = await fetchModelos(proveedor.endpointModelos, { headers: encabezados(proveedor.adaptador, clave) })
-  if (!response.ok) throw new Error(`DESCUBRIMIENTO_MODELOS_IA_FALLO_${response.status}`)
-  return normalizar(proveedor.adaptador, await response.json())
+  let response: RespuestaHttp
+  let cuerpo: unknown
+  try {
+    response = await fetchModelos(proveedor.endpointModelos, { headers: encabezados(proveedor.adaptador, clave), ...senal(opciones) })
+    if (!response.ok) throw new Error(`DESCUBRIMIENTO_MODELOS_IA_FALLO_${response.status}`)
+    cuerpo = await response.json()
+  } catch (error) {
+    if (esAbortoPorTiempo(error)) throw new Error('DESCUBRIMIENTO_MODELOS_IA_TIMEOUT')
+    throw error
+  }
+  return normalizar(proveedor.adaptador, cuerpo)
 }
 
-export type FetchInvocacion = (url: string, init: { method: 'POST'; headers: Record<string, string>; body: string }) => Promise<RespuestaHttp>
+export type FetchInvocacion = (url: string, init: { method: 'POST'; headers: Record<string, string>; body: string; signal?: AbortSignal }) => Promise<RespuestaHttp>
 
 // Transporte puro: no interpreta ni valida el cuerpo de la petición ni de la
 // respuesta — eso queda a cargo del consumidor, cada proveedor espera y
@@ -70,14 +94,22 @@ export async function invocarProveedorIa(
   clave: string,
   cuerpo: unknown,
   fetchInvocacion: FetchInvocacion,
+  opciones?: OpcionesTransporte,
 ): Promise<unknown> {
   const proveedor = proveedorDelCatalogo(perfil.proveedorCodigo)
   const url = endpointInvocacion(proveedor, perfil.modeloId)
-  const response = await fetchInvocacion(url, {
-    method: 'POST',
-    headers: encabezados(proveedor.adaptador, clave),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!response.ok) throw new Error(`INVOCACION_PROVEEDOR_IA_FALLO_${response.status}`)
-  return response.json()
+  try {
+    const response = await fetchInvocacion(url, {
+      method: 'POST',
+      headers: encabezados(proveedor.adaptador, clave),
+      body: JSON.stringify(cuerpo),
+      ...senal(opciones),
+    })
+    if (!response.ok) throw new Error(`INVOCACION_PROVEEDOR_IA_FALLO_${response.status}`)
+    return await response.json()
+  } catch (error) {
+    // El tiempo agotado (también leyendo el cuerpo) se informa como error de negocio, sin el detalle del proveedor.
+    if (esAbortoPorTiempo(error)) throw new Error('INVOCACION_PROVEEDOR_IA_TIMEOUT')
+    throw error
+  }
 }

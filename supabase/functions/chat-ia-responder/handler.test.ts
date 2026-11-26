@@ -11,13 +11,14 @@ const CONV = '11111111-1111-4111-8111-111111111111'
 const AHORA = Date.UTC(2027, 0, 1, 12, 0, 0)
 const SIN_RESPUESTA = 'No encontré información relevante para responder eso.'
 const ERROR_PROVEEDOR = 'No pude obtener una respuesta del proveedor de IA, probá de nuevo.'
+const ERROR_TIMEOUT = 'El proveedor de IA tardó demasiado en responder, probá de nuevo.'
 
 type Op = [string, ...unknown[]]
 type Opciones = {
   jwtValido?: boolean
   entornoRoto?: boolean
   feature?: { data: unknown; error: unknown }
-  conteo?: { count: number | null; error: unknown }
+  cupo?: { data: unknown; error: unknown }
   politica?: { data: unknown; error: unknown }
   credencial?: { data: unknown; error: unknown }
   adaptador?: string
@@ -52,7 +53,6 @@ function montar(o: Opciones = {}) {
       if (fila.estado === 'fallida') return { error: o.insertFallida ?? null }
       return { error: (fila.origen === 'usuario' ? o.insertUsuario : o.insertChat) ?? null }
     }
-    if (tabla === 'mensajes_chat_ia') return { count: (o.conteo ?? { count: 0, error: null }).count, error: (o.conteo ?? { count: 0, error: null }).error }
     if (tabla === 'conversaciones_chat_ia') return o.existente ?? { data: { id: CONV }, error: null }
     if (tabla === 'fuentes_chat_ia') return o.fuente === undefined ? { data: { feature_id: 'inventario' }, error: null } : (o.fuente ?? { data: null, error: null })
     return o.filas ?? { data: [{ sku: 'A', token: 'secreto-fila' }], error: null }
@@ -75,6 +75,7 @@ function montar(o: Opciones = {}) {
         rpc: async (nombre: string, args: Record<string, unknown>) => {
           r.rpcAdmin.push([nombre, args])
           if (nombre === 'resolver_politica_ia') return o.politica ?? { data: [politicaBase], error: null }
+          if (nombre === 'consumir_cupo_ia') return o.cupo ?? { data: [{ se_consumio: true, usos_actuales: 1, segundos_hasta_reinicio: 1800 }], error: null }
           return o.credencial ?? { data: [{ clave: 'clave-proveedor-secreta', adaptador: o.adaptador ?? 'anthropic', proveedor_codigo: o.adaptador === 'openai' ? 'openai' : 'anthropic', modelo_id: 'modelo-x' }], error: null }
         },
       }
@@ -243,32 +244,128 @@ describe('funcionalidad, cuota y política (antes de gastar crédito)', () => {
     assert.doesNotMatch(JSON.stringify(json), /detalle-interno-db/)
   })
 
-  it('cuenta solo mensajes de usuario de la última hora', async () => {
-    const { r } = await llamar({ respuestas: [textoAnthropic('ok')] })
-    const q = r.consultas.find((c) => c.tabla === 'mensajes_chat_ia' && c.ops[0][0] === 'select')!
-    assert.deepEqual(q.ops, [
-      ['select', 'id', { count: 'exact', head: true }],
-      ['eq', 'origen', 'usuario'],
-      ['gte', 'creado_en', new Date(AHORA - 3600_000).toISOString()],
-    ])
+  it('consume un uso del cupo persistente del usuario para chat-ia (30 por hora por defecto) con el cliente admin', async () => {
+    const { r, res } = await llamar({ respuestas: [textoAnthropic('ok')] })
+    assert.equal(res.status, 200)
+    assert.deepEqual(r.rpcAdmin.filter(([n]) => n === 'consumir_cupo_ia'), [['consumir_cupo_ia', { p_usuario: 'u1', p_funcionalidad: 'chat-ia', p_limite: 30 }]])
+    assert.equal(r.consultas.some((c) => c.tabla === 'mensajes_chat_ia' && c.ops[0][0] === 'select'), false, 'ya no se cuenta sobre mensajes_chat_ia (el usuario puede borrarlos)')
   })
 
-  it('alcanzar el tope por hora responde 429 y respeta CHAT_IA_LIMITE_HORA', async () => {
-    const a = await llamar({ conteo: { count: 60, error: null } })
-    assert.equal(a.res.status, 429)
-    assert.deepEqual(a.json, { error: 'Superaste el límite de mensajes por hora. Probá de nuevo más tarde.' })
-    const b = await llamar({ conteo: { count: 3, error: null }, limiteHora: '3' })
-    assert.equal(b.res.status, 429)
-    const c = await llamar({ conteo: { count: 59, error: null }, respuestas: [textoAnthropic('ok')] })
-    assert.equal(c.res.status, 200)
-    assert.equal(a.r.pedidos.length + b.r.pedidos.length, 0)
+  it('el tope sale de CHAT_IA_LIMITE_HORA y un valor inválido vuelve a 30', async () => {
+    const a = await llamar({ limiteHora: '3', respuestas: [textoAnthropic('ok')] })
+    assert.equal((a.r.rpcAdmin.find(([n]) => n === 'consumir_cupo_ia')![1] as { p_limite: number }).p_limite, 3)
+    const b = await llamar({ limiteHora: 'abc', respuestas: [textoAnthropic('ok')] })
+    assert.equal((b.r.rpcAdmin.find(([n]) => n === 'consumir_cupo_ia')![1] as { p_limite: number }).p_limite, 30)
   })
 
-  it('un error al contar la cuota responde 503 sin dejar pasar', async () => {
-    const { res, r } = await llamar({ conteo: { count: null, error: { message: 'x' } } })
-    assert.equal(res.status, 503)
+  it('cupo agotado: 429 con Retry-After y mensaje claro, sin crear conversación, sin guardar nada y sin llamar al proveedor', async () => {
+    const { res, r, json } = await llamar({ cupo: { data: [{ se_consumio: false, usos_actuales: 30, segundos_hasta_reinicio: 1234 }], error: null } })
+    assert.equal(res.status, 429)
+    assert.equal(res.headers.get('Retry-After'), '1234')
+    assert.deepEqual(json, { error: 'Superaste el límite de mensajes por hora. Probá de nuevo más tarde.' })
     assert.equal(r.pedidos.length, 0)
-    assert.deepEqual(r.rpcAdmin, [])
+    assert.equal(r.inserts.length, 0)
+    assert.deepEqual(r.rpcAdmin.map(([n]) => n), ['resolver_politica_ia', 'obtener_clave_perfil_ia', 'consumir_cupo_ia'])
+  })
+
+  it('cupo agotado con conversacion_id propia: 429 sin guardar el mensaje ni crear nada', async () => {
+    const { res, r } = await llamar({ cupo: { data: [{ se_consumio: false, usos_actuales: 30, segundos_hasta_reinicio: 10 }], error: null } }, { mensaje: 'hola', conversacion_id: CONV })
+    assert.equal(res.status, 429)
+    assert.equal(r.inserts.length, 0)
+    assert.equal(r.pedidos.length, 0)
+  })
+
+  it('un fallo del cupo deja log [cupo-ia] con la funcionalidad, sin el id del usuario ni el texto de la petición, y el cliente recibe el mismo 503', async () => {
+    const privado = 'mensaje-privado-xyz'
+    for (const modo of ['error', 'lanza', 'rechaza']) {
+      errores.length = 0
+      const { deps, r } = montar({ cupo: { data: null, error: { message: 'fallo para u1 en db', code: 'XX000' } } })
+      if (modo !== 'error') {
+        const admin = deps.crearAdmin()
+        deps.crearAdmin = () => ({ ...admin, rpc: (n: string, a: Record<string, unknown>) => {
+          if (n !== 'consumir_cupo_ia') return admin.rpc(n, a)
+          if (modo === 'lanza') throw new Error('red caída u1')
+          return Promise.reject(new Error('red caída u1'))
+        } })
+      }
+      const res = await manejar(pedir({ mensaje: privado }), deps)
+      assert.equal(res.status, 503)
+      assert.deepEqual(await res.json(), { error: 'No se pudo verificar tu cuota de uso.' })
+      assert.equal(errores.length, 1)
+      assert.match(String(errores[0][0]), /^\[cupo-ia\]/)
+      assert.equal((errores[0][1] as { funcionalidad: string }).funcionalidad, 'chat-ia')
+      assert.doesNotMatch(JSON.stringify(errores), /u1|mensaje-privado-xyz/)
+      // Un error devuelto por la RPC se imprime saneado ([usuario]); una excepción lanzada o rechazada solo deja el nombre.
+      assert.equal((errores[0][1] as { error: string }).error, modo === 'error' ? 'XX000 fallo para [usuario] en db' : 'Error')
+      assert.equal(r.pedidos.length, 0)
+    }
+  })
+
+  it('el usuario del cupo sale del JWT validado, aunque el cuerpo traiga otro usuario_id o user_id', async () => {
+    const { r } = await llamar({ respuestas: [textoAnthropic('ok')] }, { mensaje: 'hola', usuario_id: 'otro', user_id: 'otro', p_usuario: 'otro' })
+    const llamadas = r.rpcAdmin.filter(([n]) => n === 'consumir_cupo_ia')
+    assert.equal(llamadas.length, 1)
+    assert.equal((llamadas[0][1] as { p_usuario: string }).p_usuario, 'u1')
+    assert.deepEqual(r.inserts.find((i) => i.tabla === 'conversaciones_chat_ia')?.fila, { usuario_id: 'u1' })
+  })
+
+  it('si la RPC del cupo lanza o rechaza la promesa responde 503 controlado, sin proveedor ni escrituras', async () => {
+    for (const modo of ['lanza', 'rechaza']) {
+      const { deps, r } = montar({ respuestas: [textoAnthropic('ok')] })
+      const admin = deps.crearAdmin()
+      deps.crearAdmin = () => ({ ...admin, rpc: (nombre: string, args: Record<string, unknown>) => {
+        if (nombre !== 'consumir_cupo_ia') return admin.rpc(nombre, args)
+        if (modo === 'lanza') throw new Error('detalle-interno-red')
+        return Promise.reject(new Error('detalle-interno-red'))
+      } })
+      const res = await manejar(pedir({ mensaje: 'hola' }), deps)
+      assert.equal(res.status, 503)
+      assert.deepEqual(await res.json(), { error: 'No se pudo verificar tu cuota de uso.' })
+      assert.equal(r.pedidos.length, 0)
+      assert.equal(r.inserts.length, 0)
+    }
+  })
+
+  it('el header Retry-After del 429 es el entero hacia arriba de los segundos hasta el reinicio (entre 1 y 3600) y 3600 si no se entiende', async () => {
+    const casos: Array<[unknown, string]> = [[1, '1'], [0.5, '1'], [1.2, '2'], [59.01, '60'], [3600, '3600'], [null, '3600'], ['Infinity', '3600'], [0, '3600']]
+    for (const [segundos, esperado] of casos) {
+      const { res, r } = await llamar({ cupo: { data: [{ se_consumio: false, usos_actuales: 30, segundos_hasta_reinicio: segundos }], error: null } })
+      assert.equal(res.status, 429)
+      assert.equal(res.headers.get('Retry-After'), esperado, `segundos=${String(segundos)}`)
+      assert.equal(r.pedidos.length, 0)
+    }
+  })
+
+  it('un error al consumir el cupo responde 503 sin dejar pasar ni llamar al proveedor', async () => {
+    for (const cupo of [{ data: null, error: { message: 'detalle-interno-db' } }, { data: [], error: null }, { data: null, error: null }, { data: [{ se_consumio: 'si' }], error: null }]) {
+      const { res, r, json } = await llamar({ cupo })
+      assert.equal(res.status, 503)
+      assert.deepEqual(json, { error: 'No se pudo verificar tu cuota de uso.' })
+      assert.equal(res.headers.get('Retry-After'), null)
+      assert.equal(r.pedidos.length, 0)
+      assert.equal(r.inserts.length, 0)
+    }
+  })
+
+  it('el cupo se consume DESPUÉS de los chequeos de funcionalidad, conversación y política (una petición inválida no gasta cupo)', async () => {
+    const sinFeature = await llamar({ feature: { data: false, error: null } })
+    const sinConv = await llamar({ existente: { data: null, error: null } }, { mensaje: 'hola', conversacion_id: CONV })
+    const sinPolitica = await llamar({ politica: { data: [], error: null } })
+    const mensajeLargo = await llamar({}, { mensaje: 'x'.repeat(4001) })
+    const sinMensaje = await llamar({}, {})
+    for (const { r } of [sinFeature, sinConv, sinPolitica, mensajeLargo, sinMensaje]) {
+      assert.equal(r.rpcAdmin.some(([n]) => n === 'consumir_cupo_ia'), false)
+      assert.equal(r.pedidos.length, 0)
+    }
+  })
+
+  it('el mensaje de más de 4000 caracteres se rechaza con 400 antes de la funcionalidad, el cupo y el proveedor; 4000 pasa', async () => {
+    const largo = await llamar({}, { mensaje: 'x'.repeat(4001) })
+    assert.equal(largo.res.status, 400)
+    assert.deepEqual(largo.json, { error: 'El mensaje admite hasta 4000 caracteres.' })
+    assert.deepEqual(largo.r.rpcUsuario, [])
+    const justo = await llamar({ respuestas: [textoAnthropic('ok')] }, { mensaje: 'x'.repeat(4000) })
+    assert.equal(justo.res.status, 200)
   })
 
   it('sin política aprobada (error o vacía) responde 503 y no resuelve credencial', async () => {
@@ -295,6 +392,12 @@ describe('conversación y mensaje del usuario', () => {
     ])
   })
 
+  it('sin conversacion_id no consulta la existencia de ninguna conversación (solo crea la nueva)', async () => {
+    const { r } = await llamar({ respuestas: [textoAnthropic('ok')] })
+    assert.equal(r.consultas.some((c) => c.tabla === 'conversaciones_chat_ia' && c.ops[0][0] === 'select' && c.ops.some((o) => o[0] === 'maybeSingle')), false)
+    assert.equal(r.inserts.filter((i) => i.tabla === 'conversaciones_chat_ia').length, 1)
+  })
+
   it('con conversacion_id propia la reusa sin crear otra', async () => {
     const { res, r } = await llamar({ respuestas: [textoAnthropic('ok')] }, { mensaje: 'hola', conversacion_id: CONV })
     assert.equal(res.status, 200)
@@ -309,6 +412,7 @@ describe('conversación y mensaje del usuario', () => {
     assert.equal(res.status, 404)
     assert.deepEqual(json, { error: 'La conversación no existe.' })
     assert.equal(r.pedidos.length, 0)
+    assert.deepEqual(r.rpcAdmin, [])
     assert.equal(mensajesGuardados(r).length, 0)
   })
 
@@ -340,13 +444,21 @@ describe('preparación de la invocación y credencial', () => {
     assert.equal(fecha.getTime(), AHORA)
   })
 
-  it('si prepararInvocacion rechaza responde 400, guarda el mensaje fallido y no llama al proveedor ni resuelve credencial', async () => {
+  it('si prepararInvocacion rechaza responde 400 SIN consumir cupo, sin escribir nada y sin llamar al proveedor ni resolver credencial', async () => {
     const { res, r, json } = await llamar({ prepararError: new Error('LIMITE_INTENTOS_IA') })
     assert.equal(res.status, 400)
-    assert.deepEqual(json, { conversacion_id: CONV, error: 'LIMITE_INTENTOS_IA' })
-    assert.deepEqual(mensajesGuardados(r).at(-1), { conversacion_id: CONV, origen: 'chat', contenido: 'LIMITE_INTENTOS_IA', estado: 'fallida' })
+    assert.deepEqual(json, { error: 'LIMITE_INTENTOS_IA' })
+    assert.equal(r.inserts.length, 0)
     assert.equal(r.pedidos.length, 0)
     assert.deepEqual(r.rpcAdmin.map(([n]) => n), ['resolver_politica_ia'])
+  })
+
+  it('un rechazo de configuración con conversacion_id propia la devuelve en el cuerpo, sigue sin consumir cupo ni escribir', async () => {
+    const { res, r, json } = await llamar({ prepararError: new Error('LIMITE_INTENTOS_IA') }, { mensaje: 'hola', conversacion_id: CONV })
+    assert.equal(res.status, 400)
+    assert.deepEqual(json, { conversacion_id: CONV, error: 'LIMITE_INTENTOS_IA' })
+    assert.equal(r.inserts.length, 0)
+    assert.equal(r.rpcAdmin.some(([n]) => n === 'consumir_cupo_ia'), false)
   })
 
   it('un error no estándar de prepararInvocacion se informa como ENTRADA_IA_INVALIDA', async () => {
@@ -361,9 +473,179 @@ describe('preparación de la invocación y credencial', () => {
     for (const credencial of [{ data: [], error: null }, { data: [{ clave: 'k' }], error: { message: 'detalle-secreto' } }]) {
       const { res, json, r } = await llamar({ credencial })
       assert.equal(res.status, 500)
-      assert.deepEqual(json, { conversacion_id: CONV, error: 'No se pudo resolver la credencial del proveedor de IA.' })
+      assert.deepEqual(json, { error: 'No se pudo resolver la credencial del proveedor de IA.' })
       assert.doesNotMatch(JSON.stringify(json), /detalle-secreto/)
+      assert.deepEqual(r.rpcAdmin.map(([n]) => n), ['resolver_politica_ia', 'obtener_clave_perfil_ia'])
       assert.deepEqual(r.rpcAdmin[1], ['obtener_clave_perfil_ia', { p_perfil_id: 'perfil-1' }])
+      assert.equal(r.inserts.length, 0)
+    }
+  })
+
+  it('los rechazos de configuración (500 y 501) dejan log de servidor con el motivo, sin clave ni contenido del mensaje', async () => {
+    const privado = 'mensaje-privado-xyz'
+    const a = await llamar({ credencial: { data: [{ clave: 'clave-proveedor-secreta' }], error: { message: 'detalle-secreto' } } }, { mensaje: privado })
+    assert.equal(a.res.status, 500)
+    assert.deepEqual(errores.map((e) => e[0]), ['[chat-ia-responder] configuración de la plataforma: credencial_no_disponible'])
+    errores.length = 0
+    const b = await llamar({ adaptador: 'gemini' }, { mensaje: privado })
+    assert.equal(b.res.status, 501)
+    assert.deepEqual(errores.map((e) => e[0]), ['[chat-ia-responder] configuración de la plataforma: adaptador_no_soportado:gemini'])
+    assert.doesNotMatch(JSON.stringify(errores), /clave-proveedor-secreta|detalle-secreto|mensaje-privado-xyz|u1/)
+  })
+
+  it('el log de configuración es de una línea y acota el adaptador a 64 caracteres (sin saneo, un adaptador hostil falsificaría el log)', async () => {
+    const adaptador = `x\n[chat-ia-responder] FAKE\r\u2028\u0000${'A'.repeat(200)}`
+    const { res } = await llamar({ adaptador })
+    assert.equal(res.status, 501)
+    assert.equal(errores.length, 1)
+    const linea = String(errores[0][0])
+    assert.equal(/[\r\n\u0000-\u001f\u007f\u2028\u2029]/.test(linea), false)
+    assert.match(linea, /^\[chat-ia-responder\] configuración de la plataforma: adaptador_no_soportado:x \[chat-ia-responder\] FAKE/)
+    assert.ok(linea.length - '[chat-ia-responder] configuración de la plataforma: adaptador_no_soportado:'.length <= 64)
+  })
+
+  it('un fallo de red del proveedor con una clave en la URL o en la cause deja solo el nombre del error en el log', async () => {
+    const error = new TypeError('fetch failed: https://api.x/y?apikey=SECRETO', { cause: new Error('Bearer SECRETO') })
+    const { res } = await llamar({ respuestas: [error] })
+    assert.equal(res.status, 502)
+    assert.deepEqual(errores, [['chat-ia-responder: fallo al invocar proveedor', 'TypeError']])
+    assert.doesNotMatch(JSON.stringify(errores), /SECRETO|api\.x/)
+  })
+
+  it('con otro stop_reason (end_turn, max_tokens) y bloques tool_use NO se ejecuta ninguna herramienta: se responde el texto', async () => {
+    for (const stop_reason of ['end_turn', 'max_tokens', 'stop_sequence']) {
+      const { res, r, json } = await llamar({
+        respuestas: [{ stop_reason, content: [{ type: 'text', text: 'listo' }, { type: 'tool_use', id: 't1', name: 'ejecutar', input: { rpc: 'ajustar_stock', parametros: { sku: 'A' }, descripcion: 'Ajustar' } }, { type: 'tool_use', id: 't2', name: 'leer', input: { vista: 'v' } }] }],
+      })
+      assert.equal(res.status, 200, stop_reason)
+      assert.deepEqual(json, { conversacion_id: CONV, respuesta: 'listo' }, stop_reason)
+      assert.equal(r.pedidos.length, 1, stop_reason)
+      assert.equal(r.rpcUsuario.some(([n]) => n === 'proponer_accion_chat_ia' || n === 'puede_chat_leer_funcionalidad'), false, stop_reason)
+      assert.equal(r.consultas.some((c) => c.tabla === 'fuentes_chat_ia'), false, stop_reason)
+    }
+  })
+
+  it('un error hostil del proveedor (getter o Proxy que lanza) sigue dando el 502 previsto, sin lanzar desde el catch', async () => {
+    const conGetter = (campo: string) => Object.defineProperty(new Error('x'), campo, { get() { throw new Error('getter') } })
+    const hostiles: Error[] = [conGetter('name'), conGetter('message'), conGetter('code'), new Proxy(new Error('x'), { get() { throw new Error('proxy') } })]
+    for (const h of hostiles) {
+      errores.length = 0
+      const { res, json } = await llamar({ respuestas: [h] })
+      assert.equal(res.status, 502)
+      assert.deepEqual(json, { conversacion_id: CONV, error: ERROR_PROVEEDOR })
+    }
+  })
+
+  it('CADA console.error del chat fija su contenido: sin mensajes de red ni claves (proveedor 1.ª y 2.ª llamada en ambos adaptadores, inesperado, persistencia, conversación)', async () => {
+    const red = () => new TypeError('fetch failed https://x.y/?apikey=SECRETO Bearer SECRETO', { cause: new Error('Bearer SECRETO') })
+    const lecturaAnthropic = usoAnthropic({ id: 't1', name: 'leer', input: { vista: 'v' } })
+    const lecturaOpenAI = usoOpenAI({ id: 'c1', name: 'leer', arguments: '{"vista":"v"}' })
+    const proveedor = 'chat-ia-responder: fallo al invocar proveedor'
+    const casos: Array<[string, Opciones, unknown[][]]> = [
+      ['anthropic, 1.ª llamada', { respuestas: [red()] }, [[proveedor, 'TypeError']]],
+      ['anthropic, 2.ª llamada', { respuestas: [lecturaAnthropic, red()] }, [[proveedor, 'TypeError']]],
+      ['openai, 1.ª llamada', { adaptador: 'openai', respuestas: [red()] }, [[proveedor, 'TypeError']]],
+      ['openai, 2.ª llamada', { adaptador: 'openai', respuestas: [lecturaOpenAI, red()] }, [[proveedor, 'TypeError']]],
+      ['error inesperado', { respuestas: [{ stop_reason: 'end_turn', get content() { throw new Error('Bearer SECRETO https://x.y/?apikey=SECRETO') } }] }, [['chat-ia-responder: error inesperado', 'Error']]],
+      ['crear la conversación', { nueva: { data: null, error: { code: '42501', message: 'rls Bearer SECRETO' } } }, [['chat-ia-responder: no se pudo crear la conversación', '42501', 'rls Bearer [token]']]],
+      ['crear la conversación sin detalle', { nueva: { data: null, error: null } }, [['chat-ia-responder: no se pudo crear la conversación', '', 'undefined']]],
+      ['guardar el mensaje del usuario', { insertUsuario: { message: 'rls Bearer SECRETO' } }, [['chat-ia-responder: no se pudo guardar el mensaje del usuario']]],
+      ['guardar la respuesta', { insertChat: { message: 'rls Bearer SECRETO' }, respuestas: [textoAnthropic('ok')] }, [['chat-ia-responder: no se pudo guardar la respuesta del chat']]],
+    ]
+    for (const [nombre, opciones, esperado] of casos) {
+      errores.length = 0
+      const { res } = await llamar(opciones)
+      assert.ok(res.status >= 500, nombre)
+      assert.deepEqual(errores, esperado, nombre)
+      assert.doesNotMatch(JSON.stringify(errores), /SECRETO|x\.y/, nombre)
+    }
+  })
+
+  it('el error inesperado deja solo nombre y código, no el mensaje', async () => {
+    const { res } = await llamar({ respuestas: [{ stop_reason: 'end_turn' }] })
+    assert.equal(res.status, 500)
+    assert.deepEqual(errores, [['chat-ia-responder: error inesperado', 'TypeError']])
+  })
+
+  it('los demás logs con datos variables también salen en una línea y acotados (verificación de funcionalidad y fallo del proveedor)', async () => {
+    const a = await llamar({ feature: { data: null, error: { message: `boom\n[chat-ia-responder] FAKE Bearer SECRETO${'z'.repeat(500)}` } } })
+    assert.equal(a.res.status, 503)
+    assert.equal(/[\r\n]/.test(String(errores[0][1])), false)
+    assert.doesNotMatch(String(errores[0][1]), /SECRETO/)
+    assert.ok(String(errores[0][1]).length <= 300)
+    errores.length = 0
+    await llamar({ respuestas: [new Error(`caída\n[chat-ia-responder] FAKE${'z'.repeat(500)}`)] })
+    assert.equal(errores.length, 1)
+    assert.equal(/[\r\n]/.test(String(errores[0][1])), false)
+    assert.ok(String(errores[0][1]).length <= 300)
+  })
+
+  it('los rechazos del cliente o de estado no dejan log de servidor: 403 sin sesión, 400 de validación, 404, 403 de funcionalidad, 503 de política y 429', async () => {
+    const casos: Array<[number, () => Promise<unknown>]> = [
+      [403, () => llamar({ jwtValido: false })],
+      [403, () => llamar({}, { mensaje: 'hola' }, pedir({ mensaje: 'hola' }, { auth: null }))],
+      [400, () => llamar({}, undefined, pedir(undefined, { metodo: 'GET' }))],
+      [400, () => llamar({}, { mensaje: '' })],
+      [400, () => llamar({}, { mensaje: 'x'.repeat(4001) })],
+      [400, () => llamar({}, { mensaje: 'hola', conversacion_id: 'no-uuid' })],
+      [400, () => llamar({}, 'no es json')],
+      [404, () => llamar({ existente: { data: null, error: null } }, { mensaje: 'hola', conversacion_id: CONV })],
+      [403, () => llamar({ feature: { data: false, error: null } })],
+      [503, () => llamar({ politica: { data: [], error: null } })],
+      [429, () => llamar({ cupo: { data: [{ se_consumio: false, segundos_hasta_reinicio: 5 }], error: null } })],
+    ]
+    for (const [estado, ejecutar] of casos) {
+      errores.length = 0
+      const { res } = await ejecutar() as { res: Response }
+      assert.equal(res.status, estado)
+      assert.deepEqual(errores, [], `estado ${estado}`)
+    }
+  })
+
+  it('la funcionalidad se verifica ANTES que la conversación y que todo lo demás: sin la funcionalidad no se puede sondear si una conversación existe', async () => {
+    const consultoConversaciones = (r: { consultas: { tabla: string }[] }) => r.consultas.some((c) => c.tabla === 'conversaciones_chat_ia')
+    const casos: Array<[number, Opciones, unknown]> = [
+      [403, { feature: { data: false, error: null }, existente: { data: null, error: null } }, { mensaje: 'hola', conversacion_id: CONV }],
+      [403, { feature: { data: false, error: null }, existente: { data: null, error: null } }, { mensaje: 'hola', conversacion_id: '22222222-2222-4222-8222-222222222222' }],
+      [403, { feature: { data: null, error: null }, existente: { data: { id: CONV }, error: null } }, { mensaje: 'hola', conversacion_id: CONV }],
+      [503, { feature: { data: null, error: { message: 'caída' } }, existente: { data: null, error: null } }, { mensaje: 'hola', conversacion_id: CONV }],
+      [503, { feature: { data: true, error: { message: 'caída' } }, existente: { data: { id: CONV }, error: null } }, { mensaje: 'hola', conversacion_id: CONV }],
+      // Tampoco se llega a la política, a prepararInvocacion, a la credencial ni al cupo con la funcionalidad apagada.
+      [403, { feature: { data: false, error: null }, politica: { data: [], error: null }, prepararError: new Error('POLITICA_IA_INACTIVA'), credencial: { data: [], error: null }, cupo: { data: [{ se_consumio: false, segundos_hasta_reinicio: 5 }], error: null } }, { mensaje: 'hola' }],
+    ]
+    for (const [estado, opciones, cuerpo] of casos) {
+      const { res, r } = await llamar(opciones, cuerpo)
+      assert.equal(res.status, estado)
+      assert.equal(consultoConversaciones(r), false, 'no se consultó conversaciones_chat_ia')
+      assert.deepEqual(r.rpcAdmin, [], 'no se llamó a nada con el cliente admin')
+      assert.equal(r.inserts.length, 0)
+      assert.equal(r.pedidos.length, 0)
+    }
+  })
+
+  it('un error al verificar la conversación (503) deja log con código y mensaje redactado, sin proveedor ni cupo', async () => {
+    const { res, r, json } = await llamar({ existente: { data: null, error: { code: '57014', message: 'timeout Bearer SECRETO' } } }, { mensaje: 'hola', conversacion_id: CONV })
+    assert.equal(res.status, 503)
+    assert.deepEqual(json, { error: 'No se pudo verificar la conversación.' })
+    assert.deepEqual(errores, [['chat-ia-responder: no se pudo verificar la conversación', '57014', 'timeout Bearer [token]']])
+    assert.equal(r.pedidos.length, 0)
+    assert.equal(r.rpcAdmin.some(([n]) => n === 'consumir_cupo_ia'), false)
+  })
+
+  it('prepararInvocacion: solo los códigos de política/perfil mal configurados dejan log; los errores del cliente no', async () => {
+    for (const codigo of ['POLITICA_IA_INACTIVA', 'LIMITE_INTENTOS_IA_INVALIDO', 'LIMITE_TIEMPO_IA_INVALIDO', 'LIMITE_INTENTOS_IA']) {
+      errores.length = 0
+      const { res } = await llamar({ prepararError: new Error(codigo) }, { mensaje: 'mensaje-privado-xyz' })
+      assert.equal(res.status, 400)
+      assert.deepEqual(errores.map((e) => e[0]), [`[chat-ia-responder] configuración de la plataforma: politica_invalida:${codigo}`])
+      assert.doesNotMatch(JSON.stringify(errores), /mensaje-privado-xyz|u1/)
+    }
+    for (const codigo of ['ENTRADA_IA_FUERA_DE_ESQUEMA', 'ORGANIZACION_IA_NO_AUTORIZADA', 'ENTRADA_IA_INVALIDA']) {
+      errores.length = 0
+      const { res, json } = await llamar({ prepararError: new Error(codigo) })
+      assert.equal(res.status, 400)
+      assert.deepEqual(json, { error: codigo })
+      assert.deepEqual(errores, [])
     }
   })
 
@@ -372,7 +654,8 @@ describe('preparación de la invocación y credencial', () => {
     assert.equal(res.status, 501)
     assert.equal(json?.error, 'El chat todavía no soporta el adaptador "gemini" — solo Anthropic y OpenAI por ahora.')
     assert.equal(r.pedidos.length, 0)
-    assert.equal(mensajesGuardados(r).at(-1)?.estado, 'fallida')
+    assert.equal(r.inserts.length, 0)
+    assert.deepEqual(r.rpcAdmin.map(([n]) => n), ['resolver_politica_ia', 'obtener_clave_perfil_ia'])
   })
 
   it('el tope de espera al proveedor sale de la política y nunca pasa de 90 s', async () => {
@@ -450,7 +733,7 @@ describe('ciclo Anthropic', () => {
     assert.equal(args.p_rpc, 'ajustar_stock')
     assert.deepEqual(args.p_parametros, { sku: 'A' })
     assert.match(String(args.p_descripcion), /^Acción: ajustar_stock\nParámetros: {"sku":"A"}\nDescripción del asistente \(no verificada\): Ajustar$/)
-    assert.deepEqual(r.rpcAdmin.map(([n]) => n), ['resolver_politica_ia', 'obtener_clave_perfil_ia'])
+    assert.deepEqual(r.rpcAdmin.map(([n]) => n), ['resolver_politica_ia', 'obtener_clave_perfil_ia', 'consumir_cupo_ia'])
     assert.deepEqual(mensajesGuardados(r), [{ conversacion_id: CONV, origen: 'usuario', contenido: 'hola' }])
   })
 
@@ -560,14 +843,25 @@ describe('ciclo Anthropic', () => {
     assert.equal(json?.respuesta, 'pienso')
   })
 
-  it('un error HTTP, de red o timeout del proveedor responde 502 con mensaje fijo, guarda fallida y no filtra la clave ni el detalle', async () => {
-    const fallos: unknown[] = [{ ok: false, status: 500 }, new Error('ECONNRESET clave-proveedor-secreta'), new DOMException('The operation was aborted due to timeout', 'TimeoutError')]
+  it('un error HTTP o de red del proveedor responde 502 con mensaje fijo, guarda fallida y no filtra la clave ni el detalle', async () => {
+    const fallos: unknown[] = [{ ok: false, status: 500 }, new Error('ECONNRESET clave-proveedor-secreta')]
     for (const fallo of fallos) {
       const { res, json, r } = await llamar({ respuestas: [fallo] })
       assert.equal(res.status, 502)
       assert.deepEqual(json, { conversacion_id: CONV, error: ERROR_PROVEEDOR })
       assert.deepEqual(mensajesGuardados(r).at(-1), { conversacion_id: CONV, origen: 'chat', contenido: ERROR_PROVEEDOR, estado: 'fallida' })
       assert.doesNotMatch(JSON.stringify(json), /clave-proveedor-secreta|ECONNRESET/)
+    }
+  })
+
+  it('un timeout del proveedor (primera o segunda llamada) responde 504 con mensaje claro, guarda fallida y no filtra detalle', async () => {
+    const timeout = () => new DOMException('The operation was aborted due to timeout clave-proveedor-secreta', 'TimeoutError')
+    for (const respuestas of [[timeout()], [new Error('INVOCACION_PROVEEDOR_IA_TIMEOUT')], [usoAnthropic({ id: 't1', name: 'leer', input: { vista: 'v' } }), timeout()]]) {
+      const { res, json, r } = await llamar({ respuestas })
+      assert.equal(res.status, 504)
+      assert.deepEqual(json, { conversacion_id: CONV, error: ERROR_TIMEOUT })
+      assert.deepEqual(mensajesGuardados(r).at(-1), { conversacion_id: CONV, origen: 'chat', contenido: ERROR_TIMEOUT, estado: 'fallida' })
+      assert.doesNotMatch(JSON.stringify(json), /clave-proveedor-secreta/)
     }
   })
 
@@ -655,13 +949,22 @@ describe('ciclo OpenAI', () => {
     assert.equal(mensajesGuardados(r).at(-1)?.contenido, 'Esa acción no está disponible para tu organización.')
   })
 
-  it('errores del proveedor (HTTP, red, timeout) responden 502 fijo sin filtrar secretos', async () => {
-    for (const fallo of [{ ok: false, status: 401 }, new Error('boom clave-proveedor-secreta'), new DOMException('timeout', 'TimeoutError')]) {
+  it('errores del proveedor (HTTP, red) responden 502 fijo sin filtrar secretos', async () => {
+    for (const fallo of [{ ok: false, status: 401 }, new Error('boom clave-proveedor-secreta')]) {
       const { res, json, r } = await llamar({ adaptador: 'openai', respuestas: [fallo] })
       assert.equal(res.status, 502)
       assert.deepEqual(json, { conversacion_id: CONV, error: ERROR_PROVEEDOR })
       assert.equal(mensajesGuardados(r).at(-1)?.estado, 'fallida')
       assert.doesNotMatch(JSON.stringify(json), /clave-proveedor-secreta/)
+    }
+  })
+
+  it('un timeout del proveedor responde 504 en la primera y en la segunda llamada', async () => {
+    const timeout = () => new DOMException('timeout', 'TimeoutError')
+    for (const respuestas of [[timeout()], [usoOpenAI({ id: 'c1', name: 'leer', arguments: '{"vista":"v"}' }), timeout()]]) {
+      const { res, json } = await llamar({ adaptador: 'openai', respuestas })
+      assert.equal(res.status, 504)
+      assert.deepEqual(json, { conversacion_id: CONV, error: ERROR_TIMEOUT })
     }
   })
 

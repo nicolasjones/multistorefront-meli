@@ -62,4 +62,25 @@ describe('escritura de fragmentos con el cliente de servicio', () => {
     assert.equal(await vacio.insertarFragmentos('jwt', [], 'rec-1'), true)
     assert.deepEqual(vacio.registro, [])
   })
+
+  it('el log de un error de borrado o inserción sale en una línea y con el código acotado a 64 caracteres', async () => {
+    const codigo = `42501\nFAKE${'9'.repeat(100)}`
+    const servicio = {
+      borrar: async () => ({ data: false, error: { code: codigo } }),
+      insertar: async () => ({ data: false, error: { code: codigo } }),
+    }
+    const w = escrituraFragmentos(servicio, async () => ({ organizacion_id: 'org-1' }), 2)
+    const logs: unknown[][] = []
+    const original = console.error
+    console.error = (...a: unknown[]) => { logs.push(a) }
+    try {
+      await w.borrarFragmentos('jwt', 'v1', 'rec-1')
+      await w.insertarFragmentos('jwt', [fila(0)], 'rec-1')
+    } finally { console.error = original }
+    assert.equal(logs.length, 2)
+    for (const l of logs) {
+      assert.ok(String(l[1]).length <= 64)
+      assert.equal(/[\r\n]/.test(String(l[1])), false)
+    }
+  })
 })

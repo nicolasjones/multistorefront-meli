@@ -1,5 +1,5 @@
 // Lógica de `preguntar-documentos` con dependencias inyectadas (probada con `pnpm test:edge:preguntar-documentos`);
-// index.ts solo cablea los clientes reales de Supabase, el entorno, el limitador, los embeddings y el `fetch` hacia el proveedor.
+// index.ts solo cablea los clientes reales de Supabase, el entorno, el tope del cupo, los embeddings y el `fetch` hacia el proveedor.
 //
 // Contrato: ver spec del mecanismo de búsqueda documental genérica en
 // este template (sección "Contrato de búsqueda").
@@ -16,7 +16,8 @@ import type { ContratoConsumidor, PerfilModelo } from '../_shared/ia/types.ts'
 import type { prepararInvocacion } from '../_shared/ia/ejecutar.ts'
 import { invocarProveedorIa, type FetchInvocacion } from '../_shared/ia/proveedores/index.ts'
 import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
-import type { Limitador } from '../_shared/limite-memoria.ts'
+import { FUNCIONALIDAD_DOCUMENTOS, esTimeoutDeProveedor, limiteDeCupo, rechazoPorCupo } from '../_shared/cupo-ia.ts'
+import { limpiarParaLog, mensajeParaLog, registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 import { armarContexto } from './contexto.ts'
 
 type Resultado = PromiseLike<{ data: any; error: any }>
@@ -36,7 +37,7 @@ export type Deps = {
   prepararInvocacion: typeof prepararInvocacion
   generarEmbedding: (texto: string, clave: string) => Promise<number[]>
   fetchProveedor: (limiteSegundos: number) => FetchInvocacion
-  limitador: Limitador
+  limiteHora: () => string | undefined
   ahora: () => number
 }
 
@@ -45,8 +46,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-function jsonResponse(body: unknown, status: number) {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+function jsonResponse(body: unknown, status: number, extra: Record<string, string> = {}) {
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json', ...extra } })
+}
+
+// Falla del proveedor o de los embeddings: el tiempo agotado es 504; el resto, 502. Ninguno filtra el detalle del proveedor.
+function falloDeProveedor(error: unknown, mensaje502: string, etapa: string): Response {
+  // Solo nombre y código del error (nunca su mensaje, cause ni URL: pueden traer claves).
+  console.error(`preguntar-documentos: fallo ${etapa}`, textoDeError(error))
+  if (esTimeoutDeProveedor(error)) return jsonResponse({ error: 'El proveedor de IA tardó demasiado en responder, probá de nuevo.' }, 504)
+  return jsonResponse({ error: mensaje502 }, 502)
 }
 
 const CONSUMIDOR_CODIGO = 'rag-busqueda-documental'
@@ -90,12 +99,11 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   const asUser = deps.crearCliente(jwt)
 
   // Antes de gastar crédito (embedding y generación): la organización del usuario debe tener la funcionalidad
-  // `busqueda-documental` (verificada con su propio JWT) y el usuario no puede estar abusando de la función.
+  // `busqueda-documental` (verificada con su propio JWT); el cupo persistente por hora se consume justo antes de llamar al proveedor.
   const featureDocs = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'busqueda-documental' })
-  if (featureDocs.error) console.error('preguntar-documentos: no se pudo verificar la funcionalidad', featureDocs.error.message)
+  if (featureDocs.error) console.error('preguntar-documentos: no se pudo verificar la funcionalidad', mensajeParaLog(featureDocs.error.message, 300))
   const sinDocs = rechazoPorFuncionalidad(featureDocs, { noHabilitada: 'La búsqueda documental no está habilitada para tu organización.', noVerificable: 'No se pudo verificar la funcionalidad de búsqueda documental.' })
   if (sinDocs) return jsonResponse({ error: sinDocs.error }, sinDocs.status)
-  if (!deps.limitador.consumir(callerData.user.id)) return jsonResponse({ error: 'Hiciste demasiadas preguntas en poco tiempo. Probá de nuevo más tarde.' }, 429)
 
   const { data: politicaFilas, error: politicaError } = await admin.rpc('resolver_politica_ia', { p_codigo: CONSUMIDOR_CODIGO })
   const politica = politicaFilas?.[0]
@@ -128,17 +136,28 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
 
   const { data: credencialFilas, error: credencialError } = await admin.rpc('obtener_clave_perfil_ia', { p_perfil_id: politica.perfil_principal_id })
   const credencial = credencialFilas?.[0]
-  if (credencialError || !credencial) return jsonResponse({ error: 'No se pudo resolver la credencial del proveedor de IA.' }, 500)
+  if (credencialError || !credencial) {
+    console.error('[preguntar-documentos] configuración de la plataforma: credencial_no_disponible')
+    return jsonResponse({ error: 'No se pudo resolver la credencial del proveedor de IA.' }, 500)
+  }
 
   if (credencial.proveedor_codigo !== 'openai') {
+    console.error(`[preguntar-documentos] configuración de la plataforma: proveedor_no_soportado:${limpiarParaLog(credencial.proveedor_codigo, 64)}`)
     return jsonResponse({ error: `Búsqueda documental todavía no soporta el proveedor "${credencial.proveedor_codigo}" — solo OpenAI por ahora.` }, 501)
   }
+
+  // Cupo persistente: 30 preguntas por usuario y hora (configurable con PREGUNTAR_DOCUMENTOS_LIMITE_HORA). Se consume después de
+  // todos los chequeos y antes del primer gasto de crédito (el embedding). Agotado: 429 con Retry-After, sin llamar al proveedor.
+  const sinCupo = await rechazoPorCupo(admin, callerData.user.id, FUNCIONALIDAD_DOCUMENTOS, limiteDeCupo(deps.limiteHora()), {
+    agotado: 'Hiciste demasiadas preguntas en poco tiempo. Probá de nuevo más tarde.',
+  })
+  if (sinCupo) return jsonResponse({ error: sinCupo.error }, sinCupo.status, sinCupo.retryAfter ? { 'Retry-After': String(sinCupo.retryAfter) } : {})
 
   let embeddingPregunta: number[]
   try {
     embeddingPregunta = await deps.generarEmbedding(String(entradaSanitizada.pregunta), credencial.clave)
-  } catch {
-    return jsonResponse({ error: 'No pude procesar la pregunta, probá de nuevo.' }, 502)
+  } catch (error) {
+    return falloDeProveedor(error, 'No pude procesar la pregunta, probá de nuevo.', 'al generar el embedding')
   }
 
   const { data: fragmentos, error: busquedaError } = await asUser.rpc('buscar_fragmentos', {
@@ -146,7 +165,10 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     p_umbral: UMBRAL_SIMILITUD,
     p_k: K_FRAGMENTOS,
   })
-  if (busquedaError) return jsonResponse({ error: 'No pude buscar en los documentos.' }, 500)
+  if (busquedaError) {
+    registrarErrorDeBase('preguntar-documentos: no se pudo buscar en los documentos', busquedaError)
+    return jsonResponse({ error: 'No pude buscar en los documentos.' }, 500)
+  }
 
   // Sin fragmentos por encima del umbral, no se llama al proveedor de
   // generación — se responde directo que no hay información.
@@ -186,8 +208,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       deps.fetchProveedor(Math.min(Number(politica.limite_segundos) || CONTRATO.limiteSegundos, 90)),
     ) as { choices: Array<{ message: { content: string } }> }
     textoFinal = respuesta.choices?.[0]?.message?.content ?? 'No pude generar una respuesta.'
-  } catch {
-    return jsonResponse({ error: 'No pude obtener una respuesta del proveedor de IA, probá de nuevo.' }, 502)
+  } catch (error) {
+    return falloDeProveedor(error, 'No pude obtener una respuesta del proveedor de IA, probá de nuevo.', 'al invocar el proveedor')
   }
 
   return jsonResponse({ respuesta: textoFinal, documentos_citados: documentosCitados }, 200)

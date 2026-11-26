@@ -4,8 +4,6 @@
 
 export const MENSAJE_MAX = 4000
 export const MAX_TOKENS_RESPUESTA = 1024
-// Mensajes de usuario por hora y por persona (configurable con CHAT_IA_LIMITE_HORA; ver docs/chat-ia.md).
-export const LIMITE_MENSAJES_POR_HORA = 60
 export const MAX_HERRAMIENTAS_POR_TURNO = 4
 export const MAX_FILTROS = 8
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -21,22 +19,6 @@ export function validarEntrada(body: unknown): { ok: true; entrada: EntradaChat 
     return { ok: false, error: '"conversacion_id" inválido.' }
   }
   return { ok: true, entrada: { mensaje: b.mensaje, conversacionId: (b.conversacion_id as string | null | undefined) ?? null } }
-}
-
-export function excedeLimite(mensajesUltimaHora: number, limite: number = LIMITE_MENSAJES_POR_HORA): boolean {
-  return mensajesUltimaHora >= limite
-}
-
-// Decisión de la cuota (pura): un error al contarla no deja pasar (503) y el tope corta con 429.
-export function rechazoPorCuota(recientes: number | null | undefined, error: unknown, limite: number): { status: number; error: string } | null {
-  if (error) return { status: 503, error: 'No se pudo verificar tu cuota de uso.' }
-  if (excedeLimite(recientes ?? 0, limite)) return { status: 429, error: 'Superaste el límite de mensajes por hora. Probá de nuevo más tarde.' }
-  return null
-}
-
-export function limiteConfigurado(valor: string | undefined): number {
-  const n = Number(valor)
-  return Number.isInteger(n) && n > 0 ? n : LIMITE_MENSAJES_POR_HORA
 }
 
 // Claves de filtro elegidas por el modelo: solo identificadores simples y valores escalares, y pocos.

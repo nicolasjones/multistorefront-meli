@@ -22,9 +22,11 @@ import type { prepararInvocacion } from '../_shared/ia/ejecutar.ts'
 import { invocarProveedorIa, type FetchInvocacion } from '../_shared/ia/proveedores/index.ts'
 import { sanitizarDato, marcarContenidoNoConfiable } from '../_shared/ia/sanitizar.ts'
 import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
+import { FUNCIONALIDAD_CHAT, esTimeoutDeProveedor, limiteDeCupo, rechazoPorCupo } from '../_shared/cupo-ia.ts'
+import { limpiarParaLog, mensajeParaLog, registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 import {
   ErrorPersistencia, MAX_TOKENS_RESPUESTA, columnasParaSelect, describirPropuesta, filtrosSeguros, guardarMensaje,
-  limiteConfigurado, rechazoPorCuota, resolverLlamadas, validarEntrada, type ResultadoHerramienta,
+  resolverLlamadas, validarEntrada, type ResultadoHerramienta,
 } from './guardas.ts'
 
 type Resultado = PromiseLike<{ data: any; error: any }>
@@ -53,14 +55,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-function jsonResponse(body: unknown, status: number) {
+function jsonResponse(body: unknown, status: number, extra: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json', ...extra },
   })
 }
 
+// Falla del proveedor: el tiempo agotado se informa como 504 (la política de `limiteSegundos` se cumple de verdad); el resto, 502.
+// Ninguno de los dos filtra el detalle del proveedor.
+function falloDeProveedor(error: unknown): { mensaje: string; status: number } {
+  if (esTimeoutDeProveedor(error)) return { mensaje: 'El proveedor de IA tardó demasiado en responder, probá de nuevo.', status: 504 }
+  return { mensaje: 'No pude obtener una respuesta del proveedor de IA, probá de nuevo.', status: 502 }
+}
+
 const CONSUMIDOR_CODIGO = 'chat-ia-leer'
+
+// Códigos de `prepararInvocacion` que indican una política o un perfil mal configurados (plataforma), no un error del cliente: solo
+// esos dejan log de servidor. Los demás (entrada fuera de esquema, organización no autorizada…) son del cliente y no se registran.
+const CODIGOS_DE_CONFIGURACION = new Set(['POLITICA_IA_INACTIVA', 'LIMITE_INTENTOS_IA_INVALIDO', 'LIMITE_TIEMPO_IA_INVALIDO', 'LIMITE_INTENTOS_IA'])
+
+// Log de servidor para los rechazos 400/500/501 de configuración (ya no dejan un mensaje `fallida`): prefijo estable y solo el motivo,
+// nunca la clave, el contenido del mensaje ni datos del usuario. El `motivo` es un texto fijo más piezas que ya llegan saneadas y acotadas
+// a 64 caracteres con `limpiarParaLog` (adaptador) o salen de la lista fija CODIGOS_DE_CONFIGURACION (código de política), por eso no necesita un tope propio.
+const registrarConfiguracion = (motivo: string) => console.error(`[chat-ia-responder] configuración de la plataforma: ${motivo}`)
 
 const CONTRATO: ContratoConsumidor = {
   codigo: CONSUMIDOR_CODIGO,
@@ -145,23 +163,25 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // con el RLS del propio usuario.
   const asUser = deps.crearCliente(jwt)
 
-  // Antes de gastar crédito del proveedor: la organización del usuario debe tener la funcionalidad `chat-ia`
-  // (con su propio JWT, no con service-role) y el usuario no puede haber superado su cuota por hora. La cuota es de
-  // MEJOR ESFUERZO: se cuenta sobre `mensajes_chat_ia` y el usuario conserva DELETE sobre sus mensajes, así que borrar
-  // los reinicia (pendiente: tabla de uso sin DELETE para el usuario, docs/funciones-edge-endurecimiento.md).
+  // Antes de gastar crédito del proveedor: la organización del usuario debe tener la funcionalidad `chat-ia` (con su propio JWT,
+  // no con service-role), la conversación indicada debe existir y ser del usuario, y recién entonces se consume un uso del cupo
+  // persistente por hora (`consumir_cupo_ia`): una petición inválida no gasta cupo.
   const featureChat = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'chat-ia' })
-  if (featureChat.error) console.error('chat-ia-responder: no se pudo verificar la funcionalidad', featureChat.error.message)
+  if (featureChat.error) console.error('chat-ia-responder: no se pudo verificar la funcionalidad', mensajeParaLog(featureChat.error.message, 300))
   const sinChat = rechazoPorFuncionalidad(featureChat, { noHabilitada: 'El Chat IA no está habilitado para tu organización.', noVerificable: 'No se pudo verificar la funcionalidad del chat.' })
   if (sinChat) return jsonResponse({ error: sinChat.error }, sinChat.status)
 
-  const hace1h = new Date(deps.ahora() - 60 * 60 * 1000).toISOString()
-  const { count: recientes, error: cuotaError } = await asUser
-    .from('mensajes_chat_ia')
-    .select('id', { count: 'exact', head: true })
-    .eq('origen', 'usuario')
-    .gte('creado_en', hace1h)
-  const sinCuota = rechazoPorCuota(recientes, cuotaError, limiteConfigurado(deps.limiteHora()))
-  if (sinCuota) return jsonResponse({ error: sinCuota.error }, sinCuota.status)
+  // Una conversación inexistente o ajena (la RLS no devuelve la fila) se rechaza antes de consumir cupo y de llamar al proveedor.
+  let conversacionId = body.conversacion_id
+  if (conversacionId) {
+    const { data: existente, error: existenteError } = await asUser.from('conversaciones_chat_ia').select('id').eq('id', conversacionId).maybeSingle()
+    if (existenteError) {
+      // Error de servidor (la base no respondió): deja log con nombre/código y mensaje redactado, como el resto de los errores de base.
+      registrarErrorDeBase('chat-ia-responder: no se pudo verificar la conversación', existenteError)
+      return jsonResponse({ error: 'No se pudo verificar la conversación.' }, 503)
+    }
+    if (!existente) return jsonResponse({ error: 'La conversación no existe.' }, 404)
+  }
 
   // Gobernanza real, vía las funciones ya existentes de governed-ai-core
   // (private.resolver_politica_ia / obtener_clave_perfil_ia) — otorgadas
@@ -178,36 +198,10 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     )
   }
 
-  // Conversación: crea una nueva si no vino conversacion_id, o reusa la
-  // existente (la RLS de conversaciones_chat_ia ya exige que sea del
-  // propio usuario — una conversacion_id ajena simplemente no matchea).
-  let conversacionId = body.conversacion_id
-  if (conversacionId) {
-    // Una conversación inexistente o ajena (la RLS no devuelve la fila) se rechaza antes de llamar al proveedor.
-    const { data: existente, error: existenteError } = await asUser.from('conversaciones_chat_ia').select('id').eq('id', conversacionId).maybeSingle()
-    if (existenteError) return jsonResponse({ error: 'No se pudo verificar la conversación.' }, 503)
-    if (!existente) return jsonResponse({ error: 'La conversación no existe.' }, 404)
-  } else {
-    const { data: nueva, error: nuevaError } = await asUser
-      .from('conversaciones_chat_ia')
-      .insert({ usuario_id: callerData.user.id })
-      .select('id')
-      .single()
-    if (nuevaError || !nueva) return jsonResponse({ error: 'No se pudo crear la conversación.' }, 500)
-    conversacionId = nueva.id
-  }
-
-  try {
-    await guardarMensaje(asUser, { conversacion_id: conversacionId, origen: 'usuario', contenido: body.mensaje })
-  } catch {
-    return jsonResponse({ error: 'No se pudo guardar tu mensaje.' }, 500)
-  }
-
-  async function responderError(mensaje: string, status: number) {
-    // Mejor esfuerzo: el error ya se informa en la respuesta HTTP; si tampoco se puede guardar, no se pisa el status.
-    await asUser.from('mensajes_chat_ia').insert({ conversacion_id: conversacionId, origen: 'chat', contenido: mensaje, estado: 'fallida' })
-    return jsonResponse({ conversacion_id: conversacionId, error: mensaje }, status)
-  }
+  // Rechazos de configuración o de entrada (400/500/501): ocurren ANTES de consumir cupo y de escribir nada, así que no queman un uso
+  // ni dejan conversaciones o mensajes. Si el cliente mandó una conversacion_id (ya verificada) se devuelve en el cuerpo.
+  const rechazoDeConfiguracion = (mensaje: string, status: number) =>
+    jsonResponse(conversacionId ? { conversacion_id: conversacionId, error: mensaje } : { error: mensaje }, status)
 
   // prepararInvocacion valida presupuesto/esquema/aislamiento y sanitiza
   // antes de que nada salga hacia el proveedor — mismo camino que
@@ -237,23 +231,65 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       new Date(deps.ahora()),
     )
   } catch (error) {
-    return await responderError(error instanceof Error ? error.message : 'ENTRADA_IA_INVALIDA', 400)
+    const codigo = error instanceof Error ? error.message : 'ENTRADA_IA_INVALIDA'
+    if (CODIGOS_DE_CONFIGURACION.has(codigo)) registrarConfiguracion(`politica_invalida:${codigo}`)
+    return rechazoDeConfiguracion(codigo, 400)
   }
 
   const { data: credencialFilas, error: credencialError } = await admin.rpc('obtener_clave_perfil_ia', { p_perfil_id: politica.perfil_principal_id })
   const credencial = credencialFilas?.[0]
-  if (credencialError || !credencial) return await responderError('No se pudo resolver la credencial del proveedor de IA.', 500)
+  if (credencialError || !credencial) {
+    registrarConfiguracion('credencial_no_disponible')
+    return rechazoDeConfiguracion('No se pudo resolver la credencial del proveedor de IA.', 500)
+  }
 
   // Anthropic y OpenAI implementados — el adaptador real a usar lo decide
   // la política que un superadmin apruebe; cualquier otro falla con un
   // error claro en vez de armar un cuerpo de request con el formato
   // equivocado (nunca asumir un formato no verificado).
   if (credencial.adaptador !== 'anthropic' && credencial.adaptador !== 'openai') {
-    return await responderError(`El chat todavía no soporta el adaptador "${credencial.adaptador}" — solo Anthropic y OpenAI por ahora.`, 501)
+    registrarConfiguracion(`adaptador_no_soportado:${limpiarParaLog(credencial.adaptador, 64)}`)
+    return rechazoDeConfiguracion(`El chat todavía no soporta el adaptador "${credencial.adaptador}" — solo Anthropic y OpenAI por ahora.`, 501)
   }
 
   const perfilLimiteSegundos = Math.min(Number(politica.limite_segundos) || CONTRATO.limiteSegundos, 90)
   const perfil: PerfilModelo = { id: politica.perfil_principal_id, proveedorCodigo: credencial.proveedor_codigo, modeloId: credencial.modelo_id }
+
+  // Cupo persistente: 30 consultas por usuario y hora (configurable con CHAT_IA_LIMITE_HORA). Se consume después de TODOS los
+  // chequeos (funcionalidad, conversación, política, entrada, credencial y adaptador) y justo antes de la primera escritura y de la
+  // llamada al proveedor: un 429 no crea conversación ni mensaje. Agotado: 429 con Retry-After.
+  const sinCupo = await rechazoPorCupo(admin, callerData.user.id, FUNCIONALIDAD_CHAT, limiteDeCupo(deps.limiteHora()), {
+    agotado: 'Superaste el límite de mensajes por hora. Probá de nuevo más tarde.',
+  })
+  if (sinCupo) return jsonResponse({ error: sinCupo.error }, sinCupo.status, sinCupo.retryAfter ? { 'Retry-After': String(sinCupo.retryAfter) } : {})
+
+  // Conversación nueva si no vino conversacion_id (si vino, ya se verificó arriba).
+  if (!conversacionId) {
+    const { data: nueva, error: nuevaError } = await asUser
+      .from('conversaciones_chat_ia')
+      .insert({ usuario_id: callerData.user.id })
+      .select('id')
+      .single()
+    if (nuevaError || !nueva) {
+      registrarErrorDeBase('chat-ia-responder: no se pudo crear la conversación', nuevaError)
+      return jsonResponse({ error: 'No se pudo crear la conversación.' }, 500)
+    }
+    conversacionId = nueva.id
+  }
+
+  try {
+    await guardarMensaje(asUser, { conversacion_id: conversacionId, origen: 'usuario', contenido: body.mensaje })
+  } catch {
+    console.error('chat-ia-responder: no se pudo guardar el mensaje del usuario')
+    return jsonResponse({ error: 'No se pudo guardar tu mensaje.' }, 500)
+  }
+
+  async function responderError(mensaje: string, status: number) {
+    // Mejor esfuerzo: el error ya se informa en la respuesta HTTP; si tampoco se puede guardar, no se pisa el status.
+    await asUser.from('mensajes_chat_ia').insert({ conversacion_id: conversacionId, origen: 'chat', contenido: mensaje, estado: 'fallida' })
+    return jsonResponse({ conversacion_id: conversacionId, error: mensaje }, status)
+  }
+
 
   async function leer(vista: string, filtros: Record<string, string | number> = {}) {
     const { data: fuente } = await asUser.from('fuentes_chat_ia').select('feature_id, columnas').eq('vista', vista).maybeSingle()
@@ -360,8 +396,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     try {
       respuesta = await llamar()
     } catch (error) {
-      console.error('chat-ia-responder: fallo al invocar proveedor', error)
-      return await responderError('No pude obtener una respuesta del proveedor de IA, probá de nuevo.', 502)
+      console.error('chat-ia-responder: fallo al invocar proveedor', textoDeError(error))
+      const fallo = falloDeProveedor(error)
+      return await responderError(fallo.mensaje, fallo.status)
     }
 
     // Un único ciclo de tool-calling (alcance de este mecanismo). Si el modelo pide varias herramientas en el mismo
@@ -383,8 +420,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
         try {
           respuesta = await llamar()
         } catch (error) {
-          console.error('chat-ia-responder: fallo al invocar proveedor', error)
-          return await responderError('No pude obtener una respuesta del proveedor de IA, probá de nuevo.', 502)
+          console.error('chat-ia-responder: fallo al invocar proveedor', textoDeError(error))
+          const fallo = falloDeProveedor(error)
+          return await responderError(fallo.mensaje, fallo.status)
         }
       }
     }
@@ -421,8 +459,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     try {
       respuesta = await llamar()
     } catch (error) {
-      console.error('chat-ia-responder: fallo al invocar proveedor', error)
-      return await responderError('No pude obtener una respuesta del proveedor de IA, probá de nuevo.', 502)
+      console.error('chat-ia-responder: fallo al invocar proveedor', textoDeError(error))
+      const fallo = falloDeProveedor(error)
+      return await responderError(fallo.mensaje, fallo.status)
     }
 
     let mensajeRespuesta = respuesta.choices[0]?.message
@@ -453,8 +492,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       try {
         respuesta = await llamar()
       } catch (error) {
-        console.error('chat-ia-responder: fallo al invocar proveedor', error)
-        return await responderError('No pude obtener una respuesta del proveedor de IA, probá de nuevo.', 502)
+        console.error('chat-ia-responder: fallo al invocar proveedor', textoDeError(error))
+        const fallo = falloDeProveedor(error)
+        return await responderError(fallo.mensaje, fallo.status)
       }
       mensajeRespuesta = respuesta.choices[0]?.message
     }
@@ -468,8 +508,11 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     return credencial.adaptador === 'openai' ? await cicloOpenAI() : await cicloAnthropic()
   } catch (error) {
     // Un insert rechazado (RLS, conversación ajena, caída) ya no se ignora: se responde 500 en vez de «ok» sin historial.
-    if (error instanceof ErrorPersistencia) return jsonResponse({ conversacion_id: conversacionId, error: 'No se pudo guardar la respuesta del chat.' }, 500)
-    console.error('chat-ia-responder: error inesperado', error instanceof Error ? error.message : error)
+    if (error instanceof ErrorPersistencia) {
+      console.error('chat-ia-responder: no se pudo guardar la respuesta del chat')
+      return jsonResponse({ conversacion_id: conversacionId, error: 'No se pudo guardar la respuesta del chat.' }, 500)
+    }
+    console.error('chat-ia-responder: error inesperado', textoDeError(error))
     return jsonResponse({ error: 'No se pudo procesar el mensaje.' }, 500)
   }
 }

@@ -13,6 +13,10 @@ sources:
   - supabase/functions/_shared/embeddings.ts
   - supabase/functions/_shared/fetch-ia.ts
   - supabase/functions/_shared/limite-memoria.ts
+  - supabase/functions/_shared/cupo-ia.ts
+  - supabase/functions/_shared/log-seguro.ts
+  - supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql
+  - packages/ia/src/proveedores/index.ts
   - supabase/functions/_shared/token.ts
   - supabase/functions/crear-organizacion/handler.ts
   - packages/mcp-server/src/herramientas.ts
@@ -26,7 +30,8 @@ sources:
 Qué se corrigió de los hallazgos MSF-727 a MSF-732 y MSF-711, qué ya estaba resuelto y qué queda pendiente
 (con su propuesta). Las correcciones del lote 25 no tocaron la base: lo que exigía una migración quedó en «Pendientes». El lote 89
 (migración `20270507800000_endurecer_rag_mcp_y_chat_columnas.sql`) cerró tres de esos pendientes de MSF-728, MSF-729 y
-MSF-730; ver «Lote 89» al final.
+MSF-730; ver «Lote 89» al final. El lote 90 (migración `20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql`) cerró el del
+cupo persistente de IA de MSF-727; ver «Lote 90».
 
 ## Funciones de IA: nada de crédito sin verificar (MSF-727)
 
@@ -35,15 +40,14 @@ MSF-730; ver «Lote 89» al final.
   proveedor. Sin la funcionalidad: 403. Si la verificación falla: 503.
 - `chat-ia-responder` valida el cuerpo (`mensaje` de texto, hasta 4000 caracteres; `conversacion_id` UUID), comprueba
   que la conversación exista y sea del usuario (404 si no; antes el insert fallaba por RLS en silencio y la función
-  seguía llamando al proveedor) y aplica un tope por usuario: 60 mensajes por hora (`CHAT_IA_LIMITE_HORA`, 429),
-  contado sobre `mensajes_chat_ia` con la sesión del usuario. Es compartido entre instancias pero de **mejor esfuerzo**:
-  `authenticated` conserva `DELETE` sobre sus propios mensajes (la migración MSF-724 solo revocó insert/update), así que
-  borrarlos reinicia el contador (ver «Pendientes»).
-- `preguntar-documentos`: `pregunta` hasta 2000 caracteres y un límite de 30 preguntas por hora y usuario
-  (`PREGUNTAR_DOCUMENTOS_LIMITE_HORA`). Ese límite vive **en memoria del isolate**: frena un bucle, pero no es una
-  cuota global (ver «Pendientes»).
+  seguía llamando al proveedor) y aplica el cupo persistente por usuario y hora (30 por defecto, `CHAT_IA_LIMITE_HORA`, 429
+  con `Retry-After`; ver «Lote 90»). Hasta el lote 89 ese tope se contaba sobre `mensajes_chat_ia`, que el usuario puede
+  borrar: ya no se usa.
+- `preguntar-documentos`: `pregunta` hasta 2000 caracteres y el mismo cupo persistente (30 por hora por defecto,
+  `PREGUNTAR_DOCUMENTOS_LIMITE_HORA`; ver «Lote 90»). Hasta el lote 89 vivía en la memoria del isolate.
 - Toda llamada al proveedor lleva `AbortSignal.timeout(limiteSegundos)` (`_shared/fetch-ia.ts`, tope 90 s) y los
-  embeddings 30 s por request. La rama OpenAI del chat ahora envía `max_tokens` (1024).
+  embeddings 30 s por request. La rama OpenAI del chat envía `max_tokens` (1024). Desde el lote 90 un timeout responde 504
+  (antes 502); ver «Lote 90».
 
 ## `chat-ia-responder`: persistencia y herramientas (MSF-730)
 
@@ -73,12 +77,12 @@ MSF-730; ver «Lote 89» al final.
 Mismo patrón que `chat-ia-responder` e `iniciar-sesion-oauth`, sin cambios de comportamiento ni de contrato HTTP: la lógica
 vive en `handler.ts` (`manejar(req, deps)`) y `index.ts` solo cablea los clientes de Supabase (admin con service-role para
 validar el JWT y resolver política y credencial; usuario con anon + su JWT para la funcionalidad, la búsqueda y las
-versiones), `prepararInvocacion`, los embeddings, el `fetch` con tope de espera, el limitador por usuario (creado una vez por
-isolate, `PREGUNTAR_DOCUMENTOS_LIMITE_HORA`) y el reloj. `handler.ts` no lee entorno ni importa de `npm:`.
+versiones), `prepararInvocacion`, los embeddings, el `fetch` con tope de espera, el tope horario del cupo
+(`PREGUNTAR_DOCUMENTOS_LIMITE_HORA`; el contador vive en la base, lote 90) y el reloj. `handler.ts` no lee entorno ni importa de `npm:`.
 `handler.test.ts` (`pnpm test:edge:preguntar-documentos`) cubre método y CORS, JWT, cuerpo y largo de la pregunta, funcionalidad
-(403/503), límite por usuario (429), política (503), credencial (500), proveedor no soportado (501), errores de embeddings y de
-búsqueda, ausencia de fragmentos o de texto (sin llamar al proveedor), citas sin duplicados, error y timeout del proveedor
-(502) y el cableado de `index.ts`.
+(403/503), cupo por usuario (429 con `Retry-After`, 503 si no se puede consumir), política (503), credencial (500), proveedor no
+soportado (501), errores de embeddings y de búsqueda, ausencia de fragmentos o de texto (sin llamar al proveedor), citas sin
+duplicados, error del proveedor (502), timeout del proveedor o de los embeddings (504) y el cableado de `index.ts`.
 
 ## `indexar-documento` (MSF-728)
 
@@ -205,10 +209,13 @@ override de organización que une el criterio histórico (sufijo `organizacion_i
 
 | Pendiente | Por qué no se hizo | Propuesta |
 |---|---|---|
+| Tope persistente de **correos** a proveedor (MSF-731) | El lote 90 resolvió solo el de IA | Reutilizar `private.consumir_cupo_ia` con otra `funcionalidad` o una tabla propia; hoy `enviar-correo-proveedor` sigue con `_shared/limite-memoria.ts` (20/h por isolate) |
+| `indexar-documento` gasta crédito de embeddings sin cupo (MSF-727, hallazgo de la revisión del lote 90) | Fuera del alcance del lote 90: el cupo cubre `chat-ia-responder` y `preguntar-documentos` | Reutilizar `private.consumir_cupo_ia` con otra `funcionalidad` (por ejemplo `indexar-documento`) y un tope en caracteres o fragmentos por usuario y hora; ver también el tope de texto y de fragmentos de MSF-728 |
+| Cupo de IA por organización (lote 90) | El cupo es por usuario y funcionalidad, no por organización: una organización con N usuarios, o una persona con N cuentas, obtiene 30·N por hora | Decisión consciente del lote 90. Si hace falta un techo por organización: segunda clave (organización) en `private.ia_cupo_uso` o una tabla análoga y consumir ambos cupos en la misma transacción |
+| Logs con `error.message` crudo en funciones fuera de IA (lote 90) | Fuera del alcance del lote 90 (solo IA) | 18 funciones imprimen `error.message` o el error completo en sus `console.error`/`console.warn`, sin `textoDeError` ni `redactarCredenciales`: `api-v1`, `baja-correo-masivo`, `consultar-estado-reparacion`, `cotizacion-sugerida`, `crear-organizacion`, `emitir-acceso-reporte` (errores de Superset), `entregar-webhook`, `enviar-aviso-faltante`, `enviar-correo-proveedor`, `enviar-resumen-reposicion`, `enviar-resumen-semanal`, `invitar-cliente`, `invitar-miembro`, `recalcular-alertas-inicio`, `recuperar-clave-cliente`, `solicitar-acceso`, `tienda-seo` y `verificar-dominio-tienda` (lista obtenida recorriendo todos los `console.*` de `supabase/functions` fuera de IA). **Mayor riesgo:** `enviar-correo-proveedor` y `enviar-aviso-faltante` (errores del cliente SMTP), `entregar-webhook` (imprime el error completo), `api-v1` (imprime objetos de error completos) y `emitir-acceso-reporte` (`causa.message` del flujo de Superset). Pasar los que corresponda por `_shared/log-seguro.ts` |
+| Agendar `private.purgar_cupo_ia` (lote 90) | Sin agendar a propósito | Un flow de Kestra o pg_cron semanal con `select private.purgar_cupo_ia();` como `service_role`; sin purga la tabla crece una fila por usuario, funcionalidad y hora de uso |
 | Agendar el barrido de versiones `procesando` de `indexar-documento` (MSF-728) | La función ya existe (lote 89) pero no está agendada | Un flow de Kestra o pg_cron que llame `public.liberar_versiones_documento_atascadas(30)` con service_role; considerar que la pantalla ofrece «Reintentar» a los 15 minutos y que tras el barrido la versión queda `fallida` (hay que volver a subir el archivo) |
-| Tope persistente de uso de IA y de correos por usuario/organización (MSF-727, MSF-731) | Necesita una tabla y definir los topes por plan | `uso_funciones_edge(usuario_id, organizacion_id, funcion, creado_en)` con RLS, RPC `consumir_cupo_funcion(p_funcion, p_max, p_ventana)` que cuente e inserte en una transacción; reemplaza `_shared/limite-memoria.ts`. Topes por defecto: chat 60/h, preguntas 30/h, correos a proveedor 20/h (los de este lote). Decidir si el tope es por usuario, por organización o por ambos |
 | Historial persistente de envíos a proveedores (MSF-731) | Tabla nueva | `dominio.proveedores_correos_enviados(id, organizacion_id, proveedor_id, usuario_id, asunto, creado_en, resultado)` con RLS por organización y lectura con `proveedores`; la función la escribe con la sesión del usuario |
-| El tope del chat se elude borrando mensajes (MSF-727) | Revocar `DELETE` o mover el contador exige migración (no hay en este lote) | Opción A: `revoke delete on mensajes_chat_ia from authenticated` y una RPC `borrar_conversacion_chat_ia` que archive en vez de borrar. Opción B (preferida, y la misma tabla del tope persistente): `uso_funciones_edge` sin `DELETE` para el usuario, y que el chat cuente ahí |
 | El override de organización del MCP es por nombre de parámetro (MSF-729) | No cubre `id_organizacion`, `tenant_id`, `empresa_id` | El wrapper SQL por acción (fila anterior) es la solución de fondo; abrir ticket y no registrar acciones con esos parámetros hasta tenerlo |
 | Lista negra de columnas secretas en `sanitizarDato` (MSF-730) | Es por nombre, ampliada pero no exhaustiva | La lista permitida por vista (`fuentes_chat_ia.columnas`, lote 89) es el control real; cargarla en cada fuente registrada |
 | Estado `indexando` en `versiones_documento` (MSF-728) | Migración y cambio de `activar_version_documento` | Ampliar el `check` de estado con `indexando` y que `activar_version_documento` lo acepte; con eso el candado deja de usar `motivo_error` (el índice único `(version_id, orden)` ya existe, lote 89) |
@@ -220,7 +227,7 @@ override de organización que une el criterio histórico (sufijo `organizacion_i
 
 ## Verificación
 
-`pnpm test:edge:indexar-documento`, `pnpm test:edge:compartido-ia`, `pnpm test:edge:chat-ia-limites`, `pnpm test:edge:chat-ia-responder`,
+`pnpm test:edge:indexar-documento`, `pnpm test:edge:compartido-ia`, `pnpm test:edge:chat-ia-limites`, `pnpm test:edge:chat-ia-responder`, `pnpm test:edge:preguntar-documentos`,
 `pnpm test:edge:enviar-correo-proveedor`, `pnpm test:edge:crear-organizacion`, `pnpm test:edge:emitir-acceso-reporte`, `pnpm test:edge:iniciar-sesion-oauth`,
 `pnpm test:kestra:correo-masivo`, `pnpm --filter @platform/mcp-server test` y `pnpm --filter @platform/ia test`.
 
@@ -296,3 +303,135 @@ deja de leer datos hasta aplicar la migración).
   y `handler.ts` lo vuelve a validar (`columnasParaSelect`, mismo criterio): una lista inválida responde `FUENTE_NO_DISPONIBLE` sin
   consultar la vista. No se intersecta con las columnas reales (exigiría otra consulta): una columna inexistente da `ERROR_AL_LEER`.
   `sanitizarDato` sigue quitando columnas con nombre de secreto. El contrato HTTP no cambia.
+
+## Lote 90: cupo persistente de IA, timeout y controles previos (MSF-727)
+
+Una sola migración, `20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql` (reaplicable; reversión documentada en el propio
+archivo). Prueba: `supabase/tests/database/lote90_cupo_persistente_de_ia.test.sql` (corre con el rol no superusuario del CI, sin `skip`).
+
+**Qué ya estaba resuelto antes del lote (lote 25) y no se tocó:** verificación de la funcionalidad con el JWT del usuario antes del
+proveedor (`tiene_feature_publica`, función autenticada que ya existía; el lote no creó ni usó ninguna variante anónima), existencia y
+pertenencia de la conversación (404), topes de 4000 caracteres (`mensaje`) y 2000 (`pregunta`), `max_tokens` (1024) en las ramas Anthropic
+y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.timeout` en `fetch-ia.ts` y `embeddings.ts`.
+
+**Qué hace el lote:**
+
+- **Cupo persistente por usuario, funcionalidad y hora.** Tabla `private.ia_cupo_uso (usuario_id, funcionalidad, ventana, usos)` con clave
+  primaria `(usuario_id, funcionalidad, ventana)`, RLS activado y una política que deniega todo a `anon` y `authenticated` (sin privilegios de
+  tabla para ellos; `service_role` solo lee). `private.consumir_cupo_ia(p_usuario, p_funcionalidad, p_limite)` consume un uso de la hora UTC
+  en curso de forma atómica (`insert ... on conflict do update ... where usos < p_limite`) y devuelve `se_consumio`, `usos_actuales` y
+  `segundos_hasta_reinicio`; `public.consumir_cupo_ia` es su envoltorio RPC (solo `service_role`). Probado con 24 sesiones simultáneas
+  contra un tope de 5: se consumieron exactamente 5.
+- **Topes decididos:** 30 consultas por usuario y hora, por funcionalidad (`chat-ia` y `busqueda-documental` se cuentan por separado).
+  Configurables con `CHAT_IA_LIMITE_HORA` y `PREGUNTAR_DOCUMENTOS_LIMITE_HORA`: se acepta un entero de **1 a 1000**; un valor ausente,
+  inválido, decimal, no positivo o **mayor que 1000 vuelve a 30**. La función SQL también rechaza `p_limite` fuera de 1..1000 con 22023
+  (un valor que no entra en `int` o equivale a «sin tope» no llega a la base). Antes: chat 60 por
+  hora contados sobre `mensajes_chat_ia` (que el usuario podía borrar) y preguntas 30 por hora en memoria del isolate.
+- **Orden de los chequeos.** Chat: JWT, cuerpo (longitud), funcionalidad (403/503), conversación existente (404/503), política (503),
+  `prepararInvocacion` (400), credencial (500) y adaptador (501), y **recién entonces el cupo**, justo antes de la primera escritura y de la
+  llamada al proveedor (crear la conversación, guardar el mensaje). Preguntas: JWT, cuerpo, funcionalidad, política, credencial, proveedor
+  soportado (501) y cupo, justo antes del embedding. Una petición inválida o una configuración que falta no gasta cupo, y un 429 no crea
+  conversaciones ni mensajes. Cambio de contrato: los rechazos 400/500/501 del chat ya no guardan un mensaje `fallida` ni crean conversación
+  (el cuerpo incluye `conversacion_id` solo si el cliente la había enviado). En su lugar dejan un **log de servidor** con prefijo
+  `[chat-ia-responder] configuración de la plataforma:` y el motivo (`credencial_no_disponible`, `adaptador_no_soportado:<adaptador>` o
+  `politica_invalida:<código>`), sin la clave, el contenido del mensaje ni datos del usuario; un error de entrada del cliente (esquema,
+  organización) no se registra. Un fallo del cupo deja el log `[cupo-ia]` con la funcionalidad y: si la RPC LANZÓ o rechazó la promesa (red, `fetch`), solo el
+  nombre y el código del error (`textoDeError`, sin mensaje ni URL); si la RPC DEVOLVIÓ un error de Postgres/PostgREST (23503, 22023,
+  `permission denied`…), su código y su mensaje saneado (sin el id del usuario, uuids y correos tachados, credenciales y URLs redactadas) y acotado a 300.
+  **Higiene de los logs** (`supabase/functions/_shared/log-seguro.ts`): (1) los errores del proveedor, de red/`fetch`, las excepciones de la RPC
+  de cupo e inesperados se registran con `textoDeError`, que deja solo el nombre del error (`TypeError`, `AbortError`) y un `code` corto de
+  caracteres simples (o el código propio de la plataforma, como `EMBEDDING_PROVEEDOR_IA_TIMEOUT`): nunca el mensaje, la `cause` ni la URL,
+  que pueden traer claves; un nombre o `code` con `sk-`, `eyJ` o `Bearer` se omite; (2) el resto de los datos variables pasa por
+  `limpiarParaLog` (recorta antes de limpiar; una sola línea: saltos, controles, NUL y U+2028/U+2029 por un espacio; sin par sustituto partido
+  al final; el `max` se normaliza igual en `limpiarParaLog` y `mensajeParaLog`: entero finito >= 0, los decimales se truncan y cualquier otro
+  valor usa 300; adaptador y códigos a 64, mensajes a 300); (3) los mensajes que DEVUELVE la base (verificación de funcionalidad, error al
+  marcar la versión fallida, búsqueda, creación de la conversación, error de la RPC de cupo) pasan además por `redactarCredenciales` (recorta con margen sin token parcial → redacta → recorte final): URL de cualquier esquema (`https://`, `postgres://`…), JWT (segmentos de hasta 2000 caracteres), `Bearer`, `sk-…`
+  (que ocultan solo el token) y campos sensibles (`password`, `passwd`, `secret`, `token`, `apikey`, `api_key`, `api-key`, `authorization`,
+  `credential`, `cookie`, también con el nombre embebido en uno más largo como `sb-access-token` y con comillas o barras invertidas de JSON
+  como `\"api_key\":`): **a partir de la primera aparición de un campo sensible seguido de `:` o `=` se oculta TODO el resto del mensaje**
+  (`campo: [oculto]`), porque no se intenta adivinar dónde termina un valor con espacios, comillas o JSON escapado; se pierde contexto a
+  propósito. `redactarCredenciales` acota su entrada a 4000 caracteres antes de cualquier regex (la salida no pasa de unas pocas veces ese
+  tope) y los cuantificadores de los patrones (segmentos del JWT a 2000, esquema de URL a 30, sufijo del nombre de campo a 40, comillas a 4 y espacios a 16: todos con su borde fijado por tests de tabla n-1/n/n+1; el prefijo del nombre es solo un tope de rendimiento sin efecto observable); no se afirma que cada
+  regex sea lineal (el JWT no lo es) sino que el tiempo está acotado por construcción, medido con 200k caracteres hostiles por variante
+  (decenas de milisegundos, aun en frío). La redacción **no es exhaustiva**: no cubre `AIza…`, `xoxb-…`, `ghp_…`, `Cookie:` sin nombre de campo ni base64 sin prefijo, tampoco nombres como `pwd=`, `pass=`, `passphrase:`, `private_key=`, `access_key=` o `session=`, una frase sin separador (`password is x`) ni un `)` entre el nombre y el `=` (`Key (token)=(x)`),
+  y los errores de red o del proveedor no imprimen mensaje; (4) en `[cupo-ia]` se tachan,
+  antes de acotar a 300, el uuid del usuario (sin distinguir mayúsculas), cualquier otro uuid, con o sin guiones (`[uuid]`), y los correos
+  (`[correo]`). Como el tachado precede al recorte, un uuid completo nunca queda cortado por él y no se descarta nada al final (hacerlo
+  borraría texto legítimo como `commit deadbeef`); (5) los helpers de `log-seguro.ts` y los `catch` de `embeddings.ts` y `packages/ia` leen los
+  campos de un error sin lanzar (getters o `Proxy` hostiles), porque se usan dentro de bloques `catch`.
+  **Logs del chat y de preguntar-documentos:** cada rama y si deja log están en la tabla «Ramas de los handlers y logs» al final de esta sección.
+  **Orden de recorte y redacción por rama.** El recorte PREVIO a una redacción descarta el último token parcial
+  (`recortarSinTokenParcial`): si el texto excede el tope, se corta y se retrocede hasta el último blanco, salvo que el carácter siguiente al corte
+  sea un blanco (el último token está completo); si el tramo no tiene ningún blanco se descartan sus últimos 64 caracteres. Así un secreto cortado
+  a la mitad por el margen, que los patrones ya no reconocen, no deja su prefijo cuando una redacción posterior (una URL larga, por ejemplo)
+  acorta el texto. El recorte FINAL nunca lo aplica. Por helper: `limpiarParaLog` (recorte final: `slice(max*4)`, aplanar y `slice(max)`, sin descarte
+  de token; sin cambios); `mensajeParaLog` = recorte previo a `max*4` sin token parcial, aplanado, redacción y recorte final a `max`;
+  `redactarCredenciales` = recorte previo a 4000 sin token parcial y redacción; `describirError` (RPC de cupo, objeto de error o string) = recorte
+  previo a 2000 sin token parcial, aplanado, redacción, tachado del usuario, de uuids y de correos, y recorte final a 300; `registrarErrorDeBase` =
+  `code` a 64 sin redacción (código corto de la base) y el mensaje por `mensajeParaLog(…, 300)`; los logs de adaptador y proveedor (64) pasan solo por
+  `limpiarParaLog` porque son valores de configuración de la plataforma; `textoDeError` no imprime texto libre. Un texto largo sin blancos (por
+  ejemplo 3000 caracteres) pierde los últimos 64 del tramo previo y sale igual a 300.
+  **Alcance de la regla:** vale para `chat-ia-responder`, `preguntar-documentos`, `indexar-documento` (handler, `fragmentos.ts`, `index.ts`) y
+  `_shared/cupo-ia.ts`. Quedan fuera, por no tener datos variables, `_shared/token.ts` (`console.warn` con un texto fijo) y, por no correr en
+  producción, `_shared/verificacion/smtp-real.deno.ts` (script manual de verificación). Las demás funciones fuera de IA siguen imprimiendo
+  `error.message` (ver «Pendientes»).
+  **Volumen:** son una línea por petición fallida, acotada en longitud y sin datos del usuario ni del contenido;
+  con la base caída pueden repetirse una vez por petición y no hay limitador (el volumen lo acota el tamaño del tráfico, y el cupo no
+  aplica si la RPC falla). Los logs de persistencia (crear la conversación, guardar el mensaje del usuario o la respuesta) quedan acotados por el
+  cupo (30 por usuario, hora y funcionalidad): un cliente puede forzarlos con un mensaje válido que la base rechace (por ejemplo, con un NUL)
+  y el cupo lo limita. Los logs de credencial y de proveedor no soportado van antes del cupo, pero solo se emiten con la plataforma mal
+  configurada. Si se vuelve un problema, el seguimiento es agregar un limitador por minuto.
+  **Costo de ese orden:** un usuario sin cupo paga `prepararInvocacion` y `obtener_clave_perfil_ia` (una lectura que descifra la clave del
+  proveedor) en CADA petición antes de recibir el 429. Es solo lectura y no llama al proveedor, y los 500/501 solo ocurren con la
+  plataforma mal configurada. Se descartó un cupo previo «suave» antes de esas lecturas porque rompería la regla de que un 400/500/501 no
+  gasta cupo.
+- **Qué cuenta como un uso.** (a) El uso se consume ANTES de llamar al proveedor y **no se reintegra**: un error, un timeout (504) o un 502 del
+  proveedor ya gastaron ese uso. (b) Una unidad de cupo es **una petición HTTP**: el chat puede hacer hasta 2 llamadas al proveedor (la
+  consulta y el ciclo de la herramienta `leer`) por un solo uso. (c) El cupo es **por usuario y por funcionalidad, no por organización**: una
+  organización con N usuarios, o una persona con N cuentas, obtiene 30·N por hora; el techo por organización queda como seguimiento.
+- **Cupo agotado:** 429 con `Retry-After` (segundos hasta la próxima hora en punto UTC) y mensaje en español, sin llamar al proveedor ni crear
+  nada. **Falla cerrado:** si la base no responde, la RPC lanza o rechaza la promesa, o la respuesta no se entiende, 503 «No se pudo verificar tu cuota de uso.» y no se gasta crédito.
+- **Timeout.** `invocarProveedorIa` y `descubrirModelos` (`packages/ia`) aceptan `{ timeoutMs }` opcional (agregan `AbortSignal.timeout`) y
+  convierten el tiempo agotado en `INVOCACION_PROVEEDOR_IA_TIMEOUT` / `DESCUBRIMIENTO_MODELOS_IA_TIMEOUT`; `embeddings.ts` en
+  `EMBEDDING_PROVEEDOR_IA_TIMEOUT`. Las funciones responden **504** «El proveedor de IA tardó demasiado en responder, probá de nuevo.» (antes
+  502) sin detalle del proveedor. Los dos handlers siguen inyectando `fetchConTimeout`, así que el tope real sigue siendo el de la política
+  (máximo 90 s). Cambio de contrato: el 504 es nuevo; el resto de los estados no cambió.
+- **Purga:** `private.purgar_cupo_ia(p_dias int default 2)` borra las ventanas anteriores a `p_dias` días (idempotente, devuelve cuántas borró).
+  **No está agendada.** Invocar como `service_role` o dueño: `select private.purgar_cupo_ia();`. Agendarla queda como seguimiento.
+- **Sin auditoría de consumo.** Existe `ia_interacciones` (`actor_id`, `consumidor_codigo`, `iniciada_en`), pero no se usó: es la máquina de
+  estados de la capacidad de IA gobernada (una fila por ejecución con política, perfil, `idempotency_key` única por consumidor, estados y
+  purga de evidencia) y ni `chat-ia-responder` ni `preguntar-documentos` escriben en ella. Guarda estados por ejecución, no un contador atómico por usuario y hora,
+  y no cubre las peticiones rechazadas antes de invocar. `ia_cupo_uso` guarda solo los
+  contadores de la hora y se purga. Tampoco `ia_consulta_registro` sirve: esa migración (`20270224110100_ia_consulta_registro.sql`) y su test registran las cuatro fuentes de consulta del asistente (insertan en `features`, `eventos_features`, `fuentes_chat_ia`, `fuentes_mcp`, `capacidades_chat_ia` y `capacidades_mcp`), no crean ninguna tabla de uso.
+
+**Ramas de los handlers y logs** (verificada recorriendo ambos handlers; cada fila «sí» tiene una prueba que fija el contenido del log):
+
+| Handler | Rama | Estado | ¿Log de servidor? |
+|---|---|---|---|
+| ambos | método distinto de POST; cuerpo no JSON; cuerpo inválido (mensaje o pregunta vacíos o largos, `conversacion_id` inválido) | 400 | no |
+| ambos | sin Authorization, o JWT inválido | 403 | no |
+| ambos | verificación de la funcionalidad falla | 503 | sí (mensaje de la base redactado) |
+| ambos | la organización no tiene la funcionalidad | 403 | no |
+| chat | verificación de la conversación falla | 503 | sí (código y mensaje redactado) |
+| chat | la conversación no existe o no es del usuario | 404 | no |
+| ambos | política sin configurar | 503 | no |
+| chat | `prepararInvocacion` rechaza | 400 | solo si el código es de política o perfil mal configurados (`politica_invalida:<código>`); los errores del cliente (esquema, organización) no |
+| preguntar | `prepararInvocacion` rechaza | 400 | no |
+| ambos | credencial no disponible | 500 | sí (`credencial_no_disponible`) |
+| ambos | adaptador o proveedor no soportado | 501 | sí (`adaptador_no_soportado:<nombre>` o `proveedor_no_soportado:<nombre>`) |
+| ambos | cupo agotado | 429 | no |
+| ambos | no se pudo consumir el cupo | 503 | sí (`[cupo-ia]`) |
+| chat | no se pudo crear la conversación, guardar el mensaje o guardar la respuesta | 500 | sí |
+| chat | fallo del proveedor (1.ª y 2.ª llamada, Anthropic y OpenAI) | 502 o 504 | sí (nombre y código) |
+| preguntar | fallo del embedding o del proveedor de generación | 502 o 504 | sí (nombre y código) |
+| preguntar | falla la búsqueda en la base | 500 | sí (código y mensaje redactado) |
+| chat | error inesperado | 500 | sí (nombre y código) |
+| ambos | respuesta correcta | 200 | no |
+
+**Orden de despliegue:** aplicar la migración ANTES de desplegar `chat-ia-responder` y `preguntar-documentos`. Si una función sale primero,
+`public.consumir_cupo_ia` no existe y toda consulta responde 503 (falla cerrado: no se gasta crédito, pero el chat y la búsqueda
+documental quedan sin servicio hasta aplicar la migración).
+
+**Reversión: advertencia.** Revertir quita el único cupo persistente: hay que volver a desplegar antes las versiones anteriores de las dos
+funciones y después borrar la tabla y las funciones (pasos en el encabezado de la migración). Con las versiones anteriores vuelve el tope de
+mejor esfuerzo (mensajes borrables y contador por isolate) y se reabre el hueco de gasto de crédito del proveedor sin cuota real.
