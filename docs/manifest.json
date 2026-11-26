@@ -223,9 +223,9 @@
     },
     "docs/adoptar-runners-locales.md": {
       "title": "Adoptar los runners locales optimizados",
-      "pageHash": "800dba16e27b51e1a8b6b5d603232118d91562f47d6673b878646e515c06ad42",
-      "sourceHash": "e5a799488e1cda8d67feeefe573ee1f980f5f89dc6db1d9e5943a7e5683bb1b7",
-      "sourceAt": "6776fb4d",
+      "pageHash": "ef8896d02156733a8f113103b02fdf30cfb473222197c347097d812e618b721d",
+      "sourceHash": "256a55964e2d8435c1e2ecd1e9f2d8ca65395be2931cacba26026be3b004d02c",
+      "sourceAt": "6776fb4d3",
       "sources": [
         "specs/20260925-221701-optimizar-runners-locales",
         "infra/runner/compose.yaml",
@@ -233,7 +233,7 @@
         "template-capabilities.json"
       ],
       "owner": "plataforma",
-      "commit": "6776fb4d"
+      "commit": "6776fb4d3"
     },
     "docs/adoptar-tooling-typescript.md": {
       "title": "Adoptar tooling Node/TypeScript en un producto derivado",
@@ -712,9 +712,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "63ecd026d15e289fd5be483bf6d69b8f9987c2ad70091a52aeb6af9927e54195",
-      "sourceHash": "c492ad7094a299f098c9e10280c071e43ac3b579be4cf1f76a0a914d55c62516",
-      "sourceAt": "5800b0d79",
+      "pageHash": "645d6027965c20b53adc9f2e1c35e6a31ce6fa42c69886617c96b95823bd2c26",
+      "sourceHash": "bcb4d9f52330eec80140ed1cdb8c61e1b6d5ea6fe6097a39717295b67009253a",
+      "sourceAt": "7767147ff",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -726,7 +726,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "5800b0d79"
+      "commit": "7767147ff"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -893,9 +893,9 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "2ec5295a533d6d78d39ecb108c0e6d1031f2dab72864b19a1050f88d643bf40e",
-      "sourceHash": "2dae8d3e8a93117ad735738f9bd703217af7a19a2af90693859f569f0e3c84f4",
-      "sourceAt": "47f03f09a",
+      "pageHash": "372aefa083eb1ed08e649b6557b42bbe927d4aba85dc34904e3a2dc2f2f664c0",
+      "sourceHash": "9745e88e96e88911abe3807b21e85a79046bcbcb5d843834ba165e000496b8fc",
+      "sourceAt": "07661f192",
       "sources": [
         "scripts/preflight-deploy-vps.mjs",
         "scripts/deploy-vps.mjs",
@@ -912,7 +912,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "tecnico",
-      "commit": "47f03f09a"
+      "commit": "07661f192"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -1146,13 +1146,14 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "5d713c0a47e218dfefe41d1e663476239dd70135eca0fd8e746d08f5a9c8b8a2",
-      "sourceHash": "e78fd0a5ca35a09065a939968da366e2c2d33cbdbd502c9bf633d3995064a2ed",
+      "pageHash": "6ac9612a1567c0a20819b51ddd03f04d98371c35fa7a13af00e35ab57ec2c66d",
+      "sourceHash": "af6a14b66c9a0be29c6d0543b2eb434b40cf548403de81f60e7a3511f1965bf6",
       "sourceAt": "3fcfd1399",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/chat-ia-responder/handler.ts",
         "supabase/functions/preguntar-documentos/index.ts",
+        "supabase/functions/preguntar-documentos/handler.ts",
         "supabase/functions/indexar-documento/handler.ts",
         "supabase/functions/indexar-documento/consultas.ts",
         "supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql",

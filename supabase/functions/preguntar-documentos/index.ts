@@ -1,174 +1,29 @@
-// Contrato: ver spec del mecanismo de búsqueda documental genérica en
-// este template (sección "Contrato de búsqueda").
+// Contrato: ver spec del mecanismo de búsqueda documental genérica en este template (sección "Contrato de búsqueda").
 //
-// Embebe la pregunta, busca fragmentos relevantes (solo de versiones
-// activas, solo de la organización del usuario — vía RLS, nunca
-// service-role) y genera una respuesta citando los documentos de origen.
-// Si nada supera el umbral, responde que no encontró información sin
-// llamar al proveedor de generación.
+// La lógica vive en handler.ts (probada con `pnpm test:edge:preguntar-documentos`); acá solo se cablean los clientes
+// reales. Nunca service-role para datos de negocio: lo del usuario va con la clave anon y su JWT (RLS decide) y la
+// service-role queda en el cliente admin (validar el JWT y resolver política/credencial).
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { prepararInvocacion, invocarProveedorIa, type ContratoConsumidor, type PerfilModelo } from '../_shared/ia/index.ts'
+import { prepararInvocacion } from '../_shared/ia/index.ts'
 import { generarEmbedding } from '../_shared/embeddings.ts'
 import { fetchConTimeout } from '../_shared/fetch-ia.ts'
-import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
 import { crearLimitador, enteroPositivo } from '../_shared/limite-memoria.ts'
-import { armarContexto } from './contexto.ts'
+import { manejar, type Deps } from './handler.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-function jsonResponse(body: unknown, status: number) {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-}
-
-const CONSUMIDOR_CODIGO = 'rag-busqueda-documental'
-const UMBRAL_SIMILITUD = 0.5
-const K_FRAGMENTOS = 6
-const PREGUNTA_MAX = 2000
-const MAX_TOKENS_RESPUESTA = 1024
 // Mejor esfuerzo por isolate (ver _shared/limite-memoria.ts); la cuota persistente por usuario queda como pendiente.
 const limitador = crearLimitador({ max: enteroPositivo(Deno.env.get('PREGUNTAR_DOCUMENTOS_LIMITE_HORA'), 30), ventanaMs: 60 * 60 * 1000 })
 
-const CONTRATO: ContratoConsumidor = {
-  codigo: CONSUMIDOR_CODIGO,
-  version: 1,
-  esquemaEntrada: { type: 'object', properties: { pregunta: { type: 'string' } }, required: ['pregunta'] },
-  esquemaSalida: { type: 'object', properties: { respuesta: { type: 'string' } }, required: ['respuesta'] },
-  datosPermitidos: ['pregunta', 'organizacion_id'],
-  limiteIntentos: 1,
-  limiteSegundos: 60,
-  claveAislamientoOrganizacion: 'organizacion_id',
-}
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  if (req.method !== 'POST') return jsonResponse({ error: 'Método no soportado, usar POST.' }, 400)
-
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-
-  const admin = createClient(supabaseUrl, serviceRoleKey)
-  const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
-  if (!jwt) return jsonResponse({ error: 'No autorizado' }, 403)
-
-  const { data: callerData, error: callerError } = await admin.auth.getUser(jwt)
-  if (callerError || !callerData?.user) return jsonResponse({ error: 'No autorizado' }, 403)
-
-  let body: { pregunta?: unknown } | null
-  try {
-    body = await req.json()
-  } catch {
-    return jsonResponse({ error: 'Cuerpo inválido: se esperaba JSON.' }, 400)
+Deno.serve((req) => {
+  const deps: Deps = {
+    crearAdmin: () => createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!),
+    crearCliente: (jwt) => createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: `Bearer ${jwt}` } },
+    }),
+    prepararInvocacion,
+    generarEmbedding,
+    fetchProveedor: (limiteSegundos) => fetchConTimeout(limiteSegundos),
+    limitador,
+    ahora: () => Date.now(),
   }
-  const pregunta = typeof body?.pregunta === 'string' ? body.pregunta : ''
-  if (!pregunta.trim()) return jsonResponse({ error: 'Falta "pregunta".' }, 400)
-  if (pregunta.length > PREGUNTA_MAX) return jsonResponse({ error: `La pregunta admite hasta ${PREGUNTA_MAX} caracteres.` }, 400)
-
-  const asUser = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${jwt}` } } })
-
-  // Antes de gastar crédito (embedding y generación): la organización del usuario debe tener la funcionalidad
-  // `busqueda-documental` (verificada con su propio JWT) y el usuario no puede estar abusando de la función.
-  const featureDocs = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'busqueda-documental' })
-  if (featureDocs.error) console.error('preguntar-documentos: no se pudo verificar la funcionalidad', featureDocs.error.message)
-  const sinDocs = rechazoPorFuncionalidad(featureDocs, { noHabilitada: 'La búsqueda documental no está habilitada para tu organización.', noVerificable: 'No se pudo verificar la funcionalidad de búsqueda documental.' })
-  if (sinDocs) return jsonResponse({ error: sinDocs.error }, sinDocs.status)
-  if (!limitador.consumir(callerData.user.id)) return jsonResponse({ error: 'Hiciste demasiadas preguntas en poco tiempo. Probá de nuevo más tarde.' }, 429)
-
-  const { data: politicaFilas, error: politicaError } = await admin.rpc('resolver_politica_ia', { p_codigo: CONSUMIDOR_CODIGO })
-  const politica = politicaFilas?.[0]
-  if (politicaError || !politica) {
-    return jsonResponse({ error: 'Búsqueda documental no está configurada todavía: falta una política aprobada para "rag-busqueda-documental". Un superadmin debe crearla en /ia/contratos y /ia/politicas.' }, 503)
-  }
-
-  let entradaSanitizada: Record<string, unknown>
-  try {
-    entradaSanitizada = prepararInvocacion(
-      CONTRATO,
-      {
-        id: politica.politica_id,
-        contratoId: politica.contrato_id,
-        perfilPrincipalId: politica.perfil_principal_id,
-        estado: 'aprobada',
-        limiteIntentos: politica.limite_intentos,
-        limiteSegundos: politica.limite_segundos,
-        perfilFallbackId: politica.perfil_fallback_id,
-      },
-      { pregunta },
-      // 0, no 1: intentos ya consumidos antes de esta llamada (mismo bug
-      // real encontrado y corregido en chat-companion-mechanism).
-      0,
-      new Date(),
-    )
-  } catch (error) {
-    return jsonResponse({ error: error instanceof Error ? error.message : 'ENTRADA_IA_INVALIDA' }, 400)
-  }
-
-  const { data: credencialFilas, error: credencialError } = await admin.rpc('obtener_clave_perfil_ia', { p_perfil_id: politica.perfil_principal_id })
-  const credencial = credencialFilas?.[0]
-  if (credencialError || !credencial) return jsonResponse({ error: 'No se pudo resolver la credencial del proveedor de IA.' }, 500)
-
-  if (credencial.proveedor_codigo !== 'openai') {
-    return jsonResponse({ error: `Búsqueda documental todavía no soporta el proveedor "${credencial.proveedor_codigo}" — solo OpenAI por ahora.` }, 501)
-  }
-
-  let embeddingPregunta: number[]
-  try {
-    embeddingPregunta = await generarEmbedding(String(entradaSanitizada.pregunta), credencial.clave)
-  } catch {
-    return jsonResponse({ error: 'No pude procesar la pregunta, probá de nuevo.' }, 502)
-  }
-
-  const { data: fragmentos, error: busquedaError } = await asUser.rpc('buscar_fragmentos', {
-    p_embedding: `[${embeddingPregunta.join(',')}]`,
-    p_umbral: UMBRAL_SIMILITUD,
-    p_k: K_FRAGMENTOS,
-  })
-  if (busquedaError) return jsonResponse({ error: 'No pude buscar en los documentos.' }, 500)
-
-  // Sin fragmentos por encima del umbral, no se llama al proveedor de
-  // generación — se responde directo que no hay información.
-  if (!fragmentos || fragmentos.length === 0) {
-    return jsonResponse({ respuesta: 'No encontré información relevante en los documentos para responder eso.', documentos_citados: [] }, 200)
-  }
-
-  const { data: versionesPorFragmento } = await asUser
-    .from('versiones_documento')
-    .select('id, documento_id')
-    .in('id', [...new Set(fragmentos.map((f: { version_id: string }) => f.version_id))])
-
-  const documentoPorVersion = new Map((versionesPorFragmento ?? []).map((v: { id: string; documento_id: string }) => [v.id, v.documento_id]))
-  const documentosCitados = [...new Set(fragmentos.map((f: { version_id: string }) => documentoPorVersion.get(f.version_id)).filter(Boolean))] as string[]
-
-  // Si ningún fragmento trae texto no se llama al proveedor de generación (MSF-725).
-  const contexto = armarContexto(fragmentos)
-  if (!contexto) {
-    return jsonResponse({ respuesta: 'No encontré información relevante en los documentos para responder eso.', documentos_citados: [] }, 200)
-  }
-
-  const perfil: PerfilModelo = { id: politica.perfil_principal_id, proveedorCodigo: credencial.proveedor_codigo, modeloId: credencial.modelo_id }
-
-  let textoFinal: string
-  try {
-    const respuesta = await invocarProveedorIa(
-      perfil,
-      credencial.clave,
-      {
-        model: perfil.modeloId,
-        max_tokens: MAX_TOKENS_RESPUESTA,
-        messages: [
-          { role: 'system', content: 'Respondé la pregunta del usuario usando únicamente el contexto provisto. Si el contexto no alcanza, decí que no encontraste la información.' },
-          { role: 'user', content: `Contexto:\n${contexto}\n\nPregunta: ${entradaSanitizada.pregunta}` },
-        ],
-      },
-      fetchConTimeout(Math.min(Number(politica.limite_segundos) || CONTRATO.limiteSegundos, 90)),
-    ) as { choices: Array<{ message: { content: string } }> }
-    textoFinal = respuesta.choices?.[0]?.message?.content ?? 'No pude generar una respuesta.'
-  } catch {
-    return jsonResponse({ error: 'No pude obtener una respuesta del proveedor de IA, probá de nuevo.' }, 502)
-  }
-
-  return jsonResponse({ respuesta: textoFinal, documentos_citados: documentosCitados }, 200)
+  return manejar(req, deps)
 })
