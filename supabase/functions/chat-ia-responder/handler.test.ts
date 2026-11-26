@@ -325,6 +325,16 @@ describe('funcionalidad, cuota y política (antes de gastar crédito)', () => {
     }
   })
 
+  it('el header Retry-After del 429 es el entero hacia arriba de los segundos hasta el reinicio (entre 1 y 3600) y 3600 si no se entiende', async () => {
+    const casos: Array<[unknown, string]> = [[1, '1'], [0.5, '1'], [1.2, '2'], [59.01, '60'], [3600, '3600'], [null, '3600'], ['Infinity', '3600'], [0, '3600']]
+    for (const [segundos, esperado] of casos) {
+      const { res, r } = await llamar({ cupo: { data: [{ se_consumio: false, usos_actuales: 30, segundos_hasta_reinicio: segundos }], error: null } })
+      assert.equal(res.status, 429)
+      assert.equal(res.headers.get('Retry-After'), esperado, `segundos=${String(segundos)}`)
+      assert.equal(r.pedidos.length, 0)
+    }
+  })
+
   it('un error al consumir el cupo responde 503 sin dejar pasar ni llamar al proveedor', async () => {
     for (const cupo of [{ data: null, error: { message: 'detalle-interno-db' } }, { data: [], error: null }, { data: null, error: null }, { data: [{ se_consumio: 'si' }], error: null }]) {
       const { res, r, json } = await llamar({ cupo })

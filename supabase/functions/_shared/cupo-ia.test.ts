@@ -32,8 +32,15 @@ describe('rechazoPorCupo', () => {
   it('429 con Retry-After (segundos hasta el reinicio) si se agotó', async () => {
     assert.deepEqual(await rechazoPorCupo(admin({ data: [{ se_consumio: false, usos_actuales: 30, segundos_hasta_reinicio: 1234 }], error: null }), 'u1', 'chat-ia', 30, textos), { status: 429, error: 'agotado', retryAfter: 1234 })
   })
-  it('429 con 3600 si el reinicio no es interpretable', async () => {
-    for (const s of [null, 'x', 0, -4]) assert.equal((await rechazoPorCupo(admin({ data: [{ se_consumio: false, segundos_hasta_reinicio: s }], error: null }), 'u', 'f', 1, textos))?.retryAfter, 3600)
+  it('Retry-After: entero hacia arriba y entre 1 y 3600; lo no interpretable cae a 3600', async () => {
+    const casos: Array<[unknown, number]> = [
+      [1, 1], [0.5, 1], [0.0001, 1], [1.2, 2], [59.01, 60], [60, 60], ['90.5', 91], [1234, 1234], [3600, 3600], [3599.2, 3600], [5000, 3600],
+      [null, 3600], ['x', 3600], [0, 3600], [-4, 3600], [Number.NaN, 3600], [Number.POSITIVE_INFINITY, 3600], ['Infinity', 3600], [undefined, 3600], [{}, 3600],
+    ]
+    for (const [valor, esperado] of casos) {
+      const r = await rechazoPorCupo(admin({ data: [{ se_consumio: false, segundos_hasta_reinicio: valor }], error: null }), 'u', 'f', 1, textos)
+      assert.equal(r?.retryAfter, esperado, `segundos_hasta_reinicio=${String(valor)}`)
+    }
   })
   it('503 (falla cerrado, sin detalle) si la RPC lanza, rechaza la promesa o devuelve NULL/formas raras', async () => {
     const esperado = { status: 503, error: 'No se pudo verificar tu cuota de uso.' }

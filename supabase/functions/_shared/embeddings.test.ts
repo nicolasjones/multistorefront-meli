@@ -41,6 +41,19 @@ describe('generarEmbeddings', () => {
     await assert.rejects(generarEmbeddings(['a'], 'k', { fetchFn }), (e: Error) => e.message === 'EMBEDDING_PROVEEDOR_IA_TIMEOUT' && !/detalle-interno/.test(e.message))
   })
 
+  it('un fetch abortado (AbortError) también es EMBEDDING_PROVEEDOR_IA_TIMEOUT, sin filtrar el detalle del error original', async () => {
+    const errores = [new DOMException('detalle-interno-1', 'AbortError'), Object.assign(new Error('detalle-interno-2'), { name: 'AbortError' }), { name: 'AbortError', message: 'detalle-interno-3' }]
+    for (const original of errores) {
+      const fetchFn: FetchEmbeddings = () => Promise.reject(original)
+      await assert.rejects(generarEmbeddings(['a'], 'k', { fetchFn }), (e: Error) => e.message === 'EMBEDDING_PROVEEDOR_IA_TIMEOUT' && !/detalle-interno/.test(String(e.message)))
+    }
+  })
+
+  it('otros errores del fetch se propagan sin convertirse en timeout', async () => {
+    const fetchFn: FetchEmbeddings = () => Promise.reject(new Error('red caída'))
+    await assert.rejects(generarEmbeddings(['a'], 'k', { fetchFn }), { message: 'red caída' })
+  })
+
   it('falla si el proveedor responde con error o con otra cantidad de vectores', async () => {
     await assert.rejects(generarEmbeddings(['a'], 'k', { fetchFn: falso({ status: 429 }).fetchFn }), /FALLO_429/)
     const corto: FetchEmbeddings = async () => ({ ok: true, status: 200, json: async () => ({ data: [] }) })
