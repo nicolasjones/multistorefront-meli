@@ -1154,9 +1154,9 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "01abeb624039f4feee0f77f53f1285a15e1cc9fd5b2e749c202bb6d4c66d1902",
-      "sourceHash": "d1d0b0997b56bf870a0a18ad1a7dae585425bd4441c78f16754de78f71b81587",
-      "sourceAt": "e7a004bc1",
+      "pageHash": "71071b6165fb48dbebd32763453194356e309031ff6968bd399df6fe174446eb",
+      "sourceHash": "6398974bb4790b010f9ff4916baddc2660354b4cb2e095aa83caa7b90f2f01ef",
+      "sourceAt": "46dd13d89",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/chat-ia-responder/handler.ts",
@@ -1169,12 +1169,12 @@
         "supabase/functions/enviar-correo-proveedor/handler.ts",
         "supabase/functions/_shared/embeddings.ts",
         "supabase/functions/_shared/fetch-ia.ts",
-        "supabase/functions/_shared/limite-memoria.ts",
         "supabase/functions/_shared/cupo-ia.ts",
         "supabase/functions/_shared/log-seguro.ts",
         "supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql",
         "supabase/migrations/20270508000000_registro_de_envios_de_correo_a_proveedores.sql",
         "supabase/functions/enviar-correo-proveedor/index.ts",
+        "supabase/functions/enviar-correo-proveedor/cupo.ts",
         "supabase/functions/recuperar-clave-cliente/handler.ts",
         "packages/ia/src/proveedores/index.ts",
         "supabase/functions/_shared/token.ts",
@@ -1185,7 +1185,7 @@
         "infra/kestra/flows/correo-masivo.yml"
       ],
       "owner": "plataforma",
-      "commit": "e7a004bc1"
+      "commit": "46dd13d89"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",
