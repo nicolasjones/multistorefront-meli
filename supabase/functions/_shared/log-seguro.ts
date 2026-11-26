@@ -42,6 +42,7 @@ export function recortarSinTokenParcial(texto: string, max: number): string {
   if (texto.length <= max) return texto
   if (BLANCO.test(texto.charAt(max))) return texto.slice(0, max)
   const corte = texto.slice(0, max)
+  // (Empezar en `corte.length` en vez de `corte.length - 1` es equivalente: `charAt(length)` es '' y no es un blanco.)
   for (let i = corte.length - 1; i >= 0; i--) if (BLANCO.test(corte.charAt(i))) return corte.slice(0, i)
   return corte.slice(0, Math.max(0, max - COLA_SIN_BLANCOS))
 }
@@ -114,6 +115,7 @@ export function redactarCredenciales(texto: string): string {
 // el descarte del token parcial evita que un secreto cortado por el margen deje su prefijo si una redacción posterior acorta el texto.
 export function mensajeParaLog(valor: unknown, max: number): string {
   const tope = normalizarMax(max)
+  // El segundo `tope * 4` (el tope del aplanado) es equivalente a cualquier valor mayor: el texto ya viene recortado a `tope * 4` por el helper.
   const previo = limpiarParaLog(recortarSinTokenParcial(aTexto(valor), tope * 4), tope * 4)
   return limpiarParaLog(redactarCredenciales(previo), tope)
 }

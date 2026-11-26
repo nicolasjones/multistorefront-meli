@@ -470,6 +470,7 @@ describe('recortarSinTokenParcial (recorte PREVIO a la redacción)', () => {
     { nombre: 'solo un tabulador como blanco', texto: 'abc\tdefghij', max: 8, esperado: 'abc' },
     { nombre: 'solo un NUL (control) como blanco', texto: 'abc\u0000defghij', max: 8, esperado: 'abc' },
     { nombre: 'blanco en el carácter siguiente al corte (salto de línea)', texto: 'abcdefg\nhij', max: 7, esperado: 'abcdefg' },
+    { nombre: 'un blanco solo en la posición 0 cuenta como blanco (se retrocede hasta él)', texto: ` ${'a'.repeat(200)}`, max: 100, esperado: '' },
     { nombre: 'sin blancos: se descartan los últimos 64', texto: 'a'.repeat(200), max: 100, esperado: 'a'.repeat(36) },
     { nombre: 'sin blancos y max menor que 64: vacío', texto: 'a'.repeat(200), max: 40, esperado: '' },
     { nombre: 'sin blancos, largo = max + 1', texto: 'a'.repeat(101), max: 100, esperado: 'a'.repeat(36) },
