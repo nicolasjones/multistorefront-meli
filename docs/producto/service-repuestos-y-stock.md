@@ -1,6 +1,16 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/lib/reparacionItems.ts
+  - apps/web/src/lib/reparaciones.ts
+  - apps/web/src/lib/reparacionesListado.ts
+  - apps/web/src/components/service/SelectorDepositoRepuesto.tsx
+  - apps/web/src/components/service/AgregarRepuestoDialog.tsx
+  - apps/web/src/components/service/AvisoSinStock.tsx
+  - apps/web/src/components/service/MarcaStockItem.tsx
+  - apps/web/src/components/service/ItemsReparacion.tsx
+  - apps/web/src/components/service/AnularDialog.tsx
+  - apps/web/src/pages/service-tecnico/reparaciones.tsx
 ---
 
 # Service técnico: repuestos, stock y costos

@@ -918,13 +918,13 @@
       "title": "Diseñar un conector de integración",
       "pageHash": "3f92f0b3b06ec68592c02262b85fdf9d0d099533b3730ac28a6e303b23ba36a5",
       "sourceHash": "5b0f8a084e50705a992bcb50c38314f8606d0bba48cded3134545984748e7494",
-      "sourceAt": "e55825f7e",
+      "sourceAt": "c05e8102b",
       "sources": [
         "workers/README.md",
         "workers/CONTRATO.md"
       ],
       "owner": "plataforma",
-      "commit": "e55825f7e"
+      "commit": "c05e8102b"
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
@@ -1040,9 +1040,9 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "c0c243a23b1a626c2fe712bf2f02c73da6b86d821593a67023d6502c612a916c",
-      "sourceHash": "ef4d2a3aba3cdab790fff2c172e8e6022644414cd26eae593dc710f27e154eaa",
-      "sourceAt": "0a437c771",
+      "pageHash": "95d9bf6a3f30d33be82e40535a70fe6603a46d6e242daac1cbceb53b38833113",
+      "sourceHash": "5d2dd5086fcd0f776060eea51fa278e87af031d8265136e8b1db4bdc3ac53e52",
+      "sourceAt": "0c49705a0",
       "sources": [
         "specs/20261012-140000-empresas",
         "specs/20261015-100000-alta-de-empresas",
@@ -1065,7 +1065,7 @@
         "apps/web/e2e/avisos-acceso.e2e.ts"
       ],
       "owner": "producto",
-      "commit": "0a437c771"
+      "commit": "0c49705a0"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -1517,8 +1517,8 @@
     "docs/operar-sistema.md": {
       "title": "Operar el sistema",
       "pageHash": "a6764039dee4cc860e42c98a19c086a85d8b2ba10b8d1a90e130c9b444e9f40c",
-      "sourceHash": "31e0df5a32111021600515d398cef095ff8bf82fed9432fc8aca0ce1466edb55",
-      "sourceAt": "d20aac43e",
+      "sourceHash": "2d48bc28efb07dd4f3b9c58eab24e7dfb2148cc983483cc7a376ac7227e13f31",
+      "sourceAt": "6776fb4d3",
       "sources": [
         "infra/kestra/flows/alertas.yml",
         "infra/kestra/flows/limpieza-evidencia.yml",
@@ -1533,7 +1533,7 @@
         "package.json"
       ],
       "owner": "operacion",
-      "commit": "d20aac43e"
+      "commit": "6776fb4d3"
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
@@ -1722,12 +1722,17 @@
     },
     "docs/producto/asistente.md": {
       "title": "Asistente con IA sobre tu catálogo",
-      "pageHash": "9bd1809dbe44dfc3ff05e5b8e9864397296f7ed483c96b187c4640d86d168655",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "bd314902c9eb7291ccbd92c37c6f223a2b12d1c514260497417d663878342823",
+      "sourceHash": "f9b254992bec6a33154dc2c9dfac1f8e6af4f25f38ee4d1ed5b46e2562a96ca3",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "apps/web/src/components/ia/ChatFlotante.tsx",
+        "apps/web/src/components/ia/ChatIAPanel.tsx",
+        "supabase/functions/chat-ia-responder/handler.ts",
+        "supabase/functions/chat-ia-responder/guardas.ts"
+      ],
       "owner": "producto",
-      "commit": "5f4018f5"
+      "commit": "0c49705a0"
     },
     "docs/producto/avisos-y-listas.md": {
       "title": "Avisos por correo y listas configurables",
@@ -1781,12 +1786,20 @@
     },
     "docs/producto/catalogo-compatibilidad-y-planillas.md": {
       "title": "Productos: filtrar por compatible, importar y exportar planillas",
-      "pageHash": "3ccba7e77f1b9137e75e077629077c3553222e30783eabceee850b4a644bbe85",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "2477a44479f2cec0208fb52ee3a0023f858ab4af2803bb242f9dd720fa0f31b5",
+      "sourceHash": "599f7505f3d0e76ad4b53fdad85642f534aa21ff85388466c16d7a361b29f4fb",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "workers/importar-productos/src",
+        "apps/web/src/pages/productos/carga.tsx",
+        "apps/web/src/components/productos/FiltrosListado.tsx",
+        "apps/web/src/components/productos/DialogoExportarProductos.tsx",
+        "apps/web/src/lib/importacion-productos.ts",
+        "apps/web/src/lib/exportarProductos.ts",
+        "apps/web/src/hooks/useCompatibles.ts"
+      ],
       "owner": "producto",
-      "commit": "8dbd39f8"
+      "commit": "0c49705a0"
     },
     "docs/producto/catalogo-costo-y-disponibilidad.md": {
       "title": "Catálogo: costo y disponibilidad (MSF-179)",
@@ -1915,12 +1928,25 @@
     },
     "docs/producto/cuenta-web-cliente.md": {
       "title": "La cuenta web de un cliente",
-      "pageHash": "dd8ca82df13f55bc1b3f9356ba4aae7e4f5ea87d1171522b37a09ada4705d879",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "b6555395f1859cbd51f8ad9f84f4aead035214eb4fa4ff35251874d439a0438a",
+      "sourceHash": "585d5a9f760681f749b74e9d4303100fa82cbf4570e195b0e003e62f1c82a386",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "supabase/functions/invitar-cliente",
+        "supabase/functions/recuperar-clave-cliente",
+        "apps/web/src/lib/cuentasCliente.ts",
+        "apps/web/src/lib/tiendaCuenta.ts",
+        "apps/web/src/lib/tiendaPreciosCliente.ts",
+        "apps/web/src/pages/clientes/create.tsx",
+        "apps/web/src/pages/clientes/edit.tsx",
+        "apps/web/src/hooks/useSesionCliente.ts",
+        "apps/web/src/hooks/usePreciosCliente.ts",
+        "apps/web/src/pages/tienda-publica/rutas/ingresar.tsx",
+        "apps/web/src/pages/tienda-publica/rutas/definir-contrasena.tsx",
+        "apps/web/src/pages/tienda-publica/rutas/recuperar-contrasena.tsx"
+      ],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "0c49705a0"
     },
     "docs/producto/gastos.md": {
       "title": "Gastos de cada tienda",
@@ -1977,12 +2003,17 @@
     },
     "docs/producto/listados.md": {
       "title": "Cómo se muestran las listas",
-      "pageHash": "de1e07f3c3277e73231116cf8560e272b93e86dd059fa2cc209930dfea0f81a6",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "4c9fee605f49b66ddd73b1e576711a70671c2d899fa4a5a3be552129037eec52",
+      "sourceHash": "250f5ae11d16f5d03d1e424bd989c655dbeab0cee2851539b0b869bce2767091",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "apps/web/src/components/pagina/CargaInfinita.tsx",
+        "apps/web/src/components/base/MiniaturaProducto.tsx",
+        "apps/web/src/hooks/useListadoAcumulado.ts",
+        "apps/web/src/hooks/useListadoPorCursor.ts"
+      ],
       "owner": "producto",
-      "commit": "c7860a7c"
+      "commit": "0c49705a0"
     },
     "docs/producto/listas-de-precios.md": {
       "title": "Listas de precios por cliente",
@@ -2022,12 +2053,17 @@
     },
     "docs/producto/notificaciones.md": {
       "title": "La campanita de notificaciones",
-      "pageHash": "bf55ec3c2728dd9b6a5a9ad36cc001d72177035cc8ff8a7f1d9dc30835cfdcb1",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "a20d7a2f399edd3d604d8300779796e9f80886a733c57945fe04778739ca1712",
+      "sourceHash": "07a4c70ca73dad5450e00cc5c2c8b86e5595a9d2b6ea3826639ceed61f79501c",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "apps/web/src/components/navegacion/CampanitaNotificaciones.tsx",
+        "apps/web/src/components/navegacion/ListaNotificaciones.tsx",
+        "apps/web/src/components/navegacion/notificaciones.ts",
+        "apps/web/src/components/navegacion/useNotificaciones.ts"
+      ],
       "owner": "producto",
-      "commit": "3a93b935"
+      "commit": "0c49705a0"
     },
     "docs/producto/operacion-copias-y-documentacion.md": {
       "title": "Plataforma · Operación, copias y documentación (MSF-457)",
@@ -2060,16 +2096,16 @@
     },
     "docs/producto/organizacion-y-empresas.md": {
       "title": "Tu organización y tus empresas",
-      "pageHash": "687480a4c76fcae276d99c9dae9cc53b6c3e5a54f4c2b265cdcad853aad9b6a6",
-      "sourceHash": "1d818656ee2701e0ae3841322e37d3736b38633291767704d3270338d288c244",
-      "sourceAt": "2cec5c74e",
+      "pageHash": "c0f8cca29ccbba0cae406526b27d0603a298103c010152041d85bba93416ec8b",
+      "sourceHash": "5d4b48cb619b857306b8d5423c14d79e82f6b3dbefe5425c836c0562bc3189f6",
+      "sourceAt": "0c49705a0",
       "sources": [
         "apps/web/src/pages/empresas",
         "apps/web/src/pages/organizacion",
         "apps/web/src/components/empresas/CampoDominioEmpresa.tsx"
       ],
       "owner": "producto",
-      "commit": "2cec5c74e"
+      "commit": "0c49705a0"
     },
     "docs/producto/perfil-propio.md": {
       "title": "Tu perfil: nombre, foto, contraseña y correo",
@@ -2193,9 +2229,9 @@
     },
     "docs/producto/service-alta-estados-y-permisos.md": {
       "title": "Service técnico: alta, estados y permisos (MSF-182)",
-      "pageHash": "5f56947b72195cf0b2199f480d0df0f8e6770471f7dc011918ee676466465420",
-      "sourceHash": "2162e530ce9fb2e0efaad58ce6a73c35dfc12119a051599958fc5b8bba10b0aa",
-      "sourceAt": "882abece",
+      "pageHash": "84da425dcec89c5b55eb3936d59173d183654fc36fd6e96774e8f768df2343ff",
+      "sourceHash": "4695f22d3e7630fb35cc6561dfe1f3f4b7bd5f09e42a4144ff1d5f4e7134ed68",
+      "sourceAt": "13a71003a",
       "sources": [
         "apps/web/src/pages/service-tecnico/modelos.tsx",
         "apps/web/src/pages/service-tecnico/estados.tsx",
@@ -2204,13 +2240,13 @@
         "design/pantallas/ServicioEstados.dc.html"
       ],
       "owner": "producto",
-      "commit": "882abece"
+      "commit": "13a71003a"
     },
     "docs/producto/service-cobro-y-avisos.md": {
       "title": "Service técnico: cobro, avisos y ficha del cliente (MSF-232)",
-      "pageHash": "e9d074d0f6c32caa2a574a257485c6204a74539a923a00bcc1076afb5b4121b0",
-      "sourceHash": "629de8623f4f005e1d61a1bff4c5905818ba9a458cfba6046047dd268c438615",
-      "sourceAt": "da68ec33",
+      "pageHash": "346fd544e7440075182e313dc2c54b42bfe28893092d4f433a040f7d07dde2d0",
+      "sourceHash": "0cb0a92d971bc9d9c7bebb7a5fd8905217796467c324965f3931477c75d1a481",
+      "sourceAt": "eef6fc0df",
       "sources": [
         "specs/20261028-100000-service-cobro-y-avisos",
         "design/pantallas/ServicioReparacion.dc.html",
@@ -2232,29 +2268,40 @@
         "supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql"
       ],
       "owner": "producto",
-      "commit": "da68ec33"
+      "commit": "eef6fc0df"
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: registrar y seguir las reparaciones",
-      "pageHash": "a824fd6854282c3090e0f6bf4aacff28dde9a2cad0ed70ac506bdacf2c34ee1c",
-      "sourceHash": "7939d769c7a6565f35ca04306293c85431ed671d82704622a9fbe8a88f0cc503",
-      "sourceAt": "75517ced4",
+      "pageHash": "84a3b0a52f5f09099c73ee2849731801e6e0378db86d7523a950d87a15b9e77a",
+      "sourceHash": "406a528ceceed65d238b56a79c2dca3b988cc266aed7e947c66145c76714fc1b",
+      "sourceAt": "13a71003a",
       "sources": [
         "apps/web/src/pages/service-tecnico/reparaciones.tsx",
         "apps/web/src/pages/service-tecnico/reparacion.tsx",
         "apps/web/src/components/service/ItemsReparacion.tsx"
       ],
       "owner": "producto",
-      "commit": "75517ced4"
+      "commit": "13a71003a"
     },
     "docs/producto/service-repuestos-y-stock.md": {
       "title": "Service técnico: repuestos, stock y costos",
-      "pageHash": "1146e8e6671cbe4ad8b4733b4360695061d6f335ecbb8df028963d722d7b5c8c",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "96331af9265b1da3a27b8190daed9ac3fb4ee6b108a52ba8303f1a848e154fdf",
+      "sourceHash": "0346925dd34394b9f7d1fbf5ba4a8d1e8adf58e5439f6c82c1e4303262e99a96",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "apps/web/src/lib/reparacionItems.ts",
+        "apps/web/src/lib/reparaciones.ts",
+        "apps/web/src/lib/reparacionesListado.ts",
+        "apps/web/src/components/service/SelectorDepositoRepuesto.tsx",
+        "apps/web/src/components/service/AgregarRepuestoDialog.tsx",
+        "apps/web/src/components/service/AvisoSinStock.tsx",
+        "apps/web/src/components/service/MarcaStockItem.tsx",
+        "apps/web/src/components/service/ItemsReparacion.tsx",
+        "apps/web/src/components/service/AnularDialog.tsx",
+        "apps/web/src/pages/service-tecnico/reparaciones.tsx"
+      ],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "0c49705a0"
     },
     "docs/producto/service-seguimiento-y-reportes.md": {
       "title": "Service técnico: fotos, garantía, seguimiento del cliente y reportes",
@@ -2364,48 +2411,105 @@
     },
     "docs/producto/tienda-contenido-y-analitica.md": {
       "title": "Páginas propias, medición de visitas y botón Compartir",
-      "pageHash": "1e21b2e4f4d5a4519e1760d1f5660df8f178ff2decff564eed464a0fb4433a3b",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "9ca200cfef80b9ff1f78e363e674175ac85cadb5eff845bbfae6f7bc33dc9e40",
+      "sourceHash": "da9d91272f3dda3e70de7472bc96a0871c33b7c4404c56509fe0e07464f3f7b5",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "apps/web/src/lib/analiticaTienda.ts",
+        "apps/web/src/lib/tiendaAnalitica.ts",
+        "apps/web/src/lib/tiendaPaginas.ts",
+        "apps/web/src/lib/consentimientoCookies.ts",
+        "apps/web/src/lib/enlaceProducto.ts",
+        "apps/web/src/hooks/usePaginaTienda.ts",
+        "apps/web/src/hooks/useEnlacesPaginas.ts",
+        "apps/web/src/pages/empresas/tienda/pestanas/analitica.tsx",
+        "apps/web/src/pages/empresas/tienda/pestanas/paginas.tsx",
+        "apps/web/src/pages/tienda-publica/layout/MedicionTienda.tsx",
+        "apps/web/src/pages/tienda-publica/layout/PieInformacion.tsx",
+        "apps/web/src/pages/tienda-publica/ficha/BotonCompartir.tsx"
+      ],
       "owner": "producto",
-      "commit": "b5c48ebf"
+      "commit": "0c49705a0"
     },
     "docs/producto/tienda-dominio-e-identidad.md": {
       "title": "Identidad, textos y dirección de la tienda",
-      "pageHash": "28e455ac1ab0bccc46e9378c2c7fac5f1571d951ba7f3e9212af16d4f096d170",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "0524bf0080211ed8bda39e3f643545f8f2c516ec89b0985f43608008854cb050",
+      "sourceHash": "76a5ec49862b1b726dcd706a87e9f4333e68f5cd159add90ad9c0f6b32fd8901",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "apps/web/src/main.tsx",
+        "apps/web/src/lib/tienda.ts",
+        "apps/web/src/lib/tiendaIdentidad.ts",
+        "apps/web/src/lib/tiendaContenido.ts",
+        "apps/web/src/lib/tiendaCatalogo.ts",
+        "apps/web/src/hooks/useCatalogoTienda.ts",
+        "apps/web/src/pages/empresas/tienda",
+        "apps/web/src/lib/arranqueSesion.ts",
+        "apps/web/src/pages/empresas/tienda/GestionTienda.tsx",
+        "apps/web/src/pages/empresas/tienda/EncabezadoTienda.tsx",
+        "apps/web/src/pages/empresas/tienda/pestanas.ts",
+        "apps/web/src/pages/tienda-publica/PaginaTienda.tsx"
+      ],
       "owner": "producto",
-      "commit": "2cec5c74e"
+      "commit": "0c49705a0"
     },
     "docs/producto/tienda-dominio-y-publicacion.md": {
       "title": "Dominio, publicación y versiones de la tienda",
-      "pageHash": "9d2a250704b19324edb14f70c0f89161bf82679bc92880cda5bd461e20e58164",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "e7234a78182362b6453dc1b8a820ae43059b750d958e7f395b6018a47b98f936",
+      "sourceHash": "41599e5b9978c5c0ff25af1e2aa8c931a4c66407cecd07a807bc247f33cf2121",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "supabase/functions/verificar-dominio-tienda/index.ts",
+        "supabase/functions/verificar-dominio-tienda/handler.ts",
+        "supabase/functions/verificar-dominio-tienda/tls.ts",
+        "apps/web/src/pages/empresas/tienda/pestanas.ts",
+        "apps/web/src/pages/empresas/tienda/pestanas/publicacion/Dominio.tsx",
+        "apps/web/src/pages/empresas/tienda/pestanas/publicacion/Publicacion.tsx",
+        "apps/web/src/pages/empresas/tienda/pestanas/publicacion/Versiones.tsx",
+        "apps/web/src/pages/empresas/tienda/pestanas/publicacion/VistaPrevia.tsx",
+        "apps/web/src/pages/empresas/tienda/VistaPreviaTienda.tsx",
+        "apps/web/src/lib/tiendaDominio.ts",
+        "apps/web/src/lib/tiendaBorrador.ts",
+        "apps/web/src/lib/fuenteTienda.tsx"
+      ],
       "owner": "producto",
-      "commit": "29bf8f31"
+      "commit": "0c49705a0"
     },
     "docs/producto/tienda-seo-legal-y-estados.md": {
       "title": "Páginas de estado, productos relacionados, Google y datos legales de la tienda",
-      "pageHash": "90551bdd648330ed7fb1364ec2fc2b21a0816666ebf80e33060f7a9c6aa20187",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "ba548a05d0170674a56b44fbe99ee284cf7a2512779d7103569e22991dffdc4a",
+      "sourceHash": "b68f77f17e9a91e549ee6038b1ed4230469369fddce9ab085cb3c120bbc277b4",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "supabase/functions/tienda-seo/handler.ts",
+        "apps/web/src/pages/tienda-publica/VolvemosPronto.tsx",
+        "apps/web/src/pages/tienda-publica/PaginaNoEncontrada.tsx",
+        "apps/web/src/pages/tienda-publica/PantallaError.tsx",
+        "apps/web/src/pages/tienda-publica/EnrutadorTienda.tsx",
+        "apps/web/src/pages/tienda-publica/index.tsx",
+        "apps/web/src/pages/tienda-publica/rutas/producto.tsx",
+        "apps/web/src/pages/tienda-publica/ficha/Relacionados.tsx",
+        "apps/web/src/pages/tienda-publica/seo/CabeceraSeo.tsx",
+        "apps/web/src/pages/tienda-publica/seo/pilaCabecera.ts",
+        "apps/web/src/pages/tienda-publica/layout/PieLegal.tsx",
+        "apps/web/src/pages/tienda-publica/layout/AvisoCookies.tsx"
+      ],
       "owner": "producto",
-      "commit": "7c05dc06"
+      "commit": "0c49705a0"
     },
     "docs/producto/tiendas-online.md": {
       "title": "Las tiendas online de tu negocio",
-      "pageHash": "91577b2c9cd54655b4d0032e00dd2df1a287de150c18236e91053547d062fad6",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "16abef50db3429d5238892f240e63dc366420e982f764c1a0eeb5f368ee5268d",
+      "sourceHash": "bb05a158103cc2e3cb6849e65818985f4efc9f3ea2f9d5afbc1df5f659aa9cd6",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "apps/web/src/pages/empresas/tienda",
+        "apps/web/src/pages/tienda-publica/index.tsx",
+        "apps/web/src/lib/tienda.ts",
+        "apps/web/src/lib/tiendaCatalogo.ts"
+      ],
       "owner": "producto",
-      "commit": "c7860a7c"
+      "commit": "0c49705a0"
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles: quién puede qué",
@@ -2504,21 +2608,31 @@
     },
     "docs/producto/ventas-impresion.md": {
       "title": "Imprimir facturas, remitos y presupuestos",
-      "pageHash": "1a20e680441e43bfc400e0e1298ef924ac864dedeb9cd531ce6291014dad3c6f",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "d337921bea30d97278917a5f84943e33cade63ebc030753af1af2cf0c62f6451",
+      "sourceHash": "e39075ff5629d743bcb72041a447e7934e5b1df303de16ad55e170b65e265d78",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "apps/web/src/components/ventas/ImprimirComprobanteDialog.tsx",
+        "apps/web/src/components/ventas/DocumentosComprobante.tsx",
+        "apps/web/src/lib/ventasImpresion.ts",
+        "apps/web/src/lib/ventasImpresiones.ts",
+        "apps/web/src/lib/ventasPresupuestoCorreo.ts"
+      ],
       "owner": "producto",
-      "commit": "75517ced4"
+      "commit": "0c49705a0"
     },
     "docs/producto/ventas-listado-estados-y-anulacion.md": {
       "title": "Ver los comprobantes, cambiar su estado y anularlos",
-      "pageHash": "6ca647c662ce845e446a7c227ab8b896bd33fc5ab9833ca76ab010b40feb9403",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "1812630f5717be498dbf6ee6e1e11d7d32d53347cc69c08eff0196058d2e6a3b",
+      "sourceHash": "d13215530b7373abe1d9fa1b5be10d00f702001ac22473477a26dbf3464a1089",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "apps/web/src/lib/notaCredito.ts",
+        "apps/web/src/lib/anularComprobante.ts",
+        "apps/web/src/pages/ventas/comprobante.tsx"
+      ],
       "owner": "producto",
-      "commit": "156077635"
+      "commit": "0c49705a0"
     },
     "docs/producto/ventas-mostrador.md": {
       "title": "Venta de mostrador",
@@ -2533,12 +2647,18 @@
     },
     "docs/producto/ventas-motos.md": {
       "title": "Envíos en moto: registrar y rendir",
-      "pageHash": "a8127811a18dbf5d7da01d5aa019073ce44a680040015e3451ebe6b252342572",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "a6e3051dfa28e8d3cf72750ffe4f77b39eef1c8b94b7def78bfd4b6d8abca57f",
+      "sourceHash": "2462de5e914512bece03fbb2b8a695adbb4716769e0f956fe6dbfbc15f7c6fce",
+      "sourceAt": "0c49705a0",
+      "sources": [
+        "apps/web/src/components/ventas/EnvioMotoDialog.tsx",
+        "apps/web/src/components/ventas/RendicionMotosDialog.tsx",
+        "apps/web/src/lib/ventas/enviosMoto.ts",
+        "apps/web/src/lib/ventas/enviosMotoRendicion.ts",
+        "apps/web/src/pages/ventas/transportes/TransportesMotos.tsx"
+      ],
       "owner": "producto",
-      "commit": "c7860a7c"
+      "commit": "0c49705a0"
     },
     "docs/producto/ventas-reportes.md": {
       "title": "Reportes de ventas",
@@ -2901,9 +3021,9 @@
     },
     "docs/service-avisos.md": {
       "title": "Service técnico · Avisos al cliente por cambio de estado",
-      "pageHash": "946b9728e97d766e11b909bab09e93c8e9ea5ca3d43bbbc3f497ffa259ee9de0",
-      "sourceHash": "c9f890b5044fb638620084d3824025cd8661dadb33f23aebf0e01169e4f6272e",
-      "sourceAt": "da68ec33",
+      "pageHash": "e283c24b1a052dfff50cc7cb66084292685dca766e36eef2f026f440972251b2",
+      "sourceHash": "3ab73b2a001588c045c9c7eccb591e24e64a6b227d46476ae495f326bd4aaf6c",
+      "sourceAt": "13a71003a",
       "sources": [
         "specs/20261028-100000-service-cobro-y-avisos",
         "specs/20270323-100000-service-ideas-futuras-v2",
@@ -2916,7 +3036,7 @@
         "supabase/migrations/20270418000403_reparacion_avisos_whatsapp_envio.sql"
       ],
       "owner": "tecnico",
-      "commit": "da68ec33"
+      "commit": "13a71003a"
     },
     "docs/service-cliente-reparaciones.md": {
       "title": "Service técnico · Reparaciones en la ficha del cliente (F-SVC-15, MSF-429)",
@@ -3097,9 +3217,9 @@
     },
     "docs/service-tecnico.md": {
       "title": "Service técnico",
-      "pageHash": "022db73c739f4c43b4b2beb2f6c435c4e9b78c4061b0d9d53be031b6305d9a39",
-      "sourceHash": "8d53b431e8232f9e51a353f0a805b6129907c5179a40a36529e6be97be89ca6f",
-      "sourceAt": "c991abe06",
+      "pageHash": "49446405ee4bfe717c3ffbc6b82c475edcafd103bf4db7a5cef7f58dbc8f2b25",
+      "sourceHash": "c594f729605ef8cd5fe9575c45af292cfcf54ff928f58cc860d9b324c2adef99",
+      "sourceAt": "13a71003a",
       "sources": [
         "specs/20261020-100000-service-alta-estados-y-permisos",
         "specs/20261022-100000-service-listado-items-e-impresion",
@@ -3111,7 +3231,7 @@
         "supabase/migrations/20261020140000_reparaciones_lectura_por_tienda.sql"
       ],
       "owner": "tecnico",
-      "commit": "c991abe06"
+      "commit": "13a71003a"
     },
     "docs/servidor-mcp.md": {
       "title": "Servidor MCP: credenciales, sesiones y revocación",
@@ -3552,7 +3672,7 @@
     "docs/tecnico/acceso.md": {
       "title": "Acceso y organización: modelo, contratos y operación (MSF-119)",
       "pageHash": "a7d0e942939cf670041eca2db985ec600f23a4ca83188379445b3db9dfccb1ce",
-      "sourceHash": "f8865158fab9f289a5284df736d76dbdc164bf3a0d56c392671c957c33c0c85a",
+      "sourceHash": "ace7a14a75d949edfbb0967930f39f5f50a7ac093b18e0e5a18f0e259317ebec",
       "sourceAt": "2b7b9b4db",
       "sources": [
         "specs/20261012-140000-acceso-y-organizacion",
@@ -5051,9 +5171,9 @@
     },
     "docs/tecnico/service-cobro-y-avisos.md": {
       "title": "Service técnico: cobro, avisos y ficha del cliente (técnico, MSF-232)",
-      "pageHash": "374bcaebc09c9b0d0b3cd3f8b680542f56f8951c983b476cdd40f51edae70ddc",
-      "sourceHash": "3bb0d473e4572b92078d85b3818ed55d1bb9521be656c84b1cd3ab75160f5515",
-      "sourceAt": "2807e6acc",
+      "pageHash": "5220f0ae7ed789b464f4ce6e5cd4397ae7e3bb6f45b9e8244ac77ea4f1697865",
+      "sourceHash": "6368f581efc3cc9a77475a538ebd48a1bbe39e04f520fe7cc14cf2f9b7052031",
+      "sourceAt": "c9dc27818",
       "sources": [
         "specs/20261028-100000-service-cobro-y-avisos",
         "supabase/migrations/20270201200128_comprobantes_origen.sql",
@@ -5086,7 +5206,7 @@
         "apps/web/e2e/service-cobro-avisos.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "2807e6acc"
+      "commit": "c9dc27818"
     },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
@@ -5135,7 +5255,7 @@
       "title": "Service técnico: repuestos y stock (MSF-217)",
       "pageHash": "05e69a013f9f00ca9406d0591129045029fb00ddaa6463c53b36145e76d2a350",
       "sourceHash": "ccdb93aa6097d17508508d9190a1072d3fc139bcac527e03e3f7e038cfb48d00",
-      "sourceAt": "46f833ec2",
+      "sourceAt": "a3da3141e",
       "sources": [
         "specs/20261028-100000-service-repuestos-y-stock",
         "supabase/migrations/20261023120200_stock_movimiento_deposito.sql",
@@ -5167,7 +5287,7 @@
         "apps/web/e2e/service-repuestos-stock.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "46f833ec2"
+      "commit": "a3da3141e"
     },
     "docs/tecnico/service-seguimiento-y-reportes.md": {
       "title": "Service técnico: seguimiento y reportes (técnico, MSF-124)",

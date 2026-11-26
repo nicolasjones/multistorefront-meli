@@ -27,7 +27,7 @@ export const ayudaService: AyudaPorDestino = {
   'service-tecnico-estados': {
     titulo: 'Estados de reparación',
     resumen:
-      'Las etapas por las que pasa un equipo en el taller. El orden de la lista define el flujo. Para cada estado ves qué significa, cuántas reparaciones lo usan, si avisa al cliente y si cierra la reparación. Si tu rol solo permite ver, no aparecen los controles de edición.',
+      'Las etapas por las que pasa un equipo en el taller. El orden de la lista define el flujo. Para cada estado ves qué significa, cuántas reparaciones lo usan, si avisa al cliente (al cambiar una reparación a ese estado se avisa sin que toques la casilla «Avisar al cliente»; podés tildarla o destildarla para decidir vos, y los estados que cierran la reparación no avisan) y si cierra la reparación. Si tu rol solo permite ver, no aparecen los controles de edición.',
     pasos: [
       'Mirá el orden y el significado de cada estado.',
       'Si podés editar, usá las flechas para subir o bajar un estado.',

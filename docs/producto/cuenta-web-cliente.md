@@ -1,6 +1,18 @@
 ---
 owner: producto
-sources: []
+sources:
+  - supabase/functions/invitar-cliente
+  - supabase/functions/recuperar-clave-cliente
+  - apps/web/src/lib/cuentasCliente.ts
+  - apps/web/src/lib/tiendaCuenta.ts
+  - apps/web/src/lib/tiendaPreciosCliente.ts
+  - apps/web/src/pages/clientes/create.tsx
+  - apps/web/src/pages/clientes/edit.tsx
+  - apps/web/src/hooks/useSesionCliente.ts
+  - apps/web/src/hooks/usePreciosCliente.ts
+  - apps/web/src/pages/tienda-publica/rutas/ingresar.tsx
+  - apps/web/src/pages/tienda-publica/rutas/definir-contrasena.tsx
+  - apps/web/src/pages/tienda-publica/rutas/recuperar-contrasena.tsx
 ---
 
 # La cuenta web de un cliente

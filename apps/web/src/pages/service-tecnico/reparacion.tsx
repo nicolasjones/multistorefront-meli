@@ -1,4 +1,4 @@
-import { type FormEvent, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { type FormEvent, Suspense, lazy, useCallback, useId, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink, useLocation, useNavigate, useParams } from 'react-router'
 import {
   Alert,
@@ -92,8 +92,11 @@ const AgregarRepuestoDialog = lazy(() =>
   import('../../components/service/AgregarRepuestoDialog').then((modulo) => ({ default: modulo.AgregarRepuestoDialog })),
 )
 
-// «Avisar al cliente» arranca destildada: no se manda un correo sin querer (spec, Decisiones abiertas 4).
-const AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO = false
+// «Avisar al cliente» al cambiar de estado: sin tocar la casilla (null) se avisa solo si el estado DESTINO tiene
+// marcado «Avisa al cliente» (estados_reparacion.avisa_cliente); la persona puede tildarla o destildarla para
+// decidir ella (true / false). Como el estado destino se conoce recién al elegirlo, la casilla se ve marcada solo
+// con decisión explícita y un texto debajo dice qué estados avisan solos. Tras cada cambio de estado, y al cambiar de reparación (la pantalla se remonta por `:id`), vuelve a «según el estado».
+const AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO: boolean | null = null
 
 type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
 
@@ -102,7 +105,22 @@ type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
 // La sección «Mano de obra y repuestos» (F-SVC-06, FR-027 y FR-028) agrega y quita ítems por RPC propia, no por
 // «Guardar». «Avisar al cliente» y los avisos al cliente son de F-SVC-14 (FR-023 a FR-028). «Imprimir orden» e «Imprimir remito» abren las vistas A4 (F-SVC-07); «Imprimir etiqueta» abre la etiqueta con QR (F-SVC-32, P-3).
 // Estado, Historial, Entrega y Anulación son de F-SVC-03 (FR-030 a FR-034): el estado cambia por RPC propia.
+const LARGO_MAXIMO_MENSAJE_NAVEGACION = 200
+
+// Mensaje de éxito que una pantalla anterior deja en `navigate state`: solo se acepta un texto, acotado en largo.
+function mensajeDeNavegacion(estado: unknown): string | null {
+  const mensaje = (estado as { mensaje?: unknown } | null)?.mensaje
+  return typeof mensaje === 'string' && mensaje.trim() !== '' ? mensaje.slice(0, LARGO_MAXIMO_MENSAJE_NAVEGACION) : null
+}
+
+// La pantalla se remonta al cambiar `:id` (`key`): así ningún estado local de una reparación (casilla «Avisar al cliente»,
+// diálogos, errores, nota informativa del aviso, formulario) se filtra a la siguiente, p. ej. tras un reingreso por garantía.
 export function ServicioReparacion() {
+  const { id } = useParams()
+  return <PantallaReparacion key={id ?? 'nueva'} />
+}
+
+function PantallaReparacion() {
   const { id } = useParams()
   const esNueva = id === undefined
   const navigate = useNavigate()
@@ -125,15 +143,26 @@ export function ServicioReparacion() {
   const [conflicto, setConflicto] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [exito, setExito] = useState<string | null>(
-    (ubicacion.state as { mensaje?: string } | null)?.mensaje ?? null,
+    mensajeDeNavegacion(ubicacion.state),
   )
+  // El mensaje se lee una vez y se limpia del `state` del historial: al recargar o volver atrás no reaparece.
+  useEffect(() => {
+    if (ubicacion.state != null) {
+      navigate(`${ubicacion.pathname}${ubicacion.search}`, { replace: true, state: null })
+    }
+    // Efecto de montaje único a propósito: lee el state una sola vez y lo limpia; el `key` por `:id` remonta la pantalla
+    // cuando cambia la reparación, así que no hace falta volver a correrlo con `navigate` ni con la ubicación.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const [altaRapidaAbierta, setAltaRapidaAbierta] = useState(false)
   const [estados, setEstados] = useState<EstadoReparacion[]>([])
   const [historial, setHistorial] = useState<EventoHistorial[]>([])
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
   const [errorHistorial, setErrorHistorial] = useState<string | null>(null)
   const [cambiandoEstado, setCambiandoEstado] = useState(false)
-  const [avisarAlCambiar, setAvisarAlCambiar] = useState(AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO)
+  const idEfectoAviso = useId()
+  const [avisarAlCambiar, setAvisarAlCambiar] = useState<boolean | null>(AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO)
   const [estadoAEntregar, setEstadoAEntregar] = useState<EstadoReparacion | null>(null)
   const [anularAbierto, setAnularAbierto] = useState(false)
   const [garantiaAbierta, setGarantiaAbierta] = useState(false)
@@ -250,6 +279,8 @@ export function ServicioReparacion() {
     if (avisoCobro) setExito(avisoCobro)
   }, [avisoCobro])
   const estadoActual = estados.find((estado) => estado.id === reparacion?.estado_id)
+  // Estados a los que, sin tocar la casilla, se avisa solo (los que cierran pasan por la entrega y no avisan).
+  const nombresEstadosQueAvisan = estados.filter((estado) => estado.activo && estado.avisa_cliente && !estado.cierra).map((estado) => estado.nombre)
   const estadosElegibles = estados.filter((estado) => estado.activo || estado.id === reparacion?.estado_id)
 
   const equipos = useMemo(() => {
@@ -301,7 +332,10 @@ export function ServicioReparacion() {
     const elegido = estados.find((estado) => estado.id === estadoId)
     if (!elegido) return
     setErrorEstado(null)
+    avisosCliente.descartarAvisoInformativo()
     if (elegido.cierra) {
+      // Los estados que cierran pasan por la entrega y no avisan. La decisión de la casilla se conserva (si se cancela el
+      // diálogo no hubo cambio de estado); si la entrega se confirma la reparación queda cerrada y la casilla desaparece.
       setEstadoAEntregar(elegido)
       return
     }
@@ -314,7 +348,11 @@ export function ServicioReparacion() {
       return
     }
     // El aviso va DESPUÉS del cambio y nunca lo revierte (FR-025): si falla, el estado queda y se informa el error.
-    if (avisarAlCambiar && puedeAvisar) await avisosCliente.avisar()
+    // Si la persona no tocó la casilla el aviso es automático (lo marca el estado): sin correo es una nota, no un error.
+    const automatico = avisarAlCambiar === null
+    const avisar = avisarAlCambiar ?? elegido.avisa_cliente
+    setAvisarAlCambiar(AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO)
+    if (avisar && puedeAvisar) await avisosCliente.avisar(undefined, { automatico })
     setCambiandoEstado(false)
   }
 
@@ -473,6 +511,7 @@ export function ServicioReparacion() {
               <CardContent>
                 <Stack spacing={2}>
                   {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
+                  {avisosCliente.avisoInformativo ? <Alert severity="info">{avisosCliente.avisoInformativo}</Alert> : null}
                   {avisosCliente.errorAvisar && avisosCliente.errorAvisar !== MENSAJE_CLIENTE_SIN_CORREO ? (
                     <Alert severity="error">{avisosCliente.errorAvisar}</Alert>
                   ) : null}
@@ -503,13 +542,25 @@ export function ServicioReparacion() {
                     <FormControlLabel
                       control={
                         <Checkbox
-                          checked={avisarAlCambiar && !clienteSinCorreo}
+                          checked={avisarAlCambiar === true && !clienteSinCorreo}
+                          slotProps={{ input: { 'aria-describedby': idEfectoAviso } }}
                           onChange={(evento) => setAvisarAlCambiar(evento.target.checked)}
                           disabled={!puedeCambiarEstado || clienteSinCorreo}
                         />
                       }
                       label="Avisar al cliente"
                     />
+                  ) : null}
+                  {puedeEditar && !cerrada && !clienteSinCorreo ? (
+                    <Typography id={idEfectoAviso} variant="caption" color="text.secondary" sx={{ mt: '-8px !important' }}>
+                      {avisarAlCambiar === true
+                        ? 'Se avisará al cliente al cambiar el estado (salvo al pasar a un estado que cierra la reparación).'
+                        : avisarAlCambiar === false
+                          ? 'No se avisará al cliente al cambiar el estado.'
+                          : nombresEstadosQueAvisan.length > 0
+                            ? `Si no la tocás, se avisa solo al pasar a: ${nombresEstadosQueAvisan.join(', ')}.`
+                            : 'Si no la tocás, no se avisa: ningún estado tiene «Avisa al cliente».'}
+                    </Typography>
                   ) : null}
                   <Box>
                     <Typography component="h3" variant="t3" sx={{ mb: 1 }}>Historial de estados</Typography>
@@ -870,9 +921,8 @@ export function ServicioReparacion() {
                 }}
                 onReingresada={(nueva) => {
                   setGarantiaAbierta(false)
-                  // La pantalla se reutiliza al cambiar `:id`: el aviso se fija acá, no por `state`.
-                  setExito(`Reparación ${nueva.codigo} creada por garantía`)
-                  navigate(`/service-tecnico/reparaciones/${nueva.id}`)
+                  // La pantalla se remonta al cambiar `:id`: el aviso viaja por `state` y lo lee el montaje de la nueva.
+                  navigate(`/service-tecnico/reparaciones/${nueva.id}`, { state: { mensaje: `Reparación ${nueva.codigo} creada por garantía` } })
                 }}
               />
             </Suspense>

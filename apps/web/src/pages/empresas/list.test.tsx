@@ -194,7 +194,7 @@ describe('EmpresaList', () => {
     expect(screen.queryByRole('button', { name: 'Crear nueva empresa' })).not.toBeInTheDocument()
   })
 
-  it('crea una empresa copiando de otra, confirma «borrador» y la nueva aparece en el listado', async () => {
+  it('crea una empresa copiando de otra, confirma el alta y la nueva aparece en el listado', async () => {
     mocks.resultado
       .mockResolvedValueOnce({ data: [empresa(1, 'San Javucho'), empresa(2, 'Mundo JC')], error: null })
       .mockResolvedValueOnce({ data: [empresa(1, 'San Javucho'), empresa(2, 'Mundo JC'), empresa(3, 'Tienda Oeste')], error: null })
@@ -207,7 +207,7 @@ describe('EmpresaList', () => {
     fireEvent.change(screen.getByLabelText('Copiar configuración de'), { target: { value: 'e-2' } })
     fireEvent.click(screen.getByRole('button', { name: 'Crear empresa' }))
 
-    expect(await screen.findByText('Empresa creada como borrador')).toBeInTheDocument()
+    expect(await screen.findByText('Empresa creada. Todavía está sin configurar.')).toBeInTheDocument()
     expect(mocks.rpc).toHaveBeenCalledWith('crear_empresa', { p_nombre: 'Tienda Oeste', p_copiar_de: 'e-2' })
     expect(await screen.findByText('Tienda Oeste')).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())

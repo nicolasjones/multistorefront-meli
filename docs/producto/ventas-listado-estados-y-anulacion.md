@@ -1,6 +1,9 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/lib/notaCredito.ts
+  - apps/web/src/lib/anularComprobante.ts
+  - apps/web/src/pages/ventas/comprobante.tsx
 ---
 
 # Ver los comprobantes, cambiar su estado y anularlos

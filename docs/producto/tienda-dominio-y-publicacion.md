@@ -1,6 +1,18 @@
 ---
 owner: producto
-sources: []
+sources:
+  - supabase/functions/verificar-dominio-tienda/index.ts
+  - supabase/functions/verificar-dominio-tienda/handler.ts
+  - supabase/functions/verificar-dominio-tienda/tls.ts
+  - apps/web/src/pages/empresas/tienda/pestanas.ts
+  - apps/web/src/pages/empresas/tienda/pestanas/publicacion/Dominio.tsx
+  - apps/web/src/pages/empresas/tienda/pestanas/publicacion/Publicacion.tsx
+  - apps/web/src/pages/empresas/tienda/pestanas/publicacion/Versiones.tsx
+  - apps/web/src/pages/empresas/tienda/pestanas/publicacion/VistaPrevia.tsx
+  - apps/web/src/pages/empresas/tienda/VistaPreviaTienda.tsx
+  - apps/web/src/lib/tiendaDominio.ts
+  - apps/web/src/lib/tiendaBorrador.ts
+  - apps/web/src/lib/fuenteTienda.tsx
 ---
 
 # Dominio, publicación y versiones de la tienda

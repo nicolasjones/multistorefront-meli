@@ -1,6 +1,10 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/components/ia/ChatFlotante.tsx
+  - apps/web/src/components/ia/ChatIAPanel.tsx
+  - supabase/functions/chat-ia-responder/handler.ts
+  - supabase/functions/chat-ia-responder/guardas.ts
 ---
 
 # Asistente con IA sobre tu catálogo
