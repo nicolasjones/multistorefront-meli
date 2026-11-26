@@ -85,19 +85,32 @@ que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada 
   función exportada con las mismas entradas y los mismos prefijos. Cada regex o función corre en un `worker_thread` con
   vigilancia: si no hay progreso en 4 s (regex catastrófica) el worker se termina y el test falla en segundos
   **nombrando archivo:línea**; si una ejecución tarda más de 1 s (se repite 3 veces y vale el mínimo, para absorber el ruido de un
-  host cargado) también falla. Una regex sin cuantificador no acotado (`*`, `+`, `{`) no puede ser catastrófica y se mide con una
-  batería reducida. Se imprime la tabla de máximos: el máximo observado fue ~0,5 s con 4 workers en paralelo en un host cargado
-  (233 ms en serie) y el tope es 1 s. El test completo tarda ~60 s.
+  host cargado) también falla. Una regex sin cuantificadores `*`, `+` ni `{}`, sin `?` y sin alternancia `|` hace trabajo
+  proporcional a la entrada y se mide con una batería reducida; `?` repetido (`x?x?…x?xx…x`) y la alternancia sí pueden explotar,
+  así que van a la batería completa (probado con `x?`×28 + `x`×28). La clasificación es conservadora: un `+` dentro de una clase
+  `[+]` también cuenta como cuantificador, lo que solo manda esa regex a la batería completa. Se imprime la tabla de máximos: el
+  máximo observado fue ~0,9 s en un host cargado con 4 workers en paralelo (233 ms en serie) y el tope es 1 s. El test completo
+  tarda ~65 s.
   - **Qué cubre y qué no:** `docs-drift.mjs` no tiene regex (de él solo se cubre la enumeración). `docs-drift.mjs`,
     `docs-inventario.mjs`, `docs-manifest.mjs` y `verificar-documentacion-cambios.mjs` no exportan nada y corren al importarse:
     no se importan (lista `NO_IMPORTAR` del test) y se miden solo por sus regex literales; el manifest además tiene su test de
     proceso en `docs-manifest.test.mjs`.
-  - **Convención:** un `docs-*.mjs` con `export` no debe tener efectos al importarse (proteger su main con un guard
-    `import.meta.url`). Si un script con efectos gana un `export` sin guard, o uno de `NO_IMPORTAR` gana un `export`, el test
-    falla con un mensaje que lo dice, sin ejecutarlo.
-  - Mutaciones comprobadas: `^(\d+)+$` y `^(a|aa)+$` (como literal y como función exportada), `new RegExp('^\\s*-\\s*(.+)$')` dentro de una función
-    exportada y un `docs-zzz-*.mjs` nuevo con efectos hacen fallar el test. Un ítem vacío se descarta (antes el manifest podía
-    registrar `''`, que apuntaría a toda la raíz).
+  - **Importación por lista blanca:** el test solo importa y ejecuta los scripts de `IMPORTABLES` (`docs-check`,
+    `docs-correspondencia`, `docs-enlaces`, `docs-lineas`, `docs-yaml`). Un `docs-*.mjs` con `export` que no esté en esa lista, o
+    uno de `NO_IMPORTAR` que gane un `export`, hace fallar el test con un mensaje accionable («agregalo a IMPORTABLES tras revisar
+    que no tiene efectos al importarse, o quitá el export») **sin importarlo ni ejecutarlo**: importar un script nuevo requiere una
+    decisión humana explícita en un cambio revisado de ese mismo archivo. Convención: un `docs-*.mjs` con `export` no debe tener
+    efectos al importarse (proteger su main con un guard `import.meta.url`).
+  - **Red estática adicional (no es la defensa principal):** para los de la lista blanca se analiza el texto sin comentarios ni
+    cadenas (una mención de `import.meta.url` o `writeFileSync` en un comentario no cuenta) y se exige que no importen
+    `child_process`, `net`, `http(s)`, `worker_threads`, `vm` y similares, no usen escrituras de `fs` (todas las variantes
+    sync/async/promises), `exec`/`spawn`, `fetch`, `eval`, timers, `process.chdir`/`kill`, ni `process.exit`/`argv` sin un guard
+    `import.meta.url` real.
+  - Mutaciones comprobadas: `^(\d+)+$`, `^(a|aa)+$` y `x?`×28 + `x`×28 hacen fallar el test por tiempo, como literal y las dos
+    primeras también como función; `new RegExp('^\\s*-\\s*(.+)$')` en una función exportada, un script nuevo con `export` sin
+    listar, un comentario con `import.meta.url` más escritura, un `appendFileSync` sin guard y un script de la lista blanca que
+    gana un efecto hacen fallar la guardia; quitar la lista blanca o volver a la heurística vieja hace fallar los tests de la
+    guardia. Un ítem vacío se descarta (antes el manifest podía registrar `''`, que apuntaría a toda la raíz).
 - **Tasa de ruido medida (2026-11-25)**, contra los 30 últimos PRs mergeados a `dokploy` (diff `padre1...padre2` de cada merge de
   primer padre): 7 de 30 PRs (23 %) habrían tenido avisos; de 124 archivos relevantes cambiados, 53 (43 %) tenían doc
   correspondiente sin tocar. Dos PRs grandes concentran la mayoría (25 y 5 avisos en `infra/kestra` y workers); el resto trae 3 a
