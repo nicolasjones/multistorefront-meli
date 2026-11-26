@@ -152,6 +152,11 @@ describe('redactarCredenciales', () => {
     ['{"api_key":"kSECRETO"}', 'JSON api_key'],
     ['DB_PASSWORD=pSECRETO', 'nombre con password embebido'],
     ['x-hasura-admin-secret: sSECRETO', 'secret embebido'],
+    ['DB_PASSWD=pSECRETO', 'passwd'],
+    ['secret_key=sSECRETO', 'sufijo después de secret'],
+    ['token_value: tSECRETO', 'sufijo después de token'],
+    ['password_hash: hSECRETO', 'sufijo después de password'],
+    ['AUTHORIZATION: BASIC dXNlcjpTRUNSRVRP', 'Authorization en mayúsculas'],
   ]
   for (const [entrada, nombre] of casos) {
     it(`redacta ${nombre}`, () => {

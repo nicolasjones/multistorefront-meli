@@ -84,7 +84,7 @@ export async function rechazoPorCupo(
 
 // ¿El fallo del proveedor fue por tiempo de espera? (AbortSignal.timeout / fetch abortado, o el error de negocio que el transporte lanza)
 export function esTimeoutDeProveedor(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false
+  // `leerCampo` tolera null, primitivos y objetos hostiles: no hace falta una guarda previa.
   const name = leerCampo(error, 'name')
   const message = leerCampo(error, 'message')
   return name === 'TimeoutError' || name === 'AbortError' || message === 'INVOCACION_PROVEEDOR_IA_TIMEOUT' || message === 'EMBEDDING_PROVEEDOR_IA_TIMEOUT'
