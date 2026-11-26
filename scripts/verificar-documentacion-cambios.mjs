@@ -19,6 +19,7 @@ if (!canResolve(base)) {
   process.exit(1);
 }
 
+// `-z` ya entrega los nombres sin escapar; `core.quotepath=off` es cinturón y tirantes (redundante a propósito).
 const diff = run(['-c', 'core.quotepath=off', 'diff', '--name-only', '-z', `${base}...HEAD`]);
 if (diff.status !== 0) {
   console.error(diff.stderr.trim() || 'No se pudo inspeccionar el diff de documentación.');

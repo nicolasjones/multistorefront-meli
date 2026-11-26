@@ -5,6 +5,8 @@ sources:
   - scripts/verificar-documentacion-cambios.test.mjs
   - scripts/docs-correspondencia.mjs
   - scripts/docs-correspondencia.test.mjs
+  - scripts/docs-lineas.mjs
+  - scripts/docs-yaml.mjs
   - scripts/docs-check.mjs
   - scripts/docs-drift.mjs
   - scripts/docs-enlaces.mjs
@@ -66,9 +68,15 @@ que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada 
 - **Rutas con caracteres no ASCII o especiales:** el diff se lee con `git -c core.quotepath=off diff --name-only -z` y se divide por
   `\0`, así `ñ`, espacios, comillas y saltos de línea llegan exactos (antes git los devolvía entre comillas con escapes octales y
   se descartaban sin aviso). Al imprimirlos pasan por el escape de anotaciones y `lineaLista`.
-- **Protección contra ReDoS:** el parser de `sources:` usa solo expresiones lineales (un único `\s` antes del `#` de comentario y las
-  barras finales se quitan con un bucle), de modo que una línea de cientos de miles de espacios o barras no cuelga el CI. Hay
-  tests con 200 000 caracteres patológicos que deben terminar en menos de 1 s.
+- **Protección contra ReDoS (tiempo lineal medido):** los ítems `- x` de `sources:` se parsean a mano, con un índice y sin regex
+  ambigua, en `scripts/docs-lineas.mjs` (`itemDeLista`, `itemDeListaConEspacio`). Una regex como `^\s*-\s*(.+)$` era cuadrática
+  porque `\s*` y `.+` se solapan y `.` no casa con U+2028/U+2029: un ítem con 200 000 blancos y uno de esos terminadores tardaba
+  ~40 s. El mismo helper lo usan `docs-manifest.mjs` (front matter), `docs-yaml.mjs` (nav) y `docs-check.mjs` (nav, donde otra
+  regex tenía el mismo patrón). Las regex que quedan son acotadas (`\s#.*$` con un solo blanco, comillas en los bordes) y las barras
+  finales se quitan con un bucle. Se probó una batería de 200 000 caracteres (espacio, tab, NBSP, U+2028, U+2029, U+0085, `\r`, `#`,
+  comillas, guiones, comas, corchetes, `/`) y colas (vacía, `x`, terminadores Unicode) en cada forma de `sources:`; los tests de
+  `docs-correspondencia`, `docs-manifest`, `docs-yaml` y `docs-check` exigen menos de 1 s. Un ítem vacío se descarta (antes el
+  manifest podía registrar `''`, que apuntaría a toda la raíz).
 - **Tasa de ruido medida (2026-11-25)**, contra los 30 últimos PRs mergeados a `dokploy` (diff `padre1...padre2` de cada merge de
   primer padre): 7 de 30 PRs (23 %) habrían tenido avisos; de 124 archivos relevantes cambiados, 53 (43 %) tenían doc
   correspondiente sin tocar. Dos PRs grandes concentran la mayoría (25 y 5 avisos en `infra/kestra` y workers); el resto trae 3 a

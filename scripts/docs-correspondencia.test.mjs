@@ -144,4 +144,22 @@ describe('entradas patológicas (ReDoS)', () => {
     archivosSinDocCorrespondiente([`scripts/${'.test'.repeat(N / 5)}`, `scripts/${'/'.repeat(N)}`], [doc('docs/a.md', ['scripts/sub'])]);
     assert.ok(performance.now() - t0 < 1000);
   });
+
+  // Hueco anterior: las colas vacías o `x` no ejercitaban el caso lento (U+2028/U+2029/U+0085 tras blancos).
+  for (const relleno of [' ', '\t', '\u00a0']) {
+    for (const cola of ['\u2028', '\u2029', '\u0085']) {
+      it(`ítem con 200k ${JSON.stringify(relleno)} y cola ${JSON.stringify(cola)} es lineal`, async () => {
+        for (const [forma, texto] of [
+          ['despues-del-guion', `---\nsources:\n  - ${relleno.repeat(N)}${cola}\n---\n`],
+          ['antes-del-guion', `---\nsources:\n${relleno.repeat(N)}-${cola}\n---\n`],
+          ['dentro', `---\nsources:\n  - x${relleno.repeat(N)}${cola}y\n---\n`],
+          ['escalar', `---\nsources:${relleno.repeat(N)}${cola}\n---\n`],
+          ['clave', `---\nsources${relleno.repeat(N)}${cola}:\n---\n`],
+        ]) {
+          const { ms } = await lee(`redos-u-${forma}`, texto);
+          assert.ok(ms < 1000, `${forma}: ${ms} ms`);
+        }
+      });
+    }
+  }
 });

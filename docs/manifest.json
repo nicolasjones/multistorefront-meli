@@ -928,14 +928,16 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "92558278dc45ec493541a3d5198f3364991e7092baf2e08bd3b2ecbc72743267",
-      "sourceHash": "8bffe80c1f223d27f48bb433dcf77382f7f03adfff59edbc643dd42486ad5f77",
+      "pageHash": "f7821ad248bb6898ac63d3c0ec9783a2d0906da93fd4068dba341d0d87826a2d",
+      "sourceHash": "2bba256c071b9c7664f6e5d1c3bdd84766fa88ab8fec6abba1db1a741b9fa4cf",
       "sourceAt": "b9913b5b0",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
         "scripts/docs-correspondencia.mjs",
         "scripts/docs-correspondencia.test.mjs",
+        "scripts/docs-lineas.mjs",
+        "scripts/docs-yaml.mjs",
         "scripts/docs-check.mjs",
         "scripts/docs-drift.mjs",
         "scripts/docs-enlaces.mjs",

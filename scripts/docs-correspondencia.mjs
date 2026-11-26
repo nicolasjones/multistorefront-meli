@@ -3,6 +3,7 @@
 // (el mismo que consumen docs-manifest.mjs y docs-drift.mjs); no hay otro mapa que mantener.
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { itemDeLista } from './docs-lineas.mjs';
 
 const RUTAS_CODIGO = /^(apps|workers|supabase|infra|scripts|packages|\.github)\//;
 // Fuera de la correspondencia: tests, fixtures/snapshots, lockfiles y migraciones (las cubre verificar-migraciones).
@@ -17,7 +18,9 @@ const esArchivoRelevante = (ruta) => RUTAS_CODIGO.test(ruta) && !TRIVIAL.test(ru
 
 // Mismo criterio que `frontmatter()` de docs-manifest.mjs (lista en bloque, `[]`), más array en línea,
 // escalar, CRLF, comentarios finales y comillas.
-// Sin cuantificadores anidados ni `\s+` sin anclar: cada regex es lineal aunque la línea tenga 1 MB de espacios o barras.
+// Tiempo lineal con líneas patológicas: los ítems se parsean a mano (docs-lineas.mjs, sin regex ambigua) y las regex que
+// quedan son acotadas (`\s#.*$`, comillas en los bordes) o se aplican a una sola posición; las barras finales se quitan con un
+// bucle. Probado con 200 000 de espacio, tab, NBSP, U+2028, U+2029, U+0085, `\r`, `#`, comillas, guiones, comas y corchetes.
 const quitarBarrasFinales = (v) => { let fin = v.length; while (fin > 0 && v[fin - 1] === '/') fin -= 1; return v.slice(0, fin); };
 const limpiarItem = (v) => quitarBarrasFinales(v.replace(/\s#.*$/, '').trim().replace(/^["']|["']$/g, ''));
 
@@ -38,8 +41,8 @@ function fuentesDeDoc(texto) {
       }
       continue;
     }
-    const li = linea.match(/^\s*-\s*(.+)$/);
-    if (enSources && li) fuentes.push(limpiarItem(li[1]));
+    const item = itemDeLista(linea);
+    if (enSources && item) fuentes.push(limpiarItem(item));
   }
   return fuentes.filter(Boolean);
 }
