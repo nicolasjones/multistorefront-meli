@@ -5165,9 +5165,9 @@
     },
     "docs/tecnico/service-cobro-y-avisos.md": {
       "title": "Service técnico: cobro, avisos y ficha del cliente (técnico, MSF-232)",
-      "pageHash": "95ffd0749c41bdc136a662c8e8a679f386a46f25e84d81e4d674f5a83ca829f5",
-      "sourceHash": "f54bd40cde215af3ba3979a77ef9bf7edcee6e437d6d9a2ec2fff6a3c5b82802",
-      "sourceAt": "2a065d398",
+      "pageHash": "5220f0ae7ed789b464f4ce6e5cd4397ae7e3bb6f45b9e8244ac77ea4f1697865",
+      "sourceHash": "6368f581efc3cc9a77475a538ebd48a1bbe39e04f520fe7cc14cf2f9b7052031",
+      "sourceAt": "c9dc27818",
       "sources": [
         "specs/20261028-100000-service-cobro-y-avisos",
         "supabase/migrations/20270201200128_comprobantes_origen.sql",
@@ -5200,7 +5200,7 @@
         "apps/web/e2e/service-cobro-avisos.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "2a065d398"
+      "commit": "c9dc27818"
     },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
