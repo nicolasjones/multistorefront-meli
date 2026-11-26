@@ -48,6 +48,11 @@
 --
 -- Reaplicable: `create ... if not exists`, `create or replace`, el CHECK se agrega solo si falta.
 --
+-- ADVERTENCIA: revertir REABRE el hueco de aislamiento entre organizaciones de MSF-728. Con las políticas viejas de 20270507180400 un
+-- escritor puede insertar o mover fragmentos propios a una versión de OTRA organización (y ocupar un `orden` con el índice único), y con
+-- el `insertar_fragmentos_si_dueno` viejo se pierde la deduplicación y la actualización con `do update`. Es solo un paso transitorio:
+-- requiere una decisión explícita y volver a aplicar una migración equivalente cuanto antes.
+--
 -- Reversión (migración posterior; los pasos son reales y ordenados):
 --   alter table public.fuentes_chat_ia drop constraint if exists fuentes_chat_ia_columnas_validas;
 --   alter table public.fuentes_chat_ia drop column if exists columnas;
@@ -59,6 +64,7 @@
 --   drop function if exists private.exigir_una_fila_por_funcionalidad_mcp();
 --   drop function if exists private.deduplicar_fragmentos_indexados();
 --   drop function if exists private.exigir_indice_fragmentos_valido();
+--   drop function if exists private.exigir_indice_valido(regclass);
 --   y volver a las definiciones anteriores copiando SOLO esos bloques (no los archivos completos: 20261003231600 vuelve a crear tablas y falla con
 --   «relation ejecuciones_mcp already exists»): los `drop policy if exists` + `create policy fragmentos_indexados_insert` / `fragmentos_indexados_update`
 --   de 20270507180400, el `create or replace function private.insertar_fragmentos_si_dueno` de 20270507260000 y el
@@ -113,26 +119,34 @@ create unique index if not exists fragmentos_indexados_version_orden_uidx
 
 -- Un `create unique index concurrently` fallido (ruta en caliente de producción) deja un índice INVALID con este mismo nombre y el
 -- `if not exists` de arriba lo omitiría: la migración «pasaría» sin unicidad real. Se comprueba y se aborta con la instrucción.
-create or replace function private.exigir_indice_fragmentos_valido()
+create or replace function private.exigir_indice_valido(p_indice regclass)
 returns void
 language plpgsql
 security definer
 set search_path = ''
 as $$
 begin
-  if exists (
-    select 1 from pg_catalog.pg_index i
-     where i.indexrelid = to_regclass('public.fragmentos_indexados_version_orden_uidx') and not i.indisvalid
-  ) then
-    raise exception 'El índice public.fragmentos_indexados_version_orden_uidx existe pero no es válido (una creación concurrente falló): ejecutá drop index concurrently public.fragmentos_indexados_version_orden_uidx; y repetí la migración'
+  if exists (select 1 from pg_catalog.pg_index i where i.indexrelid = p_indice and not i.indisvalid) then
+    raise exception 'El índice % existe pero no es válido (una creación concurrente falló): ejecutá drop index concurrently %; y repetí la migración', p_indice, p_indice
       using errcode = '55000';
   end if;
 end;
 $$;
 
-comment on function private.exigir_indice_fragmentos_valido() is
-  'Lote 89 (MSF-728): aborta con 55000 si el índice único de fragmentos existe pero está INVALID. La corre la migración después de crearlo.';
+comment on function private.exigir_indice_valido(regclass) is
+  'Lote 89 (MSF-728): aborta con 55000 si el índice indicado existe pero está INVALID (creación concurrente fallida). Parametrizada para poder probarla con un índice inválido real sin ser superusuario.';
 
+create or replace function private.exigir_indice_fragmentos_valido()
+returns void
+language sql
+security definer
+set search_path = ''
+as $$ select private.exigir_indice_valido(to_regclass('public.fragmentos_indexados_version_orden_uidx')) $$;
+
+comment on function private.exigir_indice_fragmentos_valido() is
+  'Lote 89 (MSF-728): comprueba que el índice único de fragmentos no esté INVALID. La corre la migración después de crearlo.';
+
+revoke execute on function private.exigir_indice_valido(regclass) from public, anon, authenticated, service_role;
 revoke execute on function private.exigir_indice_fragmentos_valido() from public, anon, authenticated, service_role;
 
 select private.exigir_indice_fragmentos_valido();

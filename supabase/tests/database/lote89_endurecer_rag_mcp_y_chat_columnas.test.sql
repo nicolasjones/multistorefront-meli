@@ -4,7 +4,7 @@
 -- usa la migración. Incluye el aislamiento entre organizaciones (políticas de escritura y deduplicación de fragmentos).
 begin;
 
-select plan(99);
+select plan(97);
 
 insert into organizaciones (id, nombre) values
   ('f1111111-1111-1111-1111-111111111180', 'Org L89'),
@@ -146,16 +146,9 @@ select is(public.insertar_fragmentos_si_dueno('f4000000-0000-0000-0000-000000000
 select is(public.insertar_fragmentos_si_dueno('00000000-0000-0000-0000-00000000dead', 'f1111111-1111-1111-1111-111111111180', 'reclamo-propio', '[{"texto":"x","embedding":"[0]","orden":60}]'::jsonb), false, 'versión inexistente: no es dueña');
 select is((select count(*) from fragmentos_indexados where orden = 60), 0::bigint, 'ninguna de las llamadas rechazadas insertó nada');
 
--- Índice único inválido (creación concurrente fallida): la migración lo rechaza en vez de «pasar» sin unicidad.
+-- Con el índice único válido la comprobación de la migración pasa.
 select lives_ok($$select private.exigir_indice_fragmentos_valido()$$, 'con el índice válido la comprobación pasa');
-create temp table es_super as select rolsuper as v from pg_roles where rolname = current_user;
-select case when (select v from es_super)
-  then (select throws_ok($$update pg_catalog.pg_index set indisvalid = false where indexrelid = 'public.fragmentos_indexados_version_orden_uidx'::regclass; select private.exigir_indice_fragmentos_valido()$$,
-    '55000', 'El índice public.fragmentos_indexados_version_orden_uidx existe pero no es válido (una creación concurrente falló): ejecutá drop index concurrently public.fragmentos_indexados_version_orden_uidx; y repetí la migración', 'índice INVALID: la migración aborta con la instrucción'))
-  else skip(1, 'requiere superusuario para marcar el índice como inválido') end;
-select case when (select v from es_super)
-  then (select lives_ok($$update pg_catalog.pg_index set indisvalid = true where indexrelid = 'public.fragmentos_indexados_version_orden_uidx'::regclass; select private.exigir_indice_fragmentos_valido()$$, 'restablecido el índice la comprobación pasa de nuevo'))
-  else skip(1, 'requiere superusuario') end;
+-- El caso del índice INVALID real vive en lote89b_indice_invalido.test.sql (requiere un create unique index concurrently fuera de transacción).
 
 -- Políticas de escritura: la versión debe ser de la organización del usuario.
 select pg_temp.como('f1000000-0000-0000-0000-000000000080');

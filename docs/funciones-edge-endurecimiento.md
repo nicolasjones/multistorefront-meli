@@ -229,6 +229,12 @@ override de organización que une el criterio histórico (sufijo `organizacion_i
 Una sola migración, `20270507800000_endurecer_rag_mcp_y_chat_columnas.sql` (reaplicable; reversión documentada en el propio
 archivo). Prueba: `supabase/tests/database/lote89_endurecer_rag_mcp_y_chat_columnas.test.sql`.
 
+**Reversión: advertencia.** Revertir esta migración REABRE el hueco de aislamiento entre organizaciones de MSF-728: con las políticas
+viejas de `fragmentos_indexados` (20270507180400) un escritor puede insertar o mover fragmentos propios a una versión de otra organización, y con
+el `insertar_fragmentos_si_dueno` viejo se pierde la deduplicación y el `do update`. Es solo un paso transitorio: requiere una decisión
+explícita y volver a aplicar una migración equivalente cuanto antes. Los pasos están en el encabezado de la migración (se copian solo los
+bloques de función y política, no los archivos completos).
+
 **Orden de despliegue:** aplicar la migración ANTES de desplegar `chat-ia-responder`. El handler selecciona `fuentes_chat_ia.columnas`;
 si la función sale primero, esa columna no existe y toda lectura del chat responde `FUENTE_NO_DISPONIBLE` (falla cerrado, pero el chat
 deja de leer datos hasta aplicar la migración).
@@ -258,7 +264,9 @@ deja de leer datos hasta aplicar la migración).
   debe dar `true`. Un `create unique index concurrently` que falla (p. ej. por un repetido nuevo) deja un índice INVALID con ese nombre; si
   `indisvalid` es `false`, `drop index concurrently public.fragmentos_indexados_version_orden_uidx;` y repetir desde (1); (4) aplicar la
   migración, cuyo `create unique index if not exists` ya no hace nada y cuya deduplicación no encuentra filas. Como red de seguridad, la
-  migración llama a `private.exigir_indice_fragmentos_valido()` y aborta (55000) con esa misma instrucción si el índice existe pero es INVALID.
+  migración llama a `private.exigir_indice_fragmentos_valido()` (que usa `private.exigir_indice_valido(regclass)`) y aborta (55000) con esa
+  misma instrucción si el índice existe pero es INVALID. La prueba `lote89b_indice_invalido.test.sql` provoca un `create unique index
+  concurrently` fallido de verdad sobre una tabla scratch (fuera de transacción, sin superusuario) y la limpia al terminar.
 - **Barrido de versiones atascadas, sin agendar.** `public.liberar_versiones_documento_atascadas(p_minutos int default 30)`
   (envoltorio de `private.…`, `security definer`, `search_path=''`, solo `service_role`) marca `fallida`, con el motivo «Se
   interrumpió el procesamiento: más de N minutos sin completarse. Subí el archivo de nuevo.», toda versión `procesando` subida

@@ -280,6 +280,7 @@
         "supabase/migrations/20270507800000_endurecer_rag_mcp_y_chat_columnas.sql",
         "supabase/tests/database/rag_busqueda_documental.test.sql",
         "supabase/tests/database/lote89_endurecer_rag_mcp_y_chat_columnas.test.sql",
+        "supabase/tests/database/lote89b_indice_invalido.test.sql",
         "supabase/functions/indexar-documento/index.ts",
         "supabase/functions/indexar-documento/handler.ts",
         "supabase/functions/indexar-documento/consultas.ts",
