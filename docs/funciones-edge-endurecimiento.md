@@ -361,6 +361,12 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   borraría texto legítimo como `commit deadbeef`); (5) los helpers de `log-seguro.ts` y los `catch` de `embeddings.ts` y `packages/ia` leen los
   campos de un error sin lanzar (getters o `Proxy` hostiles), porque se usan dentro de bloques `catch`.
   **Logs del chat y de preguntar-documentos:** cada rama y si deja log están en la tabla «Ramas de los handlers y logs» al final de esta sección.
+  **Orden de recorte y redacción por rama** (siempre se redacta ANTES del recorte final): `limpiarParaLog` recorta a `max*4`, aplana y recorta
+  a `max`; `mensajeParaLog` = recorte a `max*4`, redacción y recorte a `max`; `redactarCredenciales` acota su entrada a 4000 y redacta;
+  `describirError` (RPC de cupo) = recorte a 2000, redacción, tachado del usuario, de uuids y de correos, y recorte final a 300, tanto para un objeto
+  de error como para un string; `registrarErrorDeBase` = `code` a 64 sin redacción (es un código corto de la base) y el mensaje por
+  `mensajeParaLog(…, 300)`; los demás logs de adaptador y proveedor (64) pasan solo por `limpiarParaLog` porque son valores de configuración de la
+  plataforma, no datos del usuario; `textoDeError` no imprime texto libre.
   **Alcance de la regla:** vale para `chat-ia-responder`, `preguntar-documentos`, `indexar-documento` (handler, `fragmentos.ts`, `index.ts`) y
   `_shared/cupo-ia.ts`. Quedan fuera, por no tener datos variables, `_shared/token.ts` (`console.warn` con un texto fijo) y, por no correr en
   producción, `_shared/verificacion/smtp-real.deno.ts` (script manual de verificación). Las demás funciones fuera de IA siguen imprimiendo
