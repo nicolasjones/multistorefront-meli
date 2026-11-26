@@ -256,6 +256,48 @@ describe('rechazoPorCupo con valores hostiles', () => {
   })
 })
 
+describe('bordes de las constantes de describirError (tabla)', () => {
+  const rep = (c: string, n: number) => c.repeat(n)
+  const hex31 = '0123456789abcdef0123456789abcde'
+  const url2000 = (largo: number, resto = '') => `https://${rep('z', largo - 16)} visible${resto}`
+  const filas: Array<{ nombre: string; mensaje: string; esperado: string }> = [
+    // MAX_ERROR_LOG = 300 (código vacío para que el log sea solo el mensaje).
+    { nombre: 'mensaje de 299', mensaje: rep('z', 299), esperado: rep('z', 299) },
+    { nombre: 'mensaje de 300', mensaje: rep('z', 300), esperado: rep('z', 300) },
+    { nombre: 'mensaje de 301', mensaje: rep('z', 301), esperado: rep('z', 300) },
+    // MAX_ANTES_DE_TACHAR = 2000: una URL que colapsa 1900 caracteres a '[url]' deja ver el texto que sigue si cae dentro de los 2000.
+    { nombre: 'entrada de 1999', mensaje: url2000(1999), esperado: '[url] visible' },
+    { nombre: 'entrada de 2000', mensaje: url2000(2000), esperado: '[url] visible' },
+    { nombre: 'entrada de 2001 (el último caracter queda afuera)', mensaje: url2000(2000, 'X'), esperado: '[url] visible' },
+    // UUID sin guiones: 31 hexadecimales no se tachan; 32 y 33 sí.
+    { nombre: '31 hex', mensaje: `id=${hex31}`, esperado: `id=${hex31}` },
+    { nombre: '32 hex', mensaje: `id=${hex31}f`, esperado: 'id=[uuid]' },
+    { nombre: '33 hex', mensaje: `id=${hex31}ff`, esperado: 'id=[uuid]' },
+    // Correo: parte local {1,64} y dominio {1,255}.
+    { nombre: 'local de 63', mensaje: `${rep('z', 63)}@d.com`, esperado: '[correo]' },
+    { nombre: 'local de 64', mensaje: `${rep('z', 64)}@d.com`, esperado: '[correo]' },
+    { nombre: 'local de 65', mensaje: `${rep('z', 65)}@d.com`, esperado: 'z[correo]' },
+    { nombre: 'dominio de 254', mensaje: `u@${rep('z', 254)}`, esperado: '[correo]' },
+    { nombre: 'dominio de 255', mensaje: `u@${rep('z', 255)}`, esperado: '[correo]' },
+    { nombre: 'dominio de 256', mensaje: `u@${rep('z', 256)}`, esperado: '[correo]z' },
+  ]
+  for (const { nombre, mensaje, esperado } of filas) {
+    it(`describirError: ${nombre}`, async () => {
+      logs.length = 0
+      await rechazoPorCupo(admin({ data: null, error: { message: mensaje } }), 'usuario-x', 'chat-ia', 30, textos)
+      assert.equal((logs[0][1] as { error: string }).error, esperado)
+    })
+  }
+
+  it('un error que no es objeto se acota a 300 (299/300/301)', async () => {
+    for (const [largo, esperado] of [[299, 299], [300, 300], [301, 300]] as const) {
+      logs.length = 0
+      await rechazoPorCupo(admin({ data: null, error: rep('z', largo) }), 'usuario-x', 'chat-ia', 30, textos)
+      assert.equal((logs[0][1] as { error: string }).error.length, esperado, `largo ${largo}`)
+    }
+  })
+})
+
 describe('esTimeoutDeProveedor', () => {
   it('reconoce el timeout y el abort, y no confunde otros errores', () => {
     assert.equal(esTimeoutDeProveedor(new DOMException('x', 'TimeoutError')), true)

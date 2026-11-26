@@ -60,7 +60,7 @@ export function textoDeError(error: unknown): string {
 // y campos sensibles (que ocultan el resto del mensaje).
 // Tiempo acotado POR CONSTRUCCIÓN, no por afirmar que cada regex sea lineal (el JWT, con sus tres segmentos, no lo es): (1) la función
 // acota la entrada a MAX_ENTRADA_REDACCION caracteres antes de cualquier regex (la salida también queda acotada: no pasa de unas pocas veces el tope, porque una redacción como `Bearer [token]` puede alargar un poco; no es un texto completo);
-// (2) los cuantificadores de los patrones están acotados (esquema de URL 30, segmentos del JWT 2000, nombre de campo 40). Medido: 200k
+// (2) los cuantificadores de los patrones están acotados (esquema de URL, segmentos del JWT, sufijo del nombre de campo, comillas y espacios). Medido: 200k
 // caracteres hostiles por variante tardan decenas de milisegundos (log-seguro.test.ts).
 export const MAX_ENTRADA_REDACCION = 4000
 // Cualquier esquema `algo://…` (http, https, postgres, postgresql…).
@@ -72,7 +72,8 @@ const CLAVE_SK = /sk-[A-Za-z0-9_-]{10,}/g
 // Campos sensibles: a partir de la PRIMERA aparición de un nombre sensible seguido de `:` o `=` se oculta TODO lo que sigue hasta el final
 // del mensaje (sobre-redacción deliberada: es diagnóstico, y no se intenta adivinar dónde termina un valor con espacios, comillas o JSON
 // escapado). El nombre puede estar embebido en uno más largo (`sb-access-token`, `x-api-key`, `db_password`) y rodeado de comillas o barras
-// invertidas (`"api_key":`, `\"api_key\":`). Prefijos, sufijos, comillas y espacios se acotan para que el costo sea acotado.
+// invertidas (`"api_key":`, `\"api_key\":`). Sufijo (40), comillas (4) y espacios (16) tienen su borde cubierto por tests. El PREFIJO `{0,40}` del nombre es
+// solo un tope de rendimiento y NO tiene efecto observable (el prefijo queda dentro del grupo 1 y se imprime igual con cualquier tope): equivalente declarado.
 const CAMPO = /([\w-]{0,40}(?:password|passwd|secret|token|apikey|api_key|api-key|authorization|credential|cookie)[\w-]{0,40}[\\"']{0,4}\s{0,16}[:=])[\s\S]*/i
 
 export function redactarCredenciales(texto: string): string {
@@ -85,8 +86,9 @@ export function redactarCredenciales(texto: string): string {
 }
 
 // Mensaje de la base (PostgREST/Postgres) para el log: una línea, credenciales y URLs redactadas y acotado a `max`. La redacción va SIEMPRE
-// antes del recorte final (se redacta sobre `max * 4`; cualquier otro margen mayor es equivalente), así un secreto que cruza el límite no
-// deja su prefijo en la salida.
+// antes del recorte final (se redacta sobre `max * 4`), así un secreto que cruza el límite no deja su prefijo en la salida. El margen
+// `* 4` está fijado por test en ambos sentidos: uno menor perdería texto que sobrevive a una redacción que acorta (p. ej. una URL
+// larga) y uno mayor mostraría más.
 export function mensajeParaLog(valor: unknown, max: number): string {
   const tope = normalizarMax(max)
   return limpiarParaLog(redactarCredenciales(limpiarParaLog(valor, tope * 4)), tope)

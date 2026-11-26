@@ -11,6 +11,8 @@ export const LIMITE_CUPO_MAXIMO = 1000
 export const FUNCIONALIDAD_CHAT = 'chat-ia'
 export const FUNCIONALIDAD_DOCUMENTOS = 'busqueda-documental'
 
+// Bordes de MAX_ERROR_LOG (300), MAX_ANTES_DE_TACHAR (2000), UUID sin guiones {32,} y CORREO {1,64}@{1,255} fijados por tests de tabla
+// (cupo-ia.test.ts) con n-1 / n / n+1; no hay constantes equivalentes entre ellas.
 const MAX_ERROR_LOG = 300
 // Antes de tachar se acota a un tamaño holgado, para que el trabajo sea lineal aunque el detalle sea enorme (el recorte final es a 300).
 const MAX_ANTES_DE_TACHAR = 2000
@@ -23,6 +25,7 @@ const CORREO = /[^\s@]{1,64}@[^\s@]{1,255}/g
 // precede al recorte, un uuid completo nunca queda cortado por él y no hace falta descartar nada al final (hacerlo borraría texto legítimo, p. ej. `commit deadbeef`).
 function describirError(error: unknown, usuarioId: string): string {
   // Cada lectura es segura: un error hostil (getter que lanza, Proxy) no puede lanzar desde el `catch` que llama a esta función.
+  // El 300 de `limpiarParaLog(error, 300)` está fijado por test del lado de 299; un valor MAYOR (301…) es equivalente: el recorte final a MAX_ERROR_LOG (300) da el mismo resultado.
   const e = error && typeof error === 'object' ? error : { message: limpiarParaLog(error, 300) }
   const partes = [leerCampo(e, 'name'), leerCampo(e, 'code'), leerCampo(e, 'message')].filter((p): p is string => typeof p === 'string' && p !== '')
   let texto = redactarCredenciales(limpiarParaLog(partes.join(' '), MAX_ANTES_DE_TACHAR))

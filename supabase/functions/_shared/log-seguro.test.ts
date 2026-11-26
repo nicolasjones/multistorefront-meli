@@ -373,3 +373,59 @@ describe('mensajeParaLog: un secreto que cruza el límite no deja su prefijo', (
     })
   }
 })
+
+// Bordes numéricos de las constantes de `redactarCredenciales`, `mensajeParaLog` y `registrarErrorDeBase`: una tabla con n-1 / n / n+1 y los
+// números LITERALES (no se importa la constante para compararla consigo misma). Fijan el comportamiento actual del código.
+describe('bordes de las constantes de log-seguro (tabla)', () => {
+  const rep = (c: string, n: number) => c.repeat(n)
+  const jwt = (a: number, b: number, c: number) => `eyJ${rep('a', a)}.${rep('b', b)}.${rep('c', c)}`
+  const filas: Array<{ nombre: string; entrada: string; esperado: string }> = [
+    // JWT {5,2000} por segmento: 4 no es JWT, 5 sí, 2000 sí, 2001 no (cada uno de los tres segmentos).
+    ...[[4, 10, 10], [10, 4, 10], [10, 10, 4]].map(([a, b, c]) => ({ nombre: `JWT con un segmento de 4 (${a},${b},${c})`, entrada: jwt(a, b, c), esperado: jwt(a, b, c) })),
+    ...[[5, 10, 10], [10, 5, 10], [10, 10, 5], [2000, 10, 10], [10, 2000, 10], [10, 10, 2000]].map(([a, b, c]) => ({ nombre: `JWT con un segmento de 5 o 2000 (${a},${b},${c})`, entrada: jwt(a, b, c), esperado: '[jwt]' })),
+    ...[[2001, 10, 10], [10, 2001, 10]].map(([a, b, c]) => ({ nombre: `JWT con el 1.º o 2.º segmento de 2001 (${a},${b},${c})`, entrada: jwt(a, b, c), esperado: jwt(a, b, c) })),
+    // El 3.º segmento no necesita delimitador final: con 2001 se consumen 2000 y queda un caracter afuera.
+    { nombre: 'JWT con el 3.º segmento de 2001', entrada: jwt(10, 10, 2001), esperado: '[jwt]c' },
+    // Esquema de URL: 1 + {0,30} = hasta 31 caracteres; con 32 queda el primero afuera.
+    { nombre: 'esquema de 30', entrada: `${rep('a', 30)}://x`, esperado: '[url]' },
+    { nombre: 'esquema de 31', entrada: `${rep('a', 31)}://x`, esperado: '[url]' },
+    { nombre: 'esquema de 32', entrada: `${rep('a', 32)}://x`, esperado: 'a[url]' },
+    // Clave sk-: 9 no, 10 sí, 11 sí.
+    { nombre: 'sk- con 9', entrada: `sk-${rep('A', 9)}`, esperado: `sk-${rep('A', 9)}` },
+    { nombre: 'sk- con 10', entrada: `sk-${rep('A', 10)}`, esperado: '[clave]' },
+    { nombre: 'sk- con 11', entrada: `sk-${rep('A', 11)}`, esperado: '[clave]' },
+    // Campo sensible: sufijo del nombre {0,40}, comillas {0,4}, espacios {0,16} antes del separador.
+    { nombre: 'sufijo de 39', entrada: `token${rep('x', 39)}=v`, esperado: `token${rep('x', 39)}= [oculto]` },
+    { nombre: 'sufijo de 40', entrada: `token${rep('x', 40)}=v`, esperado: `token${rep('x', 40)}= [oculto]` },
+    { nombre: 'sufijo de 41', entrada: `token${rep('x', 41)}=v`, esperado: `token${rep('x', 41)}=v` },
+    { nombre: '3 comillas', entrada: `token${rep('"', 3)}:v`, esperado: `token${rep('"', 3)}: [oculto]` },
+    { nombre: '4 comillas', entrada: `token${rep('"', 4)}:v`, esperado: `token${rep('"', 4)}: [oculto]` },
+    { nombre: '5 comillas', entrada: `token${rep('"', 5)}:v`, esperado: `token${rep('"', 5)}:v` },
+    { nombre: '15 espacios', entrada: `token${rep(' ', 15)}=v`, esperado: `token${rep(' ', 15)}= [oculto]` },
+    { nombre: '16 espacios', entrada: `token${rep(' ', 16)}=v`, esperado: `token${rep(' ', 16)}= [oculto]` },
+    { nombre: '17 espacios', entrada: `token${rep(' ', 17)}=v`, esperado: `token${rep(' ', 17)}=v` },
+  ]
+  for (const { nombre, entrada, esperado } of filas) {
+    it(`redactarCredenciales: ${nombre}`, () => assert.equal(redactarCredenciales(entrada), esperado))
+  }
+
+  it('mensajeParaLog: el margen previo es exactamente tope * 4 (distingue *3 y *5)', () => {
+    // 1020 caracteres: con *3 (900) se corta dentro de la URL y se pierde ' fin-visible'; con *4 (1200) entra todo.
+    assert.equal(mensajeParaLog(`https://${rep('a', 1000)} fin-visible`, 300), '[url] fin-visible')
+    // Justo en el borde de 1200: 'https://' + 1190 'a' + ' fin' llega a 1202 caracteres; con *4 se ve ' f', con *5 se vería ' fin'.
+    assert.equal(mensajeParaLog(`https://${rep('a', 1190)} fin`, 300), '[url] f')
+    assert.equal(mensajeParaLog(`https://${rep('a', 1190)} f`, 300), '[url] f')
+  })
+
+  it('registrarErrorDeBase: el code se acota a 64 (63/64/65) y el mensaje a 300 (299/300/301)', () => {
+    const original = console.error
+    const logs: unknown[][] = []
+    console.error = (...a: unknown[]) => { logs.push(a) }
+    try {
+      for (const n of [63, 64, 65]) registrarErrorDeBase('p', { code: rep('C', n), message: 'm' })
+      for (const n of [299, 300, 301]) registrarErrorDeBase('p', { code: 'C', message: rep('m', n) })
+    } finally { console.error = original }
+    assert.deepEqual(logs.slice(0, 3).map((l) => String(l[1]).length), [63, 64, 64])
+    assert.deepEqual(logs.slice(3).map((l) => String(l[2]).length), [299, 300, 300])
+  })
+})
