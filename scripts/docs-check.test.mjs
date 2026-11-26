@@ -193,3 +193,19 @@ describe("verificarDocumentacion", () => {
     assert.match(errs, /lista\.md:2: bloque de código sin cerrar/);
   });
 });
+
+describe("paginasNav: entradas patológicas (ReDoS)", () => {
+  for (const relleno of [" ", "\t", "\u00a0"]) {
+    for (const cola of ["\u2028", "\u2029", "\u0085", "x"]) {
+      it(`una entrada con 200k ${JSON.stringify(relleno)} y cola ${JSON.stringify(cola)} termina en menos de 1 s`, () => {
+        const t0 = performance.now();
+        paginasNav(`nav:\n  - ${relleno.repeat(200000)}${cola}\n`);
+        assert.ok(performance.now() - t0 < 5000); // tope de 5 s: ver docs-correspondencia.test.mjs
+      });
+    }
+  }
+
+  it("sigue aceptando las tres formas de entrada", () => {
+    assert.deepEqual(paginasNav('nav:\n  - Inicio: a.md\n  - "Con: dos": b.md\n  - Sin etiqueta :c.md\n  -x: d.md\n'), ["a.md", "b.md", "c.md"]);
+  });
+});

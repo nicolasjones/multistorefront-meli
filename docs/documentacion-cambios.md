@@ -2,6 +2,12 @@
 owner: tecnico
 sources:
   - scripts/verificar-documentacion-cambios.mjs
+  - scripts/verificar-documentacion-cambios.test.mjs
+  - scripts/docs-correspondencia.mjs
+  - scripts/docs-correspondencia.test.mjs
+  - scripts/docs-lineas.mjs
+  - scripts/docs-regex-barrido.test.mjs
+  - scripts/docs-yaml.mjs
   - scripts/docs-check.mjs
   - scripts/docs-drift.mjs
   - scripts/docs-enlaces.mjs
@@ -31,6 +37,94 @@ puede indicar otra base con `DOCUMENTATION_CHECK_BASE`. En `validate.yml` corre 
 La documentación debe registrar la decisión, el contrato afectado, los riesgos,
 la validación ejecutada y cualquier limitación pendiente. Los archivos generados
 (por ejemplo `docs/schema.html`) no reemplazan la documentación fuente.
+
+## Correspondencia código-doc (MSF-869, modo aviso)
+
+La regla de arriba se satisface con **cualquier** doc, aunque no tenga relación con el cambio (se elude tocando uno
+cualquiera: MSF-688). Por eso `verificar-documentacion-cambios.mjs` hace una segunda verificación, por correspondencia,
+que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada `docs/**/*.md` (el mismo que consumen
+`docs-manifest.mjs` y `docs-drift.mjs`; no hay otro mapa que mantener). La lógica pura está en
+`scripts/docs-correspondencia.mjs`.
+
+- Para cada archivo cambiado de `apps|workers|supabase|infra|scripts|packages|.github` que figure en el `sources:` de uno o más
+  docs (por ruta exacta o dentro de una carpeta listada), esos docs deberían cambiar también. Si ninguno de ellos cambió, el
+  archivo se reporta.
+- **No generan aviso:** archivos que no están en ningún `sources:`; tests (`*.test.*`, `*.spec.*`, `tests/`, `e2e/`, `fixtures/`),
+  snapshots, lockfiles y `supabase/migrations/` (las cubre `verificar-migraciones`); fuentes que abarcan un área entera
+  (`infra`, `.github/workflows`, una raíz de un solo segmento), porque no identifican un doc concreto; y docs con más de 40 fuentes.
+- **Modo aviso (por defecto):** emite una anotación `::warning file=<doc>::` por doc (agrupa sus archivos) y una lista legible
+  por doc en la salida, y **sale con 0**: no cambia ningún resultado de CI. El control heredado (código relevante sin ningún doc
+  → exit 1) queda idéntico.
+- **Modo estricto:** `DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1 node scripts/verificar-documentacion-cambios.mjs` (o el flag
+  `--estricto`) convierte los avisos en `::error` y sale con 1. Para activarlo en el CI, definir esa variable en el job `chequeos`
+  de `validate.yml`; conviene hacerlo solo cuando la tasa de ruido sea aceptable para el equipo.
+- **Formatos de `sources:` aceptados:** lista en bloque, array en línea (`sources: [a, b]`), escalar (`sources: ruta`), `[]`,
+  CRLF, comillas y comentarios finales (`- ruta # nota`). Produce el mismo mapa que `docs-manifest.mjs` para los 313 docs con fuentes.
+- **Escape de anotaciones:** los nombres de archivo y de doc vienen del PR, así que se escapan como `@actions/core` (mensaje:
+  `%`, CR, LF; propiedad `file=`: además `:` y `,`), y las listas legibles salen como `- nombre` en una sola línea y con los `::`
+  neutralizados. Un archivo llamado `q%0A::add-mask::x.mjs` no puede inyectar comandos del runner.
+- **Tolerancia a errores:** un `docs/*.md` ilegible, un symlink roto o una carpeta `*.md` se omiten; cualquier excepción dentro de
+  la verificación por correspondencia emite `::warning ::no se pudo verificar la correspondencia: …` y sale con 0 (en modo estricto,
+  `::error` y 1). El guard heredado corre antes y no depende de esto.
+- **Rutas con caracteres no ASCII o especiales:** el diff se lee con `git -c core.quotepath=off diff --name-only -z` y se divide por
+  `\0`, así `ñ`, espacios, comillas y saltos de línea llegan exactos (antes git los devolvía entre comillas con escapes octales y
+  se descartaban sin aviso). Al imprimirlos pasan por el escape de anotaciones y `lineaLista`.
+- **Protección contra ReDoS (tiempo lineal medido):** claves (`sources:`), ítems (`- x`) y comentarios (` # nota`) de `sources:` y
+  del nav se parsean a mano, con un índice y sin regex que solapen `\s*` con `.*`/`.+`, en `scripts/docs-lineas.mjs`
+  (`claveYValor`, `itemDeLista`, `itemDeListaConEspacio`, `sinComentario`). Esas regex eran cuadráticas porque `.` no casa con
+  `\n`, `\r`, U+2028 ni U+2029 pero `\s` sí: con 200 000 blancos y un terminador en el medio de la línea el motor probaba todas las
+  particiones (decenas de segundos). El helper lo usan `docs-manifest.mjs` (front matter), `docs-correspondencia.mjs`,
+  `docs-yaml.mjs` y `docs-check.mjs` (nav). Las barras finales se quitan con un bucle. Las regex que quedan (rutas de código,
+  `^---\n([\s\S]*?)\n---`, `^\[(.*)\]$`, bordes de comillas, escapes de un carácter) hacen un solo recorrido sin retroceso útil.
+  No se afirma por inspección: `scripts/docs-regex-barrido.test.mjs` **enumera** con `readdirSync` todos los `scripts/docs-*.mjs`
+  (sin tests) más `verificar-documentacion-cambios.mjs`, sin lista fija, así que un script nuevo entra solo. Extrae sus regex
+  literales (ignora la línea `#!`) y las ejecuta con 100 000 caracteres hostiles: espacio, tab, NBSP, `-`, `#`, `:`, `x`, `\r`,
+  U+2028, U+2029, U+0085, comillas, `[`, `,`, `/`, y también dígitos, letras, `.`, `_`, `=`, `<`, `>` y mezclas alfanuméricas
+  (sin ellos no se detectan regex exponenciales como `^(\d+)+$` o `^(a|aa)+$`), combinados como prefijo + repetición +
+  terminador (también en el medio) + cola (la cola vacía importa). Además importa los scripts que exportan funciones y llama a cada
+  función exportada con las mismas entradas y los mismos prefijos. Cada regex o función corre en un `worker_thread` con
+  vigilancia: si no hay progreso en 4 s (regex catastrófica) el worker se termina y el test falla en segundos
+  **nombrando archivo:línea**; si una ejecución tarda más de 1 s (se repite 3 veces y vale el mínimo, para absorber el ruido de un
+  host cargado) también falla. Una regex sin cuantificadores `*`, `+` ni `{}`, sin `?` y sin alternancia `|` hace trabajo
+  proporcional a la entrada y se mide con una batería reducida; `?` repetido (`x?x?…x?xx…x`) y la alternancia sí pueden explotar,
+  así que van a la batería completa (probado con `x?`×28 + `x`×28). La clasificación es conservadora: un `+` dentro de una clase
+  `[+]` también cuenta como cuantificador, lo que solo manda esa regex a la batería completa. Se imprime la tabla de máximos: el
+  máximo observado fue ~0,9 s en un host cargado con 4 workers en paralelo (233 ms en serie) y el tope es 1 s. El test completo
+  tarda entre ~60 y ~80 s según la carga del host.
+  - **Qué cubre y qué no:** `docs-drift.mjs` no tiene regex (de él solo se cubre la enumeración). `docs-drift.mjs`,
+    `docs-inventario.mjs`, `docs-manifest.mjs` y `verificar-documentacion-cambios.mjs` no exportan nada y corren al importarse:
+    no se importan (lista `NO_IMPORTAR` del test) y se miden solo por sus regex literales; el manifest además tiene su test de
+    proceso en `docs-manifest.test.mjs`.
+  - **Defensa: clasificación explícita de cada script.** Todo `scripts/docs-*.mjs` que no sea un test, más
+    `verificar-documentacion-cambios.mjs`, debe estar en `IMPORTABLES` (`docs-check`, `docs-correspondencia`, `docs-enlaces`,
+    `docs-lineas`, `docs-yaml`: exportan funciones puras) o en `NO_IMPORTAR` (`docs-drift`, `docs-inventario`, `docs-manifest`,
+    `verificar-documentacion-cambios`: corren al importarse o no exportan nada). Si un archivo no está en ninguna de las dos, el
+    test falla con un mensaje accionable («agregalo a IMPORTABLES si exporta funciones puras sin efectos al importarse, o a
+    NO_IMPORTAR si corre al importarse o no exporta») y ese archivo no se importa: un script nuevo (con cualquier sintaxis de export,
+    o ninguna) exige una decisión humana en un cambio revisado. El test hace `import()` solo de los archivos de `IMPORTABLES`, nunca
+    de los de `NO_IMPORTAR` ni de archivos no clasificados; para los de `NO_IMPORTAR` sigue valiendo el barrido de sus regex
+    literales, por texto.
+  - **Alcance: lo que el test NO garantiza.** El propio test importa **estáticamente** `docs-correspondencia`, `docs-check` y
+    `docs-yaml`, y todo lo que los `IMPORTABLES` importan se carga y **se ejecuta** igual, al cargar el test y antes de cualquier
+    comprobación, como cualquier otro código del PR que corre en la CI (el job corre en `pull_request`, sin secretos y sin
+    `pull_request_target`). Por eso agregar un efecto a un script listado, o a algo que importe, es un cambio de código que se revisa
+    en el diff como cualquier otro, y el test no lo detecta. No hay detección automática de efectos, de imports ni de `export`: un
+    análisis estático de JavaScript dentro de un test se descartó porque siempre es evadible. Convención, que es una regla de
+    revisión: **un `docs-*.mjs` en `IMPORTABLES` (y lo que importe) no debe tener efectos al importarse** (proteger su main con un
+    guard `import.meta.url`).
+  - Los tests con archivos temporales del barrido (`leerMapaDocs`, `paginasNav`, `erroresYaml`, `erroresFrontMatter`) repiten la
+    medición hasta 3 veces y valen el mínimo, igual que los workers. Los tests de ReDoS de `docs-manifest`, `docs-check`, `docs-yaml` y
+    `docs-correspondencia` miden una sola vez con un tope de 5 s (no de 1 s): en un host cargado una sola muestra puede pasar de 1 s sin
+    que haya un problema, y una regex cuadrática con 200 000 caracteres tarda decenas de segundos.
+  - Mutaciones comprobadas: `^(\d+)+$`, `^(a|aa)+$` y `x?`×28 + `x`×28 hacen fallar el test por tiempo, como literal y las dos
+    primeras también como función; `new RegExp('^\\s*-\\s*(.+)$')` en una función exportada y un script nuevo no
+    clasificado (con `export{x}`, `export*from`, `export<TAB>function`, BOM o sin export) lo hace fallar sin importarse; volver a cada regex vieja corregida también. Un ítem vacío se descarta
+    (antes el manifest podía registrar `''`, que apuntaría a toda la raíz).
+- **Tasa de ruido medida (2026-11-25)**, contra los 30 últimos PRs mergeados a `dokploy` (diff `padre1...padre2` de cada merge de
+  primer padre): 7 de 30 PRs (23 %) habrían tenido avisos; de 124 archivos relevantes cambiados, 53 (43 %) tenían doc
+  correspondiente sin tocar. Dos PRs grandes concentran la mayoría (25 y 5 avisos en `infra/kestra` y workers); el resto trae 3 a
+  7. Sin el afinado de fuentes amplias eran 57 archivos y los avisos caían en el runbook `supabase-caido` (que declara `infra`
+  y `.github/workflows` enteros). Por eso conviene mantener el modo aviso hasta revisar qué avisos son legítimos.
 
 ## Dueños (`owner`) y fuentes (`sources`) de cada página
 

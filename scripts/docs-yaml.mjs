@@ -37,9 +37,8 @@ export function erroresYaml(yml) {
       errores.push(`mkdocs.yml:${n}: tabulador en la indentación (YAML no lo permite)`);
       return;
     }
-    const m = linea.match(/^\s*-\s+(.+)$/);
-    if (!m) return;
-    const resto = m[1].trim();
+    const resto = itemDeListaConEspacio(linea);
+    if (!resto) return;
     if (resto.startsWith('"') || resto.startsWith("'")) {
       const interior = navEnteramenteEntrecomillado(resto);
       if (interior) {
@@ -116,4 +115,5 @@ export function erroresFrontMatter(txt, nombre) {
   return errores;
 }
 
+import { itemDeListaConEspacio } from "./docs-lineas.mjs";
 export * from "./docs-enlaces.mjs";

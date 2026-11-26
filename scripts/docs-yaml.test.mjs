@@ -365,3 +365,15 @@ describe("enlacesMarkdown", () => {
     assert.deepEqual(destinos(`[a](${"x".repeat(MAX_DESTINO_ENLACE + 1)}) [b](ok.md)`), ["ok.md"]);
   });
 });
+
+describe("erroresYaml: entradas patológicas (ReDoS)", () => {
+  for (const relleno of [" ", "\t", "\u00a0"]) {
+    for (const cola of ["\u2028", "\u2029", "\u0085"]) {
+      it(`un ítem con 200k ${JSON.stringify(relleno)} y cola ${JSON.stringify(cola)} termina en menos de 1 s`, () => {
+        const t0 = performance.now();
+        erroresYaml(`nav:\n  - ${relleno.repeat(200000)}${cola}\n`);
+        assert.ok(performance.now() - t0 < 5000); // tope de 5 s: ver docs-correspondencia.test.mjs
+      });
+    }
+  }
+});
