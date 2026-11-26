@@ -150,7 +150,9 @@ function PantallaReparacion() {
     if (ubicacion.state != null) {
       navigate(`${ubicacion.pathname}${ubicacion.search}`, { replace: true, state: null })
     }
-    // Solo al montar: el `key` por `:id` remonta la pantalla cuando cambia la reparación.
+    // Efecto de montaje único a propósito: lee el state una sola vez y lo limpia; el `key` por `:id` remonta la pantalla
+    // cuando cambia la reparación, así que no hace falta volver a correrlo con `navigate` ni con la ubicación.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const [altaRapidaAbierta, setAltaRapidaAbierta] = useState(false)
