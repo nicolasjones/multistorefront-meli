@@ -108,3 +108,40 @@ describe('escape de anotaciones', () => {
     }
   });
 });
+
+describe('entradas patológicas (ReDoS)', () => {
+  const N = 200000;
+  const lee = async (nombre, texto) => {
+    const d = path.join(dir, nombre);
+    await mkdir(path.join(d, 'docs'), { recursive: true });
+    await writeFile(path.join(d, 'docs/a.md'), texto);
+    const t0 = performance.now();
+    const mapa = leerMapaDocs(d);
+    return { ms: performance.now() - t0, mapa };
+  };
+
+  for (const [nombre, caracter] of [['espacios', ' '], ['tabs', '\t'], ['almohadillas', '#'], ['barras', '/'], ['comillas', '"'], ['guiones', '-'], ['comas', ','], ['corchetes', '[']]) {
+    it(`el parser es lineal con 200k ${nombre} en ítem, escalar y array`, async () => {
+      for (const [forma, texto] of [
+        ['item', `---\nsources:\n  - ${caracter.repeat(N)}x\n---\n`],
+        ['item-final', `---\nsources:\n  - x${caracter.repeat(N)}\n---\n`],
+        ['escalar', `---\nsources: ${caracter.repeat(N)}x\n---\n`],
+        ['array', `---\nsources: [${caracter.repeat(N)}]\n---\n`],
+      ]) {
+        const { ms } = await lee(`redos-${nombre}-${forma}`, texto);
+        assert.ok(ms < 1000, `${nombre}/${forma}: ${ms} ms`);
+      }
+    });
+  }
+
+  it('el resultado con espacios y barras finales sigue siendo correcto', async () => {
+    const { mapa } = await lee('redos-resultado', '---\nsources:\n  - scripts/x///   \n  - scripts/y   # nota\n---\n');
+    assert.deepEqual(mapa[0].sources, ['scripts/x', 'scripts/y']);
+  });
+
+  it('las rutas larguísimas no cuelgan el cálculo de relevancia', () => {
+    const t0 = performance.now();
+    archivosSinDocCorrespondiente([`scripts/${'.test'.repeat(N / 5)}`, `scripts/${'/'.repeat(N)}`], [doc('docs/a.md', ['scripts/sub'])]);
+    assert.ok(performance.now() - t0 < 1000);
+  });
+});

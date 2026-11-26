@@ -63,6 +63,12 @@ que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada 
 - **Tolerancia a errores:** un `docs/*.md` ilegible, un symlink roto o una carpeta `*.md` se omiten; cualquier excepción dentro de
   la verificación por correspondencia emite `::warning ::no se pudo verificar la correspondencia: …` y sale con 0 (en modo estricto,
   `::error` y 1). El guard heredado corre antes y no depende de esto.
+- **Rutas con caracteres no ASCII o especiales:** el diff se lee con `git -c core.quotepath=off diff --name-only -z` y se divide por
+  `\0`, así `ñ`, espacios, comillas y saltos de línea llegan exactos (antes git los devolvía entre comillas con escapes octales y
+  se descartaban sin aviso). Al imprimirlos pasan por el escape de anotaciones y `lineaLista`.
+- **Protección contra ReDoS:** el parser de `sources:` usa solo expresiones lineales (un único `\s` antes del `#` de comentario y las
+  barras finales se quitan con un bucle), de modo que una línea de cientos de miles de espacios o barras no cuelga el CI. Hay
+  tests con 200 000 caracteres patológicos que deben terminar en menos de 1 s.
 - **Tasa de ruido medida (2026-11-25)**, contra los 30 últimos PRs mergeados a `dokploy` (diff `padre1...padre2` de cada merge de
   primer padre): 7 de 30 PRs (23 %) habrían tenido avisos; de 124 archivos relevantes cambiados, 53 (43 %) tenían doc
   correspondiente sin tocar. Dos PRs grandes concentran la mayoría (25 y 5 avisos en `infra/kestra` y workers); el resto trae 3 a

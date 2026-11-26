@@ -17,7 +17,9 @@ const esArchivoRelevante = (ruta) => RUTAS_CODIGO.test(ruta) && !TRIVIAL.test(ru
 
 // Mismo criterio que `frontmatter()` de docs-manifest.mjs (lista en bloque, `[]`), más array en línea,
 // escalar, CRLF, comentarios finales y comillas.
-const limpiarItem = (v) => v.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '');
+// Sin cuantificadores anidados ni `\s+` sin anclar: cada regex es lineal aunque la línea tenga 1 MB de espacios o barras.
+const quitarBarrasFinales = (v) => { let fin = v.length; while (fin > 0 && v[fin - 1] === '/') fin -= 1; return v.slice(0, fin); };
+const limpiarItem = (v) => quitarBarrasFinales(v.replace(/\s#.*$/, '').trim().replace(/^["']|["']$/g, ''));
 
 function fuentesDeDoc(texto) {
   const m = texto.replace(/\r\n?/g, '\n').match(/^---\n([\s\S]*?)\n---/);
@@ -29,7 +31,7 @@ function fuentesDeDoc(texto) {
     if (kv) {
       enSources = kv[1] === 'sources';
       if (enSources) {
-        const v = kv[2].replace(/\s+#.*$/, '').trim();
+        const v = kv[2].replace(/\s#.*$/, '').trim();
         const enLinea = v.match(/^\[(.*)\]$/);
         if (enLinea) fuentes.push(...enLinea[1].split(',').map(limpiarItem));
         else if (v) fuentes.push(limpiarItem(v));

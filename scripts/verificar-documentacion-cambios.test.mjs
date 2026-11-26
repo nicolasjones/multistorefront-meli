@@ -153,5 +153,26 @@ describe('verificar-documentacion-cambios', () => {
       assert.equal(e.status, 1);
       assert.match(e.stderr, /::error ::no se pudo verificar/);
     });
+
+    it('rutas con caracteres no ASCII, espacios, comillas y saltos de línea generan aviso y salen neutralizadas', async () => {
+      const baseSub = { 'docs/a.md': '---\nsources:\n  - scripts/sub\n---\n# Doc\n' };
+      const nombres = ['scripts/sub/ñ.mjs', 'scripts/sub/con espacio.mjs', 'scripts/sub/comi"lla.mjs', 'scripts/sub/salto\n::error::pwned.mjs'];
+      const r = await comprobar('corr-no-ascii', [...nombres, 'docs/otro.md'], { base: baseSub });
+      assert.equal(r.status, 0, r.stderr);
+      assert.match(r.stderr, /::warning file=docs\/a\.md::4 archivo\(s\)/);
+      assert.match(r.stderr, /- scripts\/sub\/ñ\.mjs/);
+      assert.match(r.stderr, /- scripts\/sub\/con espacio\.mjs/);
+      assert.match(r.stderr, /salto\\n:\u200b:error/);
+      assert.equal(r.stderr.split('\n').filter((l) => /^\s*::/.test(l) && !/^::warning file=/.test(l)).length, 0, r.stderr);
+    });
+
+    it('el chequeo heredado falla también con nombres no ASCII y acepta docs/specs con ellos', async () => {
+      const a = await comprobar('heredado-ascii-no', ['scripts/ñ.mjs']);
+      assert.equal(a.status, 1);
+      assert.match(a.stderr, /Fallo de documentación/);
+      assert.match(a.stderr, /- scripts\/ñ\.mjs/);
+      const b = await comprobar('heredado-ok-no-ascii', ['scripts/ñ.mjs', 'docs/guía ñ.md']);
+      assert.equal(b.status, 0, b.stderr);
+    });
   });
 });

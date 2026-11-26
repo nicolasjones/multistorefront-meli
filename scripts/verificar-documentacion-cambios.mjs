@@ -19,13 +19,13 @@ if (!canResolve(base)) {
   process.exit(1);
 }
 
-const diff = run(['diff', '--name-only', `${base}...HEAD`]);
+const diff = run(['-c', 'core.quotepath=off', 'diff', '--name-only', '-z', `${base}...HEAD`]);
 if (diff.status !== 0) {
   console.error(diff.stderr.trim() || 'No se pudo inspeccionar el diff de documentación.');
   process.exit(diff.status || 1);
 }
 
-const changed = diff.stdout.split(/\r?\n/).map((path) => path.trim()).filter(Boolean);
+const changed = diff.stdout.split('\0').filter(Boolean);
 const relevant = changed.filter((path) => /^(apps|workers|supabase|infra|scripts|packages|\.github)\//.test(path));
 const documented = changed.some((path) =>
   /^(specs|docs)\//.test(path) || /^\.specify\/(bugs|memory)\//.test(path) || /^(AGENTS|CLAUDE)\.md$/.test(path),
