@@ -95,19 +95,22 @@ que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada 
     `docs-inventario.mjs`, `docs-manifest.mjs` y `verificar-documentacion-cambios.mjs` no exportan nada y corren al importarse:
     no se importan (lista `NO_IMPORTAR` del test) y se miden solo por sus regex literales; el manifest además tiene su test de
     proceso en `docs-manifest.test.mjs`.
-  - **Defensa: lista blanca explícita.** El test solo importa los scripts de `IMPORTABLES` (`docs-check`,
-    `docs-correspondencia`, `docs-enlaces`, `docs-lineas`, `docs-yaml`). Un `docs-*.mjs` con `export` que no esté ni en
-    `IMPORTABLES` ni en `NO_IMPORTAR` hace fallar el test con un mensaje accionable («agregalo a IMPORTABLES tras revisar que no
-    tiene efectos al importarse, o quitá el export»): ese script no se importa ni se ejecuta hasta que alguien lo agregue a una de
-    las dos listas en un cambio revisado. Eso es cierto solo para los scripts **no listados**.
-  - **Los scripts de la lista sí se ejecutan al importarse**, igual que cualquier otro código del PR que corre en la CI (el job
-    corre en `pull_request`, sin secretos y sin `pull_request_target`), así que añadirles un efecto es un cambio de código que se
-    revisa como cualquier otro. No hay detección automática de efectos: un análisis estático de «este script tiene efectos» no es
-    defendible y se descartó. Convención: **un `docs-*.mjs` en `IMPORTABLES` no debe tener efectos al importarse** (proteger su
-    main con un guard `import.meta.url`).
+  - **Defensa: clasificación explícita de cada script.** Todo `scripts/docs-*.mjs` que no sea un test, más
+    `verificar-documentacion-cambios.mjs`, debe estar en `IMPORTABLES` (`docs-check`, `docs-correspondencia`, `docs-enlaces`,
+    `docs-lineas`, `docs-yaml`: exportan funciones puras) o en `NO_IMPORTAR` (`docs-drift`, `docs-inventario`, `docs-manifest`,
+    `verificar-documentacion-cambios`: corren al importarse o no exportan nada). Si un archivo no está en ninguna de las dos, el
+    test falla con un mensaje accionable («agregalo a IMPORTABLES si exporta funciones puras sin efectos al importarse, o a
+    NO_IMPORTAR si corre al importarse o no exporta») y ese archivo no se importa. El test **no importa nada fuera de
+    `IMPORTABLES`**, así que un script nuevo (con cualquier sintaxis de export, o ninguna) exige una decisión humana en un cambio
+    revisado. Para los de `NO_IMPORTAR` sigue valiendo el barrido de sus regex literales, por texto.
+  - **Los scripts de `IMPORTABLES` sí se ejecutan al importarse**, igual que cualquier otro código del PR que corre en la CI (el
+    job corre en `pull_request`, sin secretos y sin `pull_request_target`), así que añadirles un efecto es un cambio de código que
+    se revisa como cualquier otro. No hay detección automática de efectos ni de `export`: un análisis estático de «este script tiene
+    efectos» no es defendible y se descartó. Convención: **un `docs-*.mjs` en `IMPORTABLES` no debe tener efectos al importarse**
+    (proteger su main con un guard `import.meta.url`).
   - Mutaciones comprobadas: `^(\d+)+$`, `^(a|aa)+$` y `x?`×28 + `x`×28 hacen fallar el test por tiempo, como literal y las dos
-    primeras también como función; `new RegExp('^\\s*-\\s*(.+)$')` en una función exportada y un script nuevo con `export` sin
-    listar (que no llega a ejecutarse) lo hacen fallar; volver a cada regex vieja corregida también. Un ítem vacío se descarta
+    primeras también como función; `new RegExp('^\\s*-\\s*(.+)$')` en una función exportada y un script nuevo no
+    clasificado (con `export{x}`, `export*from`, `export<TAB>function`, BOM o sin export) lo hace fallar sin importarse; volver a cada regex vieja corregida también. Un ítem vacío se descarta
     (antes el manifest podía registrar `''`, que apuntaría a toda la raíz).
 - **Tasa de ruido medida (2026-11-25)**, contra los 30 últimos PRs mergeados a `dokploy` (diff `padre1...padre2` de cada merge de
   primer padre): 7 de 30 PRs (23 %) habrían tenido avisos; de 124 archivos relevantes cambiados, 53 (43 %) tenían doc

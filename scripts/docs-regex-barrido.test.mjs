@@ -5,13 +5,14 @@
 // función corre en un worker_thread con vigilancia: si no hay progreso en STUCK_MS (regex catastrófica) el
 // worker se termina y el test falla en segundos NOMBRANDO archivo:línea; si termina pero tarda más de 1 s, también falla.
 // Los terminadores van EN EL MEDIO: al final de una línea `trim()` los elimina y el caso lento no se ejercita.
-// Defensa contra scripts con efectos: LISTA BLANCA explícita. Solo se importan (y por lo tanto se EJECUTAN, como cualquier
-// otro código del PR que corre en la CI: job en `pull_request`, sin secretos) los scripts de IMPORTABLES. Un `docs-*.mjs` con
-// `export` que no esté en IMPORTABLES ni en NO_IMPORTAR hace fallar el test, y ese script NO se importa ni se ejecuta, hasta que
-// alguien lo agregue a una de las dos listas en un cambio revisado. NO hay detección automática de efectos: añadirle un efecto a
-// un script de la lista es un cambio de código que se revisa como cualquier otro.
+// Defensa contra scripts con efectos: CLASIFICACIÓN EXPLÍCITA. Todo `scripts/docs-*.mjs` que no sea test (más
+// `verificar-documentacion-cambios.mjs`) debe estar en IMPORTABLES o en NO_IMPORTAR; si no está en ninguna, el test falla con un
+// mensaje accionable y ese archivo NO se importa. El test solo importa los de IMPORTABLES, y por lo tanto los EJECUTA al
+// importarse, como cualquier otro código del PR que corre en la CI (job en `pull_request`, sin secretos). No hay detección
+// automática de efectos ni de `export`: un script nuevo, con cualquier sintaxis de export o ninguna, exige una decisión humana en un
+// cambio revisado, y añadirle un efecto a uno de IMPORTABLES es un cambio de código que se revisa como cualquier otro.
 // Convención: un `docs-*.mjs` en IMPORTABLES no debe tener efectos al importarse (protegé su main con un guard `import.meta.url`).
-// docs-drift, docs-inventario, docs-manifest y verificar-documentacion-cambios no exportan ni se importan: se miden por sus regex.
+// Los de NO_IMPORTAR (corren al importarse o no exportan nada) nunca se importan; sus regex literales se miden igual por texto.
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { availableParallelism, tmpdir } from 'node:os';
 import path from 'node:path';
@@ -24,16 +25,15 @@ import { erroresFrontMatter, erroresYaml } from './docs-yaml.mjs';
 
 const aqui = import.meta.dirname;
 const ARCHIVOS = [...readdirSync(aqui).filter((f) => /^docs-.+\.mjs$/.test(f) && !f.includes('.test.')), 'verificar-documentacion-cambios.mjs'].sort();
-// Lista BLANCA de scripts que el test importa y ejecuta (por eso no deben tener efectos al importarse; ver la cabecera).
+// IMPORTABLES: exportan funciones puras y el test los importa (y ejecuta) para barrerlas. No deben tener efectos al importarse.
 const IMPORTABLES = ['docs-check.mjs', 'docs-correspondencia.mjs', 'docs-enlaces.mjs', 'docs-lineas.mjs', 'docs-yaml.mjs'];
-// Scripts con efectos al importarse (escriben archivos, llaman a process.exit): no exportan nada y jamás se importan.
+// NO_IMPORTAR: corren al importarse (escriben archivos, llaman a process.exit) o no exportan nada; jamás se importan.
 const NO_IMPORTAR = ['docs-drift.mjs', 'docs-inventario.mjs', 'docs-manifest.mjs', 'verificar-documentacion-cambios.mjs'];
-// Decisión por archivo SIN importar nada: null = no se importa; 'importar' = está en la lista blanca; string[] = problemas.
-function clasificar(archivo, texto) {
-  const exporta = /^export /m.test(texto);
-  if (NO_IMPORTAR.includes(archivo)) return exporta ? [`${archivo} está en NO_IMPORTAR pero ahora exporta: revisalo, protegé su main con un guard import.meta.url y movelo a IMPORTABLES, o quitá el export`] : null;
-  if (!exporta) return null;
-  return IMPORTABLES.includes(archivo) ? 'importar' : [`${archivo} exporta pero no está en IMPORTABLES ni en NO_IMPORTAR: agregalo a IMPORTABLES tras revisar que no tiene efectos al importarse, o quitá el export`];
+// Decisión por archivo SIN leer ni importar nada: 'importar' | null (no se importa) | [problema] (sin clasificar).
+function clasificar(archivo) {
+  if (IMPORTABLES.includes(archivo)) return 'importar';
+  if (NO_IMPORTAR.includes(archivo)) return null;
+  return [`${archivo} no está clasificado: agregalo a IMPORTABLES si exporta funciones puras sin efectos al importarse, o a NO_IMPORTAR si corre al importarse o no exporta (no se importó)`];
 }
 // Una regex sin cuantificadores `*`, `+`, `{}` ni `?` ni alternancia `|` hace trabajo proporcional a la entrada. Los `?` repetidos
 // (`x?x?…x?xx…x`) y la alternancia sí pueden explotar, así que cuentan. Es conservadora: un `+` dentro de una clase `[+]` también
@@ -151,11 +151,11 @@ function extraer() {
 }
 const regex = extraer();
 
-// Importables: SOLO los de la lista blanca que además pasan la red estática. Los demás se informan como problemas, sin importarse.
+// Importables: SOLO los de la lista blanca. Los no clasificados se informan como problemas, sin importarse.
 const importables = [];
 const problemas = [];
 for (const archivo of ARCHIVOS) {
-  const decision = clasificar(archivo, readFileSync(path.join(aqui, archivo), 'utf8'));
+  const decision = clasificar(archivo);
   if (decision === 'importar') importables.push(archivo); else if (decision) problemas.push(...decision);
 }
 const EXPORTADAS = [];
@@ -173,7 +173,7 @@ describe('enumeración', () => {
 
   it('hay funciones exportadas que ejercitar', () => {
     assert.ok(EXPORTADAS.length >= 8, `solo ${EXPORTADAS.length}`);
-    for (const archivo of IMPORTABLES) assert.ok(importables.includes(archivo), `${archivo} (IMPORTABLES) no se importó: ¿no existe o no exporta?`);
+    for (const archivo of IMPORTABLES) assert.ok(importables.includes(archivo), `${archivo} (IMPORTABLES) no se importó: ¿no existe?`);
   });
 });
 
@@ -186,20 +186,25 @@ describe('esSimple', () => {
   });
 });
 
-// La lista blanca se prueba sin importar ni ejecutar nada: `clasificar` solo lee texto.
-describe('lista blanca de importables', () => {
-  it('un script nuevo con export falla pidiendo revisarlo; sin export, no', () => {
-    assert.match(clasificar('docs-zzz.mjs', 'export const a = 1;\n')[0], /agregalo a IMPORTABLES tras revisar que no tiene efectos al importarse, o quitá el export/);
-    assert.equal(clasificar('docs-zzz.mjs', 'const a = 1;\n'), null);
+// La clasificación se prueba sin importar ni ejecutar nada: `clasificar` ni siquiera lee el archivo.
+describe('clasificación de scripts', () => {
+  it('un archivo nuevo no listado falla pidiendo clasificarlo, cualquiera sea su contenido', () => {
+    for (const nombre of ['docs-zzz-a.mjs', 'docs-zzz-b.mjs']) {
+      assert.match(clasificar(nombre)[0], /no está clasificado: agregalo a IMPORTABLES si exporta funciones puras sin efectos al importarse, o a NO_IMPORTAR/);
+    }
   });
 
-  it('los de la lista blanca se importan y los de NO_IMPORTAR no pueden exportar', () => {
-    assert.equal(clasificar('docs-lineas.mjs', 'export const a = 1;\n'), 'importar');
-    assert.equal(clasificar('docs-manifest.mjs', 'const a = 1;\n'), null);
-    assert.match(clasificar('docs-manifest.mjs', 'export const a = 1;\n')[0], /está en NO_IMPORTAR pero ahora exporta/);
+  it('los de IMPORTABLES se importan y los de NO_IMPORTAR no', () => {
+    assert.equal(clasificar('docs-lineas.mjs'), 'importar');
+    assert.equal(clasificar('docs-manifest.mjs'), null);
   });
 
-  it('todo docs-*.mjs con export está en IMPORTABLES o NO_IMPORTAR (y no se importó nada fuera de la lista)', () => {
+  it('las listas no se pisan y no tienen entradas viejas', () => {
+    for (const archivo of IMPORTABLES) assert.ok(!NO_IMPORTAR.includes(archivo), `${archivo} está en las dos listas`);
+    for (const archivo of [...IMPORTABLES, ...NO_IMPORTAR]) assert.ok(ARCHIVOS.includes(archivo), `${archivo} figura en una lista pero no existe`);
+  });
+
+  it('todo docs-*.mjs está clasificado (y no se importó nada fuera de IMPORTABLES)', () => {
     assert.deepEqual(problemas, []);
   });
 });
