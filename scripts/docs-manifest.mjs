@@ -6,7 +6,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { itemDeLista } from "./docs-lineas.mjs";
+import { claveYValor, itemDeLista } from "./docs-lineas.mjs";
 
 const root = process.cwd();
 const docs = path.join(root, "docs");
@@ -31,8 +31,8 @@ function frontmatter(txt) {
   if (!m) return { meta, body: txt };
   let key = null;
   for (const line of m[1].split("\n")) {
-    const kv = line.match(/^([a-zA-Z_]+):\s*(.*)$/);
-    if (kv) { key = kv[1]; const v = kv[2].trim(); meta[key] = v === "[]" ? [] : v; continue; }
+    const kv = claveYValor(line);
+    if (kv) { key = kv.clave; meta[key] = kv.valor === "[]" ? [] : kv.valor; continue; }
     const item = itemDeLista(line);
     if (item && key) { if (!Array.isArray(meta[key])) meta[key] = []; meta[key].push(item); }
   }

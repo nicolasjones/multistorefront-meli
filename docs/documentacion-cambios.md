@@ -6,6 +6,7 @@ sources:
   - scripts/docs-correspondencia.mjs
   - scripts/docs-correspondencia.test.mjs
   - scripts/docs-lineas.mjs
+  - scripts/docs-regex-barrido.test.mjs
   - scripts/docs-yaml.mjs
   - scripts/docs-check.mjs
   - scripts/docs-drift.mjs
@@ -68,14 +69,18 @@ que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada 
 - **Rutas con caracteres no ASCII o especiales:** el diff se lee con `git -c core.quotepath=off diff --name-only -z` y se divide por
   `\0`, así `ñ`, espacios, comillas y saltos de línea llegan exactos (antes git los devolvía entre comillas con escapes octales y
   se descartaban sin aviso). Al imprimirlos pasan por el escape de anotaciones y `lineaLista`.
-- **Protección contra ReDoS (tiempo lineal medido):** los ítems `- x` de `sources:` se parsean a mano, con un índice y sin regex
-  ambigua, en `scripts/docs-lineas.mjs` (`itemDeLista`, `itemDeListaConEspacio`). Una regex como `^\s*-\s*(.+)$` era cuadrática
-  porque `\s*` y `.+` se solapan y `.` no casa con U+2028/U+2029: un ítem con 200 000 blancos y uno de esos terminadores tardaba
-  ~40 s. El mismo helper lo usan `docs-manifest.mjs` (front matter), `docs-yaml.mjs` (nav) y `docs-check.mjs` (nav, donde otra
-  regex tenía el mismo patrón). Las regex que quedan son acotadas (`\s#.*$` con un solo blanco, comillas en los bordes) y las barras
-  finales se quitan con un bucle. Se probó una batería de 200 000 caracteres (espacio, tab, NBSP, U+2028, U+2029, U+0085, `\r`, `#`,
-  comillas, guiones, comas, corchetes, `/`) y colas (vacía, `x`, terminadores Unicode) en cada forma de `sources:`; los tests de
-  `docs-correspondencia`, `docs-manifest`, `docs-yaml` y `docs-check` exigen menos de 1 s. Un ítem vacío se descarta (antes el
+- **Protección contra ReDoS (tiempo lineal medido):** claves (`sources:`), ítems (`- x`) y comentarios (` # nota`) de `sources:` y
+  del nav se parsean a mano, con un índice y sin regex que solapen `\s*` con `.*`/`.+`, en `scripts/docs-lineas.mjs`
+  (`claveYValor`, `itemDeLista`, `itemDeListaConEspacio`, `sinComentario`). Esas regex eran cuadráticas porque `.` no casa con
+  U+2028/U+2029/U+0085/`\r` pero `\s` sí: con 200 000 blancos y un terminador en el medio de la línea el motor probaba todas las
+  particiones (decenas de segundos). El helper lo usan `docs-manifest.mjs` (front matter), `docs-correspondencia.mjs`,
+  `docs-yaml.mjs` y `docs-check.mjs` (nav). Las barras finales se quitan con un bucle. Las regex que quedan (rutas de código,
+  `^---\n([\s\S]*?)\n---`, `^\[(.*)\]$`, bordes de comillas, escapes de un carácter) hacen un solo recorrido sin retroceso útil.
+  No se afirma por inspección: `scripts/docs-regex-barrido.test.mjs` extrae **todas** las regex literales de esos scripts y las
+  ejecuta con 100 000 caracteres hostiles (espacio, tab, NBSP, `-`, `#`, `:`, `x`, `\r`, U+2028, U+2029, U+0085, comillas, `[`,
+  `,`, `/`) combinados como prefijo + repetición + terminador (también en el medio) + cola, y ejercita `leerMapaDocs`,
+  `paginasNav`, `erroresYaml` y `erroresFrontMatter` con los terminadores en el medio de la línea; el tope es 1 s por ejecución e
+  imprime la tabla de máximos. Una regex nueva que sea cuadrática hace fallar ese test. Un ítem vacío se descarta (antes el
   manifest podía registrar `''`, que apuntaría a toda la raíz).
 - **Tasa de ruido medida (2026-11-25)**, contra los 30 últimos PRs mergeados a `dokploy` (diff `padre1...padre2` de cada merge de
   primer padre): 7 de 30 PRs (23 %) habrían tenido avisos; de 124 archivos relevantes cambiados, 53 (43 %) tenían doc

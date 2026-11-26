@@ -4,6 +4,21 @@
 // (cuadrático: ~40 s con 200 000 caracteres). Acá se recorre con un índice, una sola vez.
 const BLANCO = /\s/;
 
+// `clave: valor` -> { clave, valor } (valor sin blancos en los bordes); null si no es una línea clave.
+// Reemplaza `^([a-zA-Z_]+):\s*(.*)$` (cuadrática: `\s*` y `.*` se solapan y `.` no casa con terminadores Unicode).
+export function claveYValor(linea) {
+  let i = 0;
+  while (i < linea.length && /[a-zA-Z_]/.test(linea[i])) i += 1;
+  return i > 0 && linea[i] === ':' ? { clave: linea.slice(0, i), valor: linea.slice(i + 1).trim() } : null;
+}
+
+// Quita un comentario `# ...` final: empieza en el primer blanco que precede a un `#`.
+// Reemplaza `/\s#.*$/` (cuadrática con ` #` repetido y un terminador Unicode en el medio).
+export function sinComentario(valor) {
+  for (let i = 0; i + 1 < valor.length; i += 1) if (valor[i + 1] === '#' && BLANCO.test(valor[i])) return valor.slice(0, i);
+  return valor;
+}
+
 // Texto que sigue al `-` de una línea de lista (`  - x` -> ' x'), o null si la línea no es un ítem.
 export function despuesDeGuion(linea) {
   let i = 0;

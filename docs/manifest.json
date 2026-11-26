@@ -928,15 +928,16 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "f7821ad248bb6898ac63d3c0ec9783a2d0906da93fd4068dba341d0d87826a2d",
-      "sourceHash": "2bba256c071b9c7664f6e5d1c3bdd84766fa88ab8fec6abba1db1a741b9fa4cf",
-      "sourceAt": "b9913b5b0",
+      "pageHash": "314b11f4488f4efe74b9a9d9554f3a53256ff122202c15ae0a9d514e137e408e",
+      "sourceHash": "2377f403adfac1f6b565a0510396d212615c836ebac6afe4dc0f4a4d445cc1eb",
+      "sourceAt": "c24ebc4a0",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
         "scripts/docs-correspondencia.mjs",
         "scripts/docs-correspondencia.test.mjs",
         "scripts/docs-lineas.mjs",
+        "scripts/docs-regex-barrido.test.mjs",
         "scripts/docs-yaml.mjs",
         "scripts/docs-check.mjs",
         "scripts/docs-drift.mjs",
@@ -948,7 +949,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "b9913b5b0"
+      "commit": "c24ebc4a0"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",

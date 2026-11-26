@@ -3,7 +3,7 @@
 // (el mismo que consumen docs-manifest.mjs y docs-drift.mjs); no hay otro mapa que mantener.
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { itemDeLista } from './docs-lineas.mjs';
+import { claveYValor, itemDeLista, sinComentario } from './docs-lineas.mjs';
 
 const RUTAS_CODIGO = /^(apps|workers|supabase|infra|scripts|packages|\.github)\//;
 // Fuera de la correspondencia: tests, fixtures/snapshots, lockfiles y migraciones (las cubre verificar-migraciones).
@@ -18,11 +18,12 @@ const esArchivoRelevante = (ruta) => RUTAS_CODIGO.test(ruta) && !TRIVIAL.test(ru
 
 // Mismo criterio que `frontmatter()` de docs-manifest.mjs (lista en bloque, `[]`), más array en línea,
 // escalar, CRLF, comentarios finales y comillas.
-// Tiempo lineal con líneas patológicas: los ítems se parsean a mano (docs-lineas.mjs, sin regex ambigua) y las regex que
-// quedan son acotadas (`\s#.*$`, comillas en los bordes) o se aplican a una sola posición; las barras finales se quitan con un
-// bucle. Probado con 200 000 de espacio, tab, NBSP, U+2028, U+2029, U+0085, `\r`, `#`, comillas, guiones, comas y corchetes.
+// Tiempo lineal con líneas patológicas: claves, ítems y comentarios se parsean a mano (docs-lineas.mjs, un recorrido por
+// índice, sin `\s*`/`.*` solapados); las barras finales se quitan con un bucle. Las regex que quedan son de un solo
+// recorrido sin retroceso útil (`^---\n([\s\S]*?)\n---`, `^\[(.*)\]$` y los bordes `^["']|["']$`). Lo verifica el barrido
+// automático de docs-regex-barrido.test.mjs, que ejecuta TODAS las regex de estos scripts con 100 000 caracteres hostiles.
 const quitarBarrasFinales = (v) => { let fin = v.length; while (fin > 0 && v[fin - 1] === '/') fin -= 1; return v.slice(0, fin); };
-const limpiarItem = (v) => quitarBarrasFinales(v.replace(/\s#.*$/, '').trim().replace(/^["']|["']$/g, ''));
+const limpiarItem = (v) => quitarBarrasFinales(sinComentario(v).trim().replace(/^["']|["']$/g, ''));
 
 function fuentesDeDoc(texto) {
   const m = texto.replace(/\r\n?/g, '\n').match(/^---\n([\s\S]*?)\n---/);
@@ -30,11 +31,11 @@ function fuentesDeDoc(texto) {
   const fuentes = [];
   let enSources = false;
   for (const linea of m[1].split('\n')) {
-    const kv = linea.match(/^([a-zA-Z_]+):\s*(.*)$/);
+    const kv = claveYValor(linea);
     if (kv) {
-      enSources = kv[1] === 'sources';
+      enSources = kv.clave === 'sources';
       if (enSources) {
-        const v = kv[2].replace(/\s#.*$/, '').trim();
+        const v = sinComentario(kv.valor).trim();
         const enLinea = v.match(/^\[(.*)\]$/);
         if (enLinea) fuentes.push(...enLinea[1].split(',').map(limpiarItem));
         else if (v) fuentes.push(limpiarItem(v));
