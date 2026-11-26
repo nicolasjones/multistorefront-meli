@@ -12,7 +12,7 @@ type Props = {
   onCreada: () => void
 }
 
-const AYUDA_COPIA = 'Precios, tienda web y reglas de Mercado Libre se copian como punto de partida.'
+const AYUDA_COPIA = 'Por ahora no se copia ninguna configuración: la empresa nueva se crea sin configurar.'
 const SIN_ORIGEN = 'No hay una empresa de la que copiar. Se crea sin configuración.'
 
 // «Nueva empresa» (F-EMP-03). Conserva lo escrito si falla el servidor y

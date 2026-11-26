@@ -1,6 +1,11 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/components/ventas/EnvioMotoDialog.tsx
+  - apps/web/src/components/ventas/RendicionMotosDialog.tsx
+  - apps/web/src/lib/ventas/enviosMoto.ts
+  - apps/web/src/lib/ventas/enviosMotoRendicion.ts
+  - apps/web/src/pages/ventas/transportes/TransportesMotos.tsx
 ---
 
 # Envíos en moto: registrar y rendir

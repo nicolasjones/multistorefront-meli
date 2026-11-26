@@ -1,6 +1,10 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/empresas/tienda
+  - apps/web/src/pages/tienda-publica/index.tsx
+  - apps/web/src/lib/tienda.ts
+  - apps/web/src/lib/tiendaCatalogo.ts
 ---
 
 # Las tiendas online de tu negocio

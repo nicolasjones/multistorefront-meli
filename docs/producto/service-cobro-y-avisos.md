@@ -98,8 +98,10 @@ sección **«Mano de obra y repuestos»**, junto al «Total al cliente».
 El aviso por defecto es **por correo**; también se puede avisar **por WhatsApp** (ver «Aviso por WhatsApp» más abajo).
 El cliente **puede no tener correo**: en ese caso se avisa en pantalla y no se encola nada.
 
-- La **casilla «Avisar al cliente»** aparece junto al selector de estado, **destildada por defecto** (no se manda un
-  correo sin querer). Al confirmarse el cambio, el estado cambia **primero** y el aviso se pide **después**: si el
+- La **casilla «Avisar al cliente»** aparece junto al selector de estado, **según el estado**: si el estado al que
+  pasás tiene «Avisa al cliente» (Recibido, Esperando repuesto y Listo para entregar vienen así), se avisa sin que hagas
+  nada; podés tildarla o destildarla para decidir vos. Los estados que cierran la reparación no avisan. Si el cliente
+  no tiene correo cargado, ves una nota («No se avisó al cliente: no tiene correo cargado») y el estado cambia igual. Al confirmarse el cambio, el estado cambia **primero** y el aviso se pide **después**: si el
   aviso falla, el estado **no se revierte** y la pantalla informa «No pudimos avisar al cliente. El estado ya quedó
   cambiado: probá avisar de nuevo.»
 - El botón **«Avisar al cliente»** del encabezado avisa el **estado actual** sin cambiarlo. Cuando el aviso queda
@@ -268,9 +270,7 @@ Prototipos: `design/pantallas/ServicioReparacion.dc.html` y `design/pantallas/Cl
    cliente»** del encabezado: se tiene que ver el mensaje **«Aviso enviado al cliente»** y, en la sección **«Avisos al
    cliente»**, una fila con el estado avisado, el correo del cliente, la fecha, quién lo pidió y el resultado
    **Pendiente** (o **Enviado** si el flow ya corrió).
-9. **Cambiar el estado con aviso.** Elegí otro estado en el selector y **tildá** la casilla **«Avisar al cliente»**
-   (viene destildada): el estado cambia y aparece un aviso nuevo en el historial con ese estado. Con la casilla
-   destildada, el estado cambia **sin** aviso nuevo.
+9. **Cambiar el estado con aviso.** Tildá la casilla **«Avisar al cliente»** y elegí otro estado en el selector: el estado cambia y aparece un aviso nuevo en el historial con ese estado. Con la casilla **destildada** (tildala y volvé a destildarla), el estado cambia **sin** aviso nuevo aunque ese estado avise solo.
 10. **El aviso no bloquea el estado.** Con un cliente **sin correo**, la casilla «Avisar al cliente» aparece
     deshabilitada y el botón del encabezado no se ofrece; al cambiar el estado se tiene que ver el aviso **«El
     cliente no tiene correo»** en la sección «Avisos al cliente» y el estado **igual cambia**.
@@ -343,7 +343,7 @@ Por arriba de todo eso, la cobertura de la historia está en **pgTAP** (`service
 |---|---|
 | Factura o presupuesto, y alícuota del IVA | **Provisorio**: factura en `borrador`; alícuota del producto para repuestos vinculados y alícuota general vigente para mano de obra y repuestos libres. A confirmar con el cliente (*Decisiones abiertas* 1). |
 | Texto del correo (asunto y cuerpo) | **Provisorio**: «Tu reparación R-000N: <estado> · <tienda>» y un cuerpo con saludo, tienda, número, equipo, estado y su descripción (*Decisiones abiertas* 3). |
-| Casilla «Avisar al cliente» destildada por defecto | **Provisorio** (*Decisiones abiertas* 4): no se manda un correo sin querer. |
+| Casilla «Avisar al cliente» según el estado destino | **Resuelto** (*Decisiones abiertas* 4): sin tocar la casilla se avisa si el estado tiene «Avisa al cliente» y no cierra; tildarla o destildarla es decisión explícita. |
 | Nombre de la primera pestaña de la ficha («Datos») | **Provisorio** (*Decisiones abiertas* 5): el prototipo no dibuja pestañas. |
 | Quién puede generar el comprobante | **Provisorio** (*Decisiones abiertas* 7): `service_tecnico` en edición **y** `ventas` en edición en la tienda. |
 | Ítems que cambian después de generar el comprobante | El comprobante es una foto; **no** se resincroniza. Se corrige en Ventas mientras esté en borrador. |
@@ -365,7 +365,7 @@ Por arriba de todo eso, la cobertura de la historia está en **pgTAP** (`service
 | Qué falta | Por qué | Dueño |
 |---|---|---|
 | **Rótulo del E2E** | El test se rotula `[MSF-576:T032]` y el manifiesto de cobertura no lo ata a MSF-232 | responsable de plataforma (cierre de MSF-232) |
-| **Confirmar las decisiones provisorias** (factura vs. presupuesto, alícuota, texto del correo, casilla destildada, nombre de la pestaña, quién genera) | Son decisiones de la spec que el cliente tiene que confirmar | Producto (cliente) |
+| **Confirmar las decisiones provisorias** (factura vs. presupuesto, alícuota, texto del correo, nombre de la pestaña, quién genera) | Son decisiones de la spec que el cliente tiene que confirmar | Producto (cliente) |
 | **Artefacto del prototipo de la pestaña «Reparaciones»** | `ClienteFicha.dc.html` no la dibuja y el aviso tampoco tiene artboard | Producto / diseño |
 | **E2E de navegador** del correo recibido, del cliente sin correo, del «Reenviar» y del cambio de empresa en la ficha | Hoy los cubre el E2E de la épica (parcial), pgTAP, Vitest y la prueba del flow | responsable de plataforma |
 

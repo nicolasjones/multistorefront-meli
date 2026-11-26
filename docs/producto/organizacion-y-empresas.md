@@ -47,8 +47,8 @@ En cada fila tenés **Editar** y **Tienda** (la gestión de la tienda online est
 
 1. Hacé clic en **Nueva empresa**.
 2. Escribí el **Nombre** (no puede repetirse).
-3. Si querés partir de otra tienda, elegí **Copiar configuración de** (los precios, la tienda web y las reglas de Mercado Libre se copian como punto de partida). Si no, dejá **Sin copiar**.
-4. Hacé clic en **Crear empresa**. Vas a ver «Empresa creada como borrador».
+3. El selector **Copiar configuración de** todavía no copia nada: la empresa nueva siempre se crea sin configurar, así que podés dejar **Sin copiar**.
+4. Hacé clic en **Crear empresa**. Vas a ver «Empresa creada. Todavía está sin configurar.»
 
 ### Editar los datos de una empresa
 

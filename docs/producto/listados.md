@@ -1,6 +1,10 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/components/pagina/CargaInfinita.tsx
+  - apps/web/src/components/base/MiniaturaProducto.tsx
+  - apps/web/src/hooks/useListadoAcumulado.ts
+  - apps/web/src/hooks/useListadoPorCursor.ts
 ---
 
 # Cómo se muestran las listas

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   MENSAJE_AVISO_ENCOLADO,
   MENSAJE_AVISO_WHATSAPP_ENCOLADO,
+  MENSAJE_AVISO_AUTOMATICO_SIN_CORREO,
   MENSAJE_CLIENTE_SIN_CORREO,
   MENSAJE_CLIENTE_SIN_CONSENTIMIENTO,
   MENSAJE_CLIENTE_SIN_TELEFONO,
@@ -27,7 +28,11 @@ export type EstadoAvisosReparacion = {
   aviso: string | null
   recargar: () => void
   // Pide el aviso del estado indicado (por defecto, el actual). Devuelve true si quedó encolado.
-  avisar: (estadoId?: string) => Promise<boolean>
+  // `automatico`: el aviso no lo pidió la persona sino el estado (casilla sin tocar): si no hay correo no es un error.
+  avisar: (estadoId?: string, opciones?: { automatico?: boolean }) => Promise<boolean>
+  // Nota neutra (no es una falla): un aviso automático no salió porque el cliente no tiene correo cargado.
+  avisoInformativo: string | null
+  descartarAvisoInformativo: () => void
   // Igual, pero por WhatsApp (MSF-952): lo manda el servidor al proveedor de mensajería.
   avisarWhatsapp: (estadoId?: string) => Promise<boolean>
 }
@@ -47,6 +52,7 @@ export function useAvisosReparacion(
   const [avisando, setAvisando] = useState(false)
   const [errorAvisar, setErrorAvisar] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
+  const [avisoInformativo, setAvisoInformativo] = useState<string | null>(null)
   const [version, setVersion] = useState(0)
   const ultima = useRef(0)
   const enVuelo = useRef(false)
@@ -55,6 +61,7 @@ export function useAvisosReparacion(
     setAvisos([])
     setErrorAvisar(null)
     setAviso(null)
+    setAvisoInformativo(null)
     setClienteConCorreo(null)
   }, [reparacionId, empresaActivaId])
 
@@ -90,19 +97,26 @@ export function useAvisosReparacion(
     }
   }, [clienteId, empresaActivaId, habilitado, version])
 
+  const descartarAvisoInformativo = useCallback(() => setAvisoInformativo(null), [])
+
   const recargar = useCallback(() => setVersion((v) => v + 1), [])
 
   const avisar = useCallback(
-    async (estadoId?: string) => {
+    async (estadoId?: string, opciones?: { automatico?: boolean }) => {
       // `enVuelo` cubre el doble clic antes de que el estado `avisando` llegue a pintarse.
       if (!reparacionId || enVuelo.current) return false
       enVuelo.current = true
       setAvisando(true)
       setErrorAvisar(null)
       setAviso(null)
+      setAvisoInformativo(null)
       try {
         const resultado = await avisarClienteDeReparacion(reparacionId, estadoId)
         if (resultado.resultado === 'sin_correo') {
+          if (opciones?.automatico) {
+            setAvisoInformativo(MENSAJE_AVISO_AUTOMATICO_SIN_CORREO)
+            return false
+          }
           setClienteConCorreo(false)
           setErrorAvisar(MENSAJE_CLIENTE_SIN_CORREO)
           return false
@@ -153,5 +167,5 @@ export function useAvisosReparacion(
     [reparacionId],
   )
 
-  return { avisos, cargando, errorCarga, clienteConCorreo, avisando, errorAvisar, aviso, recargar, avisar, avisarWhatsapp }
+  return { avisos, cargando, errorCarga, clienteConCorreo, avisando, errorAvisar, aviso, avisoInformativo, descartarAvisoInformativo, recargar, avisar, avisarWhatsapp }
 }

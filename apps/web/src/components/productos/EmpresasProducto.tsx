@@ -16,8 +16,7 @@ type Props = {
 }
 
 // Sección «Empresas que lo venden» del alta y la edición de productos (F-CAT-07, FR-011): una fila por
-// empresa de la organización con nombre, «Precio: —» (llega con Precios, MSF-114) e interruptor
-// accesible. No asume cuántas empresas hay. El prototipo muestra además el dominio web de cada tienda:
+// empresa de la organización con nombre e interruptor accesible. No asume cuántas empresas hay. El prototipo muestra además el dominio web de cada tienda:
 // la empresa todavía no lo guarda, así que no se inventa.
 export function EmpresasProducto({ empresas, seleccion, onCambiar, cargando = false, hayError = false, onReintentar, soloLectura = false, deshabilitado = false }: Props) {
   const elegidas = new Set(seleccion)
