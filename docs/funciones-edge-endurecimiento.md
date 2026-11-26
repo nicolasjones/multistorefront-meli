@@ -334,6 +334,12 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   `[chat-ia-responder] configuración de la plataforma:` y el motivo (`credencial_no_disponible`, `adaptador_no_soportado:<adaptador>` o
   `politica_invalida:<código>`), sin la clave, el contenido del mensaje ni datos del usuario; un error de entrada del cliente (esquema,
   organización) no se registra. Un fallo del cupo deja el log `[cupo-ia]` con la funcionalidad y el error, sin el id del usuario.
+  **Higiene de los logs:** todo dato variable pasa por `limpiarParaLog` (una sola línea: saltos, controles, NUL y U+2028/U+2029 se
+  reemplazan por un espacio; el adaptador se acota a 64 caracteres y los mensajes de error a 300). En `[cupo-ia]` se tachan, antes de acotar,
+  el uuid del usuario (sin distinguir mayúsculas), cualquier otro uuid (`[uuid]`) y los correos (`[correo]`), y se descarta el resto de un
+  uuid cortado por el recorte. **Volumen:** son una línea por petición fallida, acotada en longitud y sin datos del usuario ni del contenido;
+  con la base caída pueden repetirse una vez por petición y no hay limitador (el volumen lo acota el tamaño del tráfico, y el cupo no
+  aplica si la RPC falla). Si se vuelve un problema, el seguimiento es agregar un limitador por minuto.
   **Costo de ese orden:** un usuario sin cupo paga `prepararInvocacion` y `obtener_clave_perfil_ia` (una lectura que descifra la clave del
   proveedor) en CADA petición antes de recibir el 429. Es solo lectura y no llama al proveedor, y los 500/501 solo ocurren con la
   plataforma mal configurada. Se descartó un cupo previo «suave» antes de esas lecturas porque rompería la regla de que un 400/500/501 no
