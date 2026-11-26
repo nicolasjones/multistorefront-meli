@@ -5,11 +5,14 @@
 // función corre en un worker_thread con vigilancia: si no hay progreso en STUCK_MS (regex catastrófica) el
 // worker se termina y el test falla en segundos NOMBRANDO archivo:línea; si termina pero tarda más de 1 s, también falla.
 // Los terminadores van EN EL MEDIO: al final de una línea `trim()` los elimina y el caso lento no se ejercita.
-// Convención: un `docs-*.mjs` con `export` no debe tener efectos al importarse (protegé su main con un guard `import.meta.url`).
-// Solo se importan los de la lista blanca IMPORTABLES; uno nuevo con `export` hace fallar el test sin importarse (decisión humana).
+// Defensa contra scripts con efectos: LISTA BLANCA explícita. Solo se importan (y por lo tanto se EJECUTAN, como cualquier
+// otro código del PR que corre en la CI: job en `pull_request`, sin secretos) los scripts de IMPORTABLES. Un `docs-*.mjs` con
+// `export` que no esté en IMPORTABLES ni en NO_IMPORTAR hace fallar el test, y ese script NO se importa ni se ejecuta, hasta que
+// alguien lo agregue a una de las dos listas en un cambio revisado. NO hay detección automática de efectos: añadirle un efecto a
+// un script de la lista es un cambio de código que se revisa como cualquier otro.
+// Convención: un `docs-*.mjs` en IMPORTABLES no debe tener efectos al importarse (protegé su main con un guard `import.meta.url`).
 // docs-drift, docs-inventario, docs-manifest y verificar-documentacion-cambios no exportan ni se importan: se miden por sus regex.
-import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { availableParallelism, tmpdir } from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -19,89 +22,18 @@ import { leerMapaDocs } from './docs-correspondencia.mjs';
 import { paginasNav } from './docs-check.mjs';
 import { erroresFrontMatter, erroresYaml } from './docs-yaml.mjs';
 
-// DOCS_BARRIDO_DIR solo lo usan los tests de la guardia de importación (corren este mismo archivo contra una carpeta temporal).
-const aqui = process.env.DOCS_BARRIDO_DIR ?? import.meta.dirname;
-const ARCHIVOS = [...readdirSync(aqui).filter((f) => /^docs-.+\.mjs$/.test(f) && !f.includes('.test.')), 'verificar-documentacion-cambios.mjs'].filter((f) => existsSync(path.join(aqui, f))).sort();
-// Lista BLANCA de scripts que el test importa y ejecuta: cada uno se revisó a mano y no tiene efectos al importarse. Un
-// `docs-*.mjs` con `export` que no esté acá NO se importa: el test falla pidiendo esa decisión humana en un cambio revisado.
+const aqui = import.meta.dirname;
+const ARCHIVOS = [...readdirSync(aqui).filter((f) => /^docs-.+\.mjs$/.test(f) && !f.includes('.test.')), 'verificar-documentacion-cambios.mjs'].sort();
+// Lista BLANCA de scripts que el test importa y ejecuta (por eso no deben tener efectos al importarse; ver la cabecera).
 const IMPORTABLES = ['docs-check.mjs', 'docs-correspondencia.mjs', 'docs-enlaces.mjs', 'docs-lineas.mjs', 'docs-yaml.mjs'];
-// Scripts con efectos al importarse (escriben archivos, llaman a process.exit): jamás se importan ni exportan.
+// Scripts con efectos al importarse (escriben archivos, llaman a process.exit): no exportan nada y jamás se importan.
 const NO_IMPORTAR = ['docs-drift.mjs', 'docs-inventario.mjs', 'docs-manifest.mjs', 'verificar-documentacion-cambios.mjs'];
-
-// Red adicional (la decisión la toma la lista blanca): análisis estático sobre el texto SIN comentarios ni cadenas, para que
-// mencionar `import.meta.url` o `writeFileSync` en un comentario o un string no cuente como guard ni como efecto.
-const regexPermitida = (salida, previo) => previo === '' || '(,=:[!&|?{};+-*%<>~^'.includes(previo) || /\b(?:return|typeof|case|in|of|void|delete)\s*$/.test(salida);
-function limpiar(texto, conservarCadenas) {
-  let salida = '';
-  let previo = '';
-  let i = 0;
-  const n = texto.length;
-  while (i < n) {
-    const c = texto[i];
-    const d = texto[i + 1];
-    if (c === '/' && d === '/') { while (i < n && texto[i] !== '\n') i += 1; continue; }
-    if (c === '/' && d === '*') { const j = texto.indexOf('*/', i + 2); i = j < 0 ? n : j + 2; salida += ' '; continue; }
-    if (c === '"' || c === "'") {
-      let j = i + 1;
-      while (j < n && texto[j] !== c) { if (texto[j] === '\\') j += 1; j += 1; }
-      salida += conservarCadenas ? texto.slice(i, j + 1) : `${c}${c}`;
-      i = j + 1; previo = c; continue;
-    }
-    if (c === '`') {
-      let j = i + 1;
-      salida += conservarCadenas ? '' : '``';
-      while (j < n && texto[j] !== '`') {
-        if (texto[j] === '\\') { j += 2; continue; }
-        if (texto[j] === '$' && texto[j + 1] === '{') { // el código de la interpolación SÍ se analiza
-          let k = j + 2; let prof = 1;
-          while (k < n && prof > 0) { if (texto[k] === '{') prof += 1; else if (texto[k] === '}') prof -= 1; k += 1; }
-          salida += ` ${texto.slice(j + 2, k - 1)} `; j = k; continue;
-        }
-        if (conservarCadenas) salida += texto[j];
-        j += 1;
-      }
-      i = j + 1; previo = '`'; continue;
-    }
-    if (c === '/' && regexPermitida(salida, previo)) {
-      let j = i + 1; let clase = false;
-      while (j < n && texto[j] !== '\n') {
-        const x = texto[j];
-        if (x === '\\') { j += 2; continue; }
-        if (x === '[') clase = true; else if (x === ']') clase = false; else if (x === '/' && !clase) break;
-        j += 1;
-      }
-      salida += '/R/'; i = j + 1;
-      while (/[a-z]/.test(texto[i] ?? '')) i += 1;
-      previo = ')'; continue;
-    }
-    salida += c;
-    if (!/\s/.test(c)) previo = c;
-    i += 1;
-  }
-  return salida;
-}
-const MODULOS_PELIGROSOS = /^(?:node:)?(?:child_process|net|http|https|http2|dgram|cluster|worker_threads|vm|tls|dns|inspector|repl)(?:\/.*)?$/;
-const FS_ESCRITURA = /\b(?:writeFile|appendFile|mkdir|mkdtemp|rm|rmdir|unlink|rename|copyFile|cp|truncate|ftruncate|symlink|link|chmod|chown|lchown|lchmod|utimes|futimes|lutimes|open|write|writev|createWriteStream|fsync|fdatasync|exec|execFile|spawn|fork)(?:Sync)?\b/;
-const OTROS_EFECTOS = /\b(?:fetch|eval|setInterval|setTimeout|XMLHttpRequest|WebSocket|createRequire|require)\s*\(|\bnew\s+Function\b|\bimport\s*\(|\bprocess\s*\.\s*(?:chdir|kill|abort|dlopen|binding|umask|on|once)\b/;
-// Devuelve los motivos por los que un script con `export` NO es seguro de importar (vacío = pasa la red estática).
-function motivosDeEfectos(texto) {
-  const motivos = [];
-  const sinComentarios = limpiar(texto, true);
-  for (const m of sinComentarios.matchAll(/(?:from|import|require)\s*\(?\s*['"]([^'"]+)['"]/g)) if (MODULOS_PELIGROSOS.test(m[1])) motivos.push(`importa ${m[1]}`);
-  const codigo = limpiar(texto, false);
-  const fs = codigo.match(FS_ESCRITURA); if (fs) motivos.push(`usa ${fs[0]} (escritura o proceso)`);
-  const otros = codigo.match(OTROS_EFECTOS); if (otros) motivos.push(`usa ${otros[0].trim()}`);
-  if (/\bprocess\s*\.\s*(?:exit|argv)\b/.test(codigo) && !/\bimport\s*\.\s*meta\s*\.\s*url\b/.test(codigo)) motivos.push('usa process.exit/argv sin un guard import.meta.url real');
-  return motivos;
-}
-// Decisión por archivo: null = no se importa; 'importar' = se importa; string[] = problemas (el test falla sin importarlo).
+// Decisión por archivo SIN importar nada: null = no se importa; 'importar' = está en la lista blanca; string[] = problemas.
 function clasificar(archivo, texto) {
-  const exporta = /^\s*export\s/m.test(limpiar(texto, false));
-  if (NO_IMPORTAR.includes(archivo)) return exporta ? [`${archivo} está en NO_IMPORTAR pero ahora exporta: protegé su main con un guard import.meta.url y sacalo de NO_IMPORTAR`] : null;
+  const exporta = /^export /m.test(texto);
+  if (NO_IMPORTAR.includes(archivo)) return exporta ? [`${archivo} está en NO_IMPORTAR pero ahora exporta: revisalo, protegé su main con un guard import.meta.url y movelo a IMPORTABLES, o quitá el export`] : null;
   if (!exporta) return null;
-  if (!IMPORTABLES.includes(archivo)) return [`${archivo} exporta pero no está en IMPORTABLES: agregalo a IMPORTABLES tras revisar que no tiene efectos al importarse, o quitá el export`];
-  const motivos = motivosDeEfectos(texto);
-  return motivos.length ? [`${archivo} está en IMPORTABLES pero ${motivos.join('; ')}: no debe tener efectos al importarse (protegé su main con un guard import.meta.url)`] : 'importar';
+  return IMPORTABLES.includes(archivo) ? 'importar' : [`${archivo} exporta pero no está en IMPORTABLES ni en NO_IMPORTAR: agregalo a IMPORTABLES tras revisar que no tiene efectos al importarse, o quitá el export`];
 }
 // Una regex sin cuantificadores `*`, `+`, `{}` ni `?` ni alternancia `|` hace trabajo proporcional a la entrada. Los `?` repetidos
 // (`x?x?…x?xx…x`) y la alternancia sí pueden explotar, así que cuentan. Es conservadora: un `+` dentro de una clase `[+]` también
@@ -239,10 +171,6 @@ describe('enumeración', () => {
     assert.ok(!regex.some((r) => r.fuente.startsWith('usr/')), 'el shebang no es una regex');
   });
 
-  it('ningún script con efectos al importarse intenta importarse', () => {
-    assert.deepEqual(problemas, []);
-  });
-
   it('hay funciones exportadas que ejercitar', () => {
     assert.ok(EXPORTADAS.length >= 8, `solo ${EXPORTADAS.length}`);
     for (const archivo of IMPORTABLES) assert.ok(importables.includes(archivo), `${archivo} (IMPORTABLES) no se importó: ¿no existe o no exporta?`);
@@ -258,59 +186,20 @@ describe('esSimple', () => {
   });
 });
 
-// Los tests de la guardia corren ESTE archivo contra una carpeta temporal con scripts hostiles y comprueban que fallan SIN
-// ejecutarlos: el centinela (un archivo que el script hostil escribiría al importarse) no debe existir.
-describe('guardia de importación', () => {
-  const dirs = [];
-  after(() => { for (const d of dirs) rmSync(d, { recursive: true, force: true }); });
-  const hijo = (archivos) => {
-    const d = mkdtempSync(path.join(tmpdir(), 'guardia-'));
-    dirs.push(d);
-    const centinela = path.join(d, 'centinela.txt');
-    for (const [nombre, texto] of Object.entries(archivos)) writeFileSync(path.join(d, nombre), texto.replaceAll('CENTINELA', centinela));
-    const env = { ...process.env, DOCS_BARRIDO_DIR: d };
-    delete env.NODE_TEST_CONTEXT; // sin esto el hijo se comporta como subproceso del runner y no informa fallos
-    const r = spawnSync(process.execPath, ['--test', '--test-name-pattern=ningún script con efectos', import.meta.filename], { env, encoding: 'utf8' });
-    return { status: r.status, salida: `${r.stdout}${r.stderr}`, ejecutado: existsSync(centinela) };
-  };
-
-  it('un comentario con import.meta.url no cuenta como guard: falla sin ejecutar', () => {
-    const r = hijo({ 'docs-zzz-a.mjs': "// import.meta.url\n/* import.meta.url */\nconst s = 'import.meta.url';\nimport { writeFileSync } from 'node:fs';\nwriteFileSync('CENTINELA', 'x');\nexport const a = 1;\n" });
-    assert.notEqual(r.status, 0);
-    assert.match(r.salida, /docs-zzz-a\.mjs exporta pero no está en IMPORTABLES/);
-    assert.equal(r.ejecutado, false);
+// La lista blanca se prueba sin importar ni ejecutar nada: `clasificar` solo lee texto.
+describe('lista blanca de importables', () => {
+  it('un script nuevo con export falla pidiendo revisarlo; sin export, no', () => {
+    assert.match(clasificar('docs-zzz.mjs', 'export const a = 1;\n')[0], /agregalo a IMPORTABLES tras revisar que no tiene efectos al importarse, o quitá el export/);
+    assert.equal(clasificar('docs-zzz.mjs', 'const a = 1;\n'), null);
   });
 
-  it('appendFileSync sin guard en un script con export falla sin ejecutar', () => {
-    const r = hijo({ 'docs-zzz-b.mjs': "import { appendFileSync } from 'node:fs';\nappendFileSync('CENTINELA', 'x');\nexport const b = 1;\n" });
-    assert.notEqual(r.status, 0);
-    assert.match(r.salida, /docs-zzz-b\.mjs exporta pero no está en IMPORTABLES/);
-    assert.equal(r.ejecutado, false);
+  it('los de la lista blanca se importan y los de NO_IMPORTAR no pueden exportar', () => {
+    assert.equal(clasificar('docs-lineas.mjs', 'export const a = 1;\n'), 'importar');
+    assert.equal(clasificar('docs-manifest.mjs', 'const a = 1;\n'), null);
+    assert.match(clasificar('docs-manifest.mjs', 'export const a = 1;\n')[0], /está en NO_IMPORTAR pero ahora exporta/);
   });
 
-  it('un script nuevo con export que no está en IMPORTABLES falla pidiendo revisarlo', () => {
-    const r = hijo({ 'docs-zzz-c.mjs': 'export const c = 1;\n' });
-    assert.notEqual(r.status, 0);
-    assert.match(r.salida, /agregalo a IMPORTABLES tras revisar que no tiene efectos al importarse, o quitá el export/);
-  });
-
-  it('un script de la lista blanca que gana un efecto falla sin ejecutar', () => {
-    for (const efecto of ["import { appendFileSync } from 'node:fs';\nappendFileSync('CENTINELA', 'x');", "import { spawnSync } from 'node:child_process';\nspawnSync('touch', ['CENTINELA']);", "await fetch('http://127.0.0.1:9/CENTINELA');", "process.exit(0);"]) {
-      const r = hijo({ 'docs-lineas.mjs': `${efecto}\nexport const l = 1;\n` });
-      assert.notEqual(r.status, 0, efecto);
-      assert.match(r.salida, /docs-lineas\.mjs está en IMPORTABLES pero/, efecto);
-      assert.equal(r.ejecutado, false, efecto);
-    }
-  });
-
-  it('un script de la lista blanca sin efectos pasa, incluso con un guard real de main', () => {
-    const r = hijo({ 'docs-lineas.mjs': "import { writeFileSync } from 'node:fs';\nexport const l = 1;\nfunction main() { writeFileSync('CENTINELA', 'y'); }\nif (process.argv[1] && import.meta.url) main();\n" });
-    assert.notEqual(r.status, 0, 'writeFileSync está prohibido aun dentro de main: los importables no escriben');
-    const limpio = hijo({ 'docs-lineas.mjs': 'export const l = 1;\nconst main = () => process.exit(1);\nif (process.argv[1] === import.meta.url) main();\n' });
-    assert.equal(limpio.status, 0, limpio.salida);
-  });
-
-  it('los scripts actuales pasan la guardia', () => {
+  it('todo docs-*.mjs con export está en IMPORTABLES o NO_IMPORTAR (y no se importó nada fuera de la lista)', () => {
     assert.deepEqual(problemas, []);
   });
 });

@@ -928,9 +928,9 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "278c5f363a5c717c5b01b90dade0f5c9b5b5bd58eb76565a1aa9d65c850b15d2",
-      "sourceHash": "b161c062932c462111317955864d2a7a2fecddde20eedebaa080b03cea849998",
-      "sourceAt": "b43c491ac",
+      "pageHash": "101ebbf010eabe23460dba4bad4343fc963d3d9dc04489a85381af9660a86b0d",
+      "sourceHash": "55785ea2d37096bb0a04b982c975f70ec85dca85c81b0902dc9dff92ee3c5b7b",
+      "sourceAt": "198c507f0",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
@@ -949,7 +949,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "b43c491ac"
+      "commit": "198c507f0"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",

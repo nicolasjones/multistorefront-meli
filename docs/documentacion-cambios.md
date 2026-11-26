@@ -95,22 +95,20 @@ que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada 
     `docs-inventario.mjs`, `docs-manifest.mjs` y `verificar-documentacion-cambios.mjs` no exportan nada y corren al importarse:
     no se importan (lista `NO_IMPORTAR` del test) y se miden solo por sus regex literales; el manifest además tiene su test de
     proceso en `docs-manifest.test.mjs`.
-  - **Importación por lista blanca:** el test solo importa y ejecuta los scripts de `IMPORTABLES` (`docs-check`,
-    `docs-correspondencia`, `docs-enlaces`, `docs-lineas`, `docs-yaml`). Un `docs-*.mjs` con `export` que no esté en esa lista, o
-    uno de `NO_IMPORTAR` que gane un `export`, hace fallar el test con un mensaje accionable («agregalo a IMPORTABLES tras revisar
-    que no tiene efectos al importarse, o quitá el export») **sin importarlo ni ejecutarlo**: importar un script nuevo requiere una
-    decisión humana explícita en un cambio revisado de ese mismo archivo. Convención: un `docs-*.mjs` con `export` no debe tener
-    efectos al importarse (proteger su main con un guard `import.meta.url`).
-  - **Red estática adicional (no es la defensa principal):** para los de la lista blanca se analiza el texto sin comentarios ni
-    cadenas (una mención de `import.meta.url` o `writeFileSync` en un comentario no cuenta) y se exige que no importen
-    `child_process`, `net`, `http(s)`, `worker_threads`, `vm` y similares, no usen escrituras de `fs` (todas las variantes
-    sync/async/promises), `exec`/`spawn`, `fetch`, `eval`, timers, `process.chdir`/`kill`, ni `process.exit`/`argv` sin un guard
-    `import.meta.url` real.
+  - **Defensa: lista blanca explícita.** El test solo importa los scripts de `IMPORTABLES` (`docs-check`,
+    `docs-correspondencia`, `docs-enlaces`, `docs-lineas`, `docs-yaml`). Un `docs-*.mjs` con `export` que no esté ni en
+    `IMPORTABLES` ni en `NO_IMPORTAR` hace fallar el test con un mensaje accionable («agregalo a IMPORTABLES tras revisar que no
+    tiene efectos al importarse, o quitá el export»): ese script no se importa ni se ejecuta hasta que alguien lo agregue a una de
+    las dos listas en un cambio revisado. Eso es cierto solo para los scripts **no listados**.
+  - **Los scripts de la lista sí se ejecutan al importarse**, igual que cualquier otro código del PR que corre en la CI (el job
+    corre en `pull_request`, sin secretos y sin `pull_request_target`), así que añadirles un efecto es un cambio de código que se
+    revisa como cualquier otro. No hay detección automática de efectos: un análisis estático de «este script tiene efectos» no es
+    defendible y se descartó. Convención: **un `docs-*.mjs` en `IMPORTABLES` no debe tener efectos al importarse** (proteger su
+    main con un guard `import.meta.url`).
   - Mutaciones comprobadas: `^(\d+)+$`, `^(a|aa)+$` y `x?`×28 + `x`×28 hacen fallar el test por tiempo, como literal y las dos
-    primeras también como función; `new RegExp('^\\s*-\\s*(.+)$')` en una función exportada, un script nuevo con `export` sin
-    listar, un comentario con `import.meta.url` más escritura, un `appendFileSync` sin guard y un script de la lista blanca que
-    gana un efecto hacen fallar la guardia; quitar la lista blanca o volver a la heurística vieja hace fallar los tests de la
-    guardia. Un ítem vacío se descarta (antes el manifest podía registrar `''`, que apuntaría a toda la raíz).
+    primeras también como función; `new RegExp('^\\s*-\\s*(.+)$')` en una función exportada y un script nuevo con `export` sin
+    listar (que no llega a ejecutarse) lo hacen fallar; volver a cada regex vieja corregida también. Un ítem vacío se descarta
+    (antes el manifest podía registrar `''`, que apuntaría a toda la raíz).
 - **Tasa de ruido medida (2026-11-25)**, contra los 30 últimos PRs mergeados a `dokploy` (diff `padre1...padre2` de cada merge de
   primer padre): 7 de 30 PRs (23 %) habrían tenido avisos; de 124 archivos relevantes cambiados, 53 (43 %) tenían doc
   correspondiente sin tocar. Dos PRs grandes concentran la mayoría (25 y 5 avisos en `infra/kestra` y workers); el resto trae 3 a
