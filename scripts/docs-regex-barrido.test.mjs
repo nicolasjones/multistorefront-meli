@@ -1,8 +1,9 @@
-// Barrido automático anti-ReDoS (MSF-869). Extrae TODAS las regex literales de los scripts que leen contenido de PRs y las
+// Barrido automático anti-ReDoS (MSF-869). Enumera con readdirSync todos los `scripts/docs-*.mjs` (sin tests) más
+// `verificar-documentacion-cambios.mjs` (no hay lista fija: un script nuevo entra solo), extrae TODAS sus regex literales y las
 // ejecuta con entradas hostiles de 100 000 caracteres (prefijo + repetición + terminador en el medio + cola). Cualquier
 // regex que tarde más de 1 s falla el test: se reemplaza por parseo lineal (docs-lineas.mjs). Los terminadores van EN EL
 // MEDIO: al final de una línea `trim()` los elimina y el caso lento no se ejercita.
-import { readFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -12,13 +13,13 @@ import { paginasNav } from './docs-check.mjs';
 import { erroresFrontMatter, erroresYaml } from './docs-yaml.mjs';
 
 const aqui = import.meta.dirname;
-const ARCHIVOS = ['docs-manifest.mjs', 'docs-correspondencia.mjs', 'docs-lineas.mjs', 'docs-yaml.mjs', 'docs-check.mjs', 'verificar-documentacion-cambios.mjs'];
+const ARCHIVOS = [...readdirSync(aqui).filter((f) => /^docs-.+\.mjs$/.test(f) && !f.includes('.test.')), 'verificar-documentacion-cambios.mjs'].sort();
 const N = 100000;
 const TOPE_MS = 1000;
 const CARACTERES = [' ', '\t', ' ', '-', '#', ':', 'x', '\r', ' ', ' ', '\u0085', '"', "'", '[', ',', '/'];
 const TERMINADORES = ['', '\r', ' ', ' ', '\u0085', '\n'];
 const PREFIJOS = ['', 'sources:', '  - ', 'a', '---\n', '# ', 'x: ', '  - "'];
-const COLAS = ['', 'x', ' #', ' x', '\n---\n'];
+const COLAS = ['x', ' #', '\u2028x'];
 
 // Regex literales: precedidas por un delimitador de expresión (no una división) y en una sola línea.
 const LITERAL = /(?<=(?:^|[(,=:[!&|?{};]|\breturn|\bin|=>)\s*)\/(?![/*])((?:\\.|\[(?:\\.|[^\]\\\n])*\]|[^/\\\n[])+)\/([dgimsuvy]*)/gm;
@@ -41,8 +42,9 @@ const tabla = [];
 
 describe('barrido de regex (100 000 caracteres hostiles, tope 1 s)', () => {
   it('encuentra las regex de los scripts', () => {
-    assert.ok(regex.length >= 25, `solo ${regex.length} regex extraídas`);
-    for (const archivo of ARCHIVOS) assert.ok(regex.some((r) => r.archivo === archivo), `sin regex en ${archivo}`);
+    assert.ok(regex.length >= 40, `solo ${regex.length} regex extraídas`);
+    // Un archivo sin regex es válido; estos sí las tienen y tienen que estar enumerados.
+    for (const archivo of ['docs-check.mjs', 'docs-drift.mjs', 'docs-enlaces.mjs', 'docs-inventario.mjs', 'docs-manifest.mjs', 'docs-yaml.mjs', 'verificar-documentacion-cambios.mjs']) assert.ok(ARCHIVOS.includes(archivo), `${archivo} no enumerado`);
   });
 
   for (const r of regex) {
@@ -66,7 +68,6 @@ describe('barrido de regex (100 000 caracteres hostiles, tope 1 s)', () => {
     });
   }
 
-  after(() => { console.log(`# Tabla de regex medidas (máximo, entrada más lenta)\n${tabla.sort().join('\n')}`); });
 });
 
 describe('barrido de funciones (terminadores en el medio)', () => {
@@ -116,3 +117,42 @@ describe('barrido de funciones (terminadores en el medio)', () => {
     });
   }
 });
+
+const EXPORTADAS = [];
+for (const archivo of ARCHIVOS) {
+  if (!/^export /m.test(readFileSync(path.join(aqui, archivo), 'utf8'))) continue;
+  const modulo = await import(path.join(aqui, archivo));
+  for (const [nombre, valor] of Object.entries(modulo)) if (typeof valor === 'function') EXPORTADAS.push({ archivo, nombre, valor });
+}
+
+// Funciones exportadas de TODOS los docs-*.mjs enumerados (solo los que declaran `export`: los demás son scripts con
+// efectos al importarse y no se importan). Cada una recibe cadenas hostiles; los errores de tipo se ignoran, el tiempo no.
+describe('barrido de funciones exportadas (docs-*.mjs enumerados)', () => {
+  const chars = [...CARACTERES, ']', '(', ')', '<', '>', '`', '!', '*', '|'];
+  const prefijos = ['', '[a](', '```\n'];
+
+  it('hay funciones exportadas que ejercitar', () => {
+    assert.ok(EXPORTADAS.length >= 8, `solo ${EXPORTADAS.length}`);
+  });
+
+  for (const { archivo, nombre, valor } of EXPORTADAS) {
+    it(`${archivo} ${nombre}()`, () => {
+      let max = 0;
+      for (const c of chars) {
+        const b = c.repeat(N);
+        for (const term of ['\r', '\u2028', '\u2029', '\u0085']) for (const pre of prefijos) {
+          for (const entrada of [`${pre}${b}${term}x`, `${pre}a${b}${term}${b}y\n`]) {
+            const t0 = performance.now();
+            try { valor(entrada); } catch { /* firma distinta o ruta inexistente: solo importa el tiempo */ }
+            const ms = performance.now() - t0;
+            if (ms > max) max = ms;
+            assert.ok(ms < TOPE_MS, `${archivo} ${nombre}: ${ms | 0} ms con ${JSON.stringify(pre)} + ${N} ${JSON.stringify(c)} + ${JSON.stringify(term)}`);
+          }
+        }
+      }
+      tabla.push(`${archivo} ${nombre}() [función]\t${max | 0} ms`);
+    });
+  }
+});
+
+after(() => { console.log(`# Tabla de regex y funciones medidas (máximo, entrada más lenta)\n${tabla.sort().join('\n')}`); });

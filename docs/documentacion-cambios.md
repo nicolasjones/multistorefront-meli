@@ -76,12 +76,17 @@ que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada 
   particiones (decenas de segundos). El helper lo usan `docs-manifest.mjs` (front matter), `docs-correspondencia.mjs`,
   `docs-yaml.mjs` y `docs-check.mjs` (nav). Las barras finales se quitan con un bucle. Las regex que quedan (rutas de código,
   `^---\n([\s\S]*?)\n---`, `^\[(.*)\]$`, bordes de comillas, escapes de un carácter) hacen un solo recorrido sin retroceso útil.
-  No se afirma por inspección: `scripts/docs-regex-barrido.test.mjs` extrae **todas** las regex literales de esos scripts y las
-  ejecuta con 100 000 caracteres hostiles (espacio, tab, NBSP, `-`, `#`, `:`, `x`, `\r`, U+2028, U+2029, U+0085, comillas, `[`,
-  `,`, `/`) combinados como prefijo + repetición + terminador (también en el medio) + cola, y ejercita `leerMapaDocs`,
-  `paginasNav`, `erroresYaml` y `erroresFrontMatter` con los terminadores en el medio de la línea; el tope es 1 s por ejecución e
-  imprime la tabla de máximos. Una regex nueva que sea cuadrática hace fallar ese test. Un ítem vacío se descarta (antes el
-  manifest podía registrar `''`, que apuntaría a toda la raíz).
+  No se afirma por inspección: `scripts/docs-regex-barrido.test.mjs` **enumera** con `readdirSync` todos los `scripts/docs-*.mjs`
+  (sin tests) más `verificar-documentacion-cambios.mjs`, sin lista fija, así que un script nuevo entra solo. Extrae todas sus
+  regex literales y las ejecuta con 100 000 caracteres hostiles (espacio, tab, NBSP, `-`, `#`, `:`, `x`, `\r`, U+2028, U+2029,
+  U+0085, comillas, `[`, `,`, `/`) combinados como prefijo + repetición + terminador (también en el medio) + cola. Además importa
+  los archivos que exportan funciones (`docs-enlaces`, `docs-yaml`, `docs-check`, `docs-lineas`, `docs-correspondencia`, y cualquier
+  `docs-*.mjs` nuevo con `export`) y llama a cada función exportada con cadenas hostiles. Los scripts sin `export` (`docs-drift`,
+  `docs-inventario`, `docs-manifest`) corren al importarse y no se importan: se miden solo por sus regex literales, y el manifest
+  además con un test de proceso en `docs-manifest.test.mjs`. El tope es 1 s por ejecución, se imprime la tabla de máximos (hoy todas
+  por debajo de ~200 ms) y el test tarda ~65 s. Una regex nueva que sea cuadrática hace fallar el test: se comprobó agregando un
+  `scripts/docs-zzz-prueba.mjs` temporal con `^\s*-\s*(.+)$`. Un ítem vacío se descarta (antes el manifest podía registrar `''`, que
+  apuntaría a toda la raíz).
 - **Tasa de ruido medida (2026-11-25)**, contra los 30 últimos PRs mergeados a `dokploy` (diff `padre1...padre2` de cada merge de
   primer padre): 7 de 30 PRs (23 %) habrían tenido avisos; de 124 archivos relevantes cambiados, 53 (43 %) tenían doc
   correspondiente sin tocar. Dos PRs grandes concentran la mayoría (25 y 5 avisos en `infra/kestra` y workers); el resto trae 3 a
