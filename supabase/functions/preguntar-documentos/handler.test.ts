@@ -317,6 +317,24 @@ describe('funcionalidad y límite por usuario (antes de gastar crédito)', () =>
     }
   })
 
+  it('los rechazos del cliente o de estado no dejan log de servidor: 403, 400, 429 y 503 de política', async () => {
+    const casos: Array<[number, () => Promise<unknown>]> = [
+      [403, () => llamar({ jwtValido: false })],
+      [400, () => llamar({}, { pregunta: '' })],
+      [400, () => llamar({}, { pregunta: 'x'.repeat(2001) })],
+      [400, () => llamar({}, 'no es json')],
+      [403, () => llamar({ feature: { data: false, error: null } })],
+      [503, () => llamar({ politica: { data: [], error: null } })],
+      [429, () => llamar({ cupoRpc: { data: [{ se_consumio: false, segundos_hasta_reinicio: 5 }], error: null } })],
+    ]
+    for (const [estado, ejecutar] of casos) {
+      errores.length = 0
+      const { res } = await ejecutar() as { res: Response }
+      assert.equal(res.status, estado)
+      assert.deepEqual(errores, [], `estado ${estado}`)
+    }
+  })
+
   it('el usuario del cupo sale del JWT validado, aunque el cuerpo traiga otro usuario_id o user_id', async () => {
     const { r } = await llamar({ respuestas: [textoOpenAI('ok')] }, { pregunta: '¿plazo?', usuario_id: 'otro', user_id: 'otro', p_usuario: 'otro' })
     const llamadas = r.rpcAdmin.filter((c) => c[0] === 'consumir_cupo_ia')

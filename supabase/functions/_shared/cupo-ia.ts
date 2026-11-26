@@ -22,6 +22,8 @@ const MAX_ERROR_LOG = 300
 // Antes de tachar se acota a un tamaño holgado, para que el trabajo sea lineal aunque el detalle sea enorme (el recorte final es a 300).
 const MAX_ANTES_DE_TACHAR = 2000
 const UUID_GENERICO = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
+// El mismo uuid sin guiones (32 hexadecimales seguidos).
+const UUID_SIN_GUIONES = /[0-9a-f]{32}/gi
 const CORREO = /[^\s@]{1,64}@[^\s@]{1,255}/g
 // Resto de un uuid cortado por el recorte: una racha final de 8 o más caracteres hexadecimales o guiones. Se aplica sobre texto de <= 300.
 const UUID_PARCIAL_FINAL = /[0-9a-f-]{8,}$/i
@@ -33,7 +35,7 @@ function describirError(error: unknown, usuarioId: string): string {
   const partes = [e.name, e.code, e.message].filter((p): p is string => typeof p === 'string' && p !== '')
   let texto = limpiarParaLog(partes.join(' '), MAX_ANTES_DE_TACHAR)
   if (usuarioId) texto = texto.replace(new RegExp(usuarioId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '[usuario]')
-  texto = texto.replace(UUID_GENERICO, '[uuid]').replace(CORREO, '[correo]').slice(0, MAX_ERROR_LOG)
+  texto = texto.replace(UUID_GENERICO, '[uuid]').replace(UUID_SIN_GUIONES, '[uuid]').replace(CORREO, '[correo]').slice(0, MAX_ERROR_LOG)
   return texto.replace(UUID_PARCIAL_FINAL, '').trim()
 }
 

@@ -112,6 +112,21 @@ describe('rechazoPorCupo: log de servidor', () => {
     assert.match(l, /\[correo\]/)
   })
 
+  it('tacha todas las apariciones del id (dos, tres) y el uuid sin guiones, y acota el log a 300', async () => {
+    for (const veces of [2, 3, 5]) {
+      const log = await logDe(Array.from({ length: veces }, () => `id ${usuario}`).join(' / '))
+      assert.equal((log.match(/\[usuario\]/g) ?? []).length, veces)
+      for (const w of ventanas(usuario)) assert.equal(log.toLowerCase().includes(w), false)
+    }
+    for (const sinGuiones of [usuario.replaceAll('-', ''), usuario.replaceAll('-', '').toUpperCase(), otroUuid.replaceAll('-', '')]) {
+      const log = await logDe(`Key (usuario_id)=(${sinGuiones}) y ${sinGuiones}`)
+      assert.equal((log.match(/\[uuid\]|\[usuario\]/g) ?? []).length, 2, log)
+      for (const w of [...ventanas(usuario.replaceAll('-', '')), ...ventanas(otroUuid.replaceAll('-', ''))]) assert.equal(log.toLowerCase().includes(w), false, `queda «${w}» en: ${log}`)
+    }
+    const largo = await logDe('k'.repeat(1000))
+    assert.ok(largo.length <= 300 && largo.length > 250, `longitud ${largo.length}`)
+  })
+
   it('un uuid que cae justo en el límite de 300 caracteres no deja ningún fragmento', async () => {
     for (let relleno = 250; relleno <= 300; relleno++) {
       const log = await logDe(`${'z'.repeat(relleno)} ${usuario} ${otroUuid}`)

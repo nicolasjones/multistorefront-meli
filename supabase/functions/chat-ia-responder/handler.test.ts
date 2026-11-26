@@ -515,6 +515,27 @@ describe('preparación de la invocación y credencial', () => {
     assert.ok(String(errores[0][1]).length <= 300)
   })
 
+  it('los rechazos del cliente o de estado no dejan log de servidor: 403 sin sesión, 400 de validación, 404, 403 de funcionalidad, 503 de política y 429', async () => {
+    const casos: Array<[number, () => Promise<unknown>]> = [
+      [403, () => llamar({ jwtValido: false })],
+      [403, () => llamar({}, { mensaje: 'hola' }, pedir({ mensaje: 'hola' }, { auth: null }))],
+      [400, () => llamar({}, { mensaje: '' })],
+      [400, () => llamar({}, { mensaje: 'x'.repeat(4001) })],
+      [400, () => llamar({}, { mensaje: 'hola', conversacion_id: 'no-uuid' })],
+      [400, () => llamar({}, 'no es json')],
+      [404, () => llamar({ existente: { data: null, error: null } }, { mensaje: 'hola', conversacion_id: CONV })],
+      [403, () => llamar({ feature: { data: false, error: null } })],
+      [503, () => llamar({ politica: { data: [], error: null } })],
+      [429, () => llamar({ cupo: { data: [{ se_consumio: false, segundos_hasta_reinicio: 5 }], error: null } })],
+    ]
+    for (const [estado, ejecutar] of casos) {
+      errores.length = 0
+      const { res } = await ejecutar() as { res: Response }
+      assert.equal(res.status, estado)
+      assert.deepEqual(errores, [], `estado ${estado}`)
+    }
+  })
+
   it('prepararInvocacion: solo los códigos de política/perfil mal configurados dejan log; los errores del cliente no', async () => {
     for (const codigo of ['POLITICA_IA_INACTIVA', 'LIMITE_INTENTOS_IA_INVALIDO', 'LIMITE_TIEMPO_IA_INVALIDO', 'LIMITE_INTENTOS_IA']) {
       errores.length = 0
