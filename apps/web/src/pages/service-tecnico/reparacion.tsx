@@ -95,7 +95,7 @@ const AgregarRepuestoDialog = lazy(() =>
 // «Avisar al cliente» al cambiar de estado: sin tocar la casilla (null) se avisa solo si el estado DESTINO tiene
 // marcado «Avisa al cliente» (estados_reparacion.avisa_cliente); la persona puede tildarla o destildarla para
 // decidir ella (true / false). Como el estado destino se conoce recién al elegirlo, la casilla se ve marcada solo
-// con decisión explícita y un texto debajo dice qué estados avisan solos. Tras cada cambio vuelve a «según el estado».
+// con decisión explícita y un texto debajo dice qué estados avisan solos. Tras cada cambio de estado, y al cambiar de reparación (la pantalla se remonta por `:id`), vuelve a «según el estado».
 const AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO: boolean | null = null
 
 type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
@@ -105,6 +105,14 @@ type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
 // La sección «Mano de obra y repuestos» (F-SVC-06, FR-027 y FR-028) agrega y quita ítems por RPC propia, no por
 // «Guardar». «Avisar al cliente» y los avisos al cliente son de F-SVC-14 (FR-023 a FR-028). «Imprimir orden» e «Imprimir remito» abren las vistas A4 (F-SVC-07); «Imprimir etiqueta» abre la etiqueta con QR (F-SVC-32, P-3).
 // Estado, Historial, Entrega y Anulación son de F-SVC-03 (FR-030 a FR-034): el estado cambia por RPC propia.
+const LARGO_MAXIMO_MENSAJE_NAVEGACION = 200
+
+// Mensaje de éxito que una pantalla anterior deja en `navigate state`: solo se acepta un texto, acotado en largo.
+function mensajeDeNavegacion(estado: unknown): string | null {
+  const mensaje = (estado as { mensaje?: unknown } | null)?.mensaje
+  return typeof mensaje === 'string' && mensaje.trim() !== '' ? mensaje.slice(0, LARGO_MAXIMO_MENSAJE_NAVEGACION) : null
+}
+
 // La pantalla se remonta al cambiar `:id` (`key`): así ningún estado local de una reparación (casilla «Avisar al cliente»,
 // diálogos, errores, nota informativa del aviso, formulario) se filtra a la siguiente, p. ej. tras un reingreso por garantía.
 export function ServicioReparacion() {
@@ -135,8 +143,16 @@ function PantallaReparacion() {
   const [conflicto, setConflicto] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [exito, setExito] = useState<string | null>(
-    (ubicacion.state as { mensaje?: string } | null)?.mensaje ?? null,
+    mensajeDeNavegacion(ubicacion.state),
   )
+  // El mensaje se lee una vez y se limpia del `state` del historial: al recargar o volver atrás no reaparece.
+  useEffect(() => {
+    if (ubicacion.state != null) {
+      navigate(`${ubicacion.pathname}${ubicacion.search}`, { replace: true, state: null })
+    }
+    // Solo al montar: el `key` por `:id` remonta la pantalla cuando cambia la reparación.
+  }, [])
+
   const [altaRapidaAbierta, setAltaRapidaAbierta] = useState(false)
   const [estados, setEstados] = useState<EstadoReparacion[]>([])
   const [historial, setHistorial] = useState<EventoHistorial[]>([])

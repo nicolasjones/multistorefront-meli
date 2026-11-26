@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter, Route, Routes, useNavigate } from 'react-router'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -236,6 +236,51 @@ describe('Service técnico · Avisos al cliente por cambio de estado (F-SVC-14)'
     await elegirEstado('Reparado')
     await waitFor(() => expect(mocks.cambiarEstadoReparacion).toHaveBeenCalledWith('r-1', 's-2'))
     expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
+  })
+
+  describe('mensaje de éxito que llega por navigate state', () => {
+    const SondaState = () => {
+      const ubicacion = useLocation()
+      return <output data-testid="state">{JSON.stringify(ubicacion.state)}</output>
+    }
+    const abrirConState = (state: unknown) =>
+      render(
+        <MemoryRouter initialEntries={[{ pathname: '/service-tecnico/reparaciones/r-1', state }]}>
+          <SondaState />
+          <Routes>
+            <Route path="/service-tecnico/reparaciones/:id" element={<ServicioReparacion />} />
+          </Routes>
+        </MemoryRouter>,
+      )
+
+    it('se muestra una vez y el state del historial queda en null', async () => {
+      abrirConState({ mensaje: 'Reparación R-0002 creada por garantía' })
+      expect(await screen.findByText('Reparación R-0002 creada por garantía')).toBeInTheDocument()
+      await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('null'))
+    })
+
+    it('al recargar o volver (misma ubicación sin state) no reaparece', async () => {
+      abrirConState(null)
+      await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+      expect(screen.queryByText(/creada por garantía/)).not.toBeInTheDocument()
+    })
+
+    it('ignora un state que no es texto (objeto o número) y recorta un texto largo', async () => {
+      const vista = abrirConState({ mensaje: { a: 1 } })
+      await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+      expect(screen.queryByText(/\[object Object\]/)).not.toBeInTheDocument()
+      expect(screen.queryByText('{"a":1}')).not.toBeInTheDocument()
+      vista.unmount()
+      abrirConState({ mensaje: 42 })
+      await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+      expect(screen.queryByText('42')).not.toBeInTheDocument()
+      vista.unmount()
+    })
+
+    it('recorta un mensaje de más de 200 caracteres', async () => {
+      abrirConState({ mensaje: 'x'.repeat(500) })
+      expect(await screen.findByText('x'.repeat(200))).toBeInTheDocument()
+    })
   })
 
   describe('al cambiar de reparación (:id) la decisión de la casilla no se filtra a la siguiente', () => {
