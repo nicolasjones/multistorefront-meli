@@ -4,7 +4,7 @@
 -- usa la migración. Incluye el aislamiento entre organizaciones (políticas de escritura y deduplicación de fragmentos).
 begin;
 
-select plan(85);
+select plan(99);
 
 insert into organizaciones (id, nombre) values
   ('f1111111-1111-1111-1111-111111111180', 'Org L89'),
@@ -47,6 +47,13 @@ insert into documentos (id, organizacion_id, nombre, subido_por)
   values ('f3000000-0000-0000-0000-000000000002', 'f2222222-2222-2222-2222-222222222280', 'ajeno.pdf', 'f2000000-0000-0000-0000-000000000099');
 insert into versiones_documento (id, documento_id, storage_path, estado, subida_por, motivo_error)
   values ('f4000000-0000-0000-0000-0000000000b1', 'f3000000-0000-0000-0000-000000000002', 'vb', 'procesando', 'f2000000-0000-0000-0000-000000000099', 'reclamo-b');
+
+insert into documentos (id, organizacion_id, nombre, subido_por) values
+  ('f3000000-0000-0000-0000-000000000003', 'f1111111-1111-1111-1111-111111111180', 'guardas.pdf', 'f1000000-0000-0000-0000-000000000080'),
+  ('f3000000-0000-0000-0000-000000000004', 'f1111111-1111-1111-1111-111111111180', 'guardas2.pdf', 'f1000000-0000-0000-0000-000000000080');
+insert into versiones_documento (id, documento_id, storage_path, estado, subida_por, motivo_error) values
+  ('f4000000-0000-0000-0000-0000000000a9', 'f3000000-0000-0000-0000-000000000003', 'va', 'activa', 'f1000000-0000-0000-0000-000000000080', 'reclamo-igual'),
+  ('f4000000-0000-0000-0000-0000000000aa', 'f3000000-0000-0000-0000-000000000004', 'vf', 'fallida', 'f1000000-0000-0000-0000-000000000080', 'reclamo-igual');
 
 -- ===== A1: unicidad (version_id, orden) =====
 insert into versiones_documento (id, documento_id, storage_path, estado, subida_por, motivo_error, subida_en) values
@@ -117,6 +124,38 @@ select is((select count(*) from fragmentos_indexados where version_id = 'f400000
 select throws_ok($$select public.insertar_fragmentos_si_dueno('f4000000-0000-0000-0000-000000000007', 'f1111111-1111-1111-1111-111111111180', 'reclamo-propio', '[{"texto":"a","embedding":"[0]","orden":7},{"texto":"b","embedding":"[0]","orden":7}]'::jsonb)$$,
   '22023', 'p_filas tiene valores de orden repetidos', 'orden repetido dentro de p_filas: 22023');
 select is((select count(*) from fragmentos_indexados where version_id = 'f4000000-0000-0000-0000-000000000007' and orden = 7), 0::bigint, 'el lote rechazado no insertó nada');
+
+-- Guarda de estado: una versión activa o fallida nunca recibe fragmentos aunque su motivo_error coincida con p_reclamo (con do update los
+-- sobrescribiría); tampoco con p_reclamo nulo contra un motivo_error nulo.
+insert into fragmentos_indexados (version_id, organizacion_id, texto, embedding, orden)
+select v, 'f1111111-1111-1111-1111-111111111180', 'original', (select embedding from fragmentos_indexados where version_id = 'f4000000-0000-0000-0000-000000000007' limit 1), 0
+  from unnest(array['f4000000-0000-0000-0000-0000000000a9', 'f4000000-0000-0000-0000-0000000000aa', 'f4000000-0000-0000-0000-000000000005']::uuid[]) v;
+select is(public.insertar_fragmentos_si_dueno('f4000000-0000-0000-0000-0000000000a9', 'f1111111-1111-1111-1111-111111111180', 'reclamo-igual',
+  (select jsonb_agg(jsonb_build_object('texto', 'pisado', 'embedding', '[' || array_to_string(array_fill(0, array[1536]), ',') || ']', 'orden', o)) from generate_series(0, 1) o)), false, 'versión activa con motivo_error igual al reclamo: no es dueña (false)');
+select is(public.insertar_fragmentos_si_dueno('f4000000-0000-0000-0000-0000000000aa', 'f1111111-1111-1111-1111-111111111180', 'reclamo-igual',
+  (select jsonb_agg(jsonb_build_object('texto', 'pisado', 'embedding', '[' || array_to_string(array_fill(0, array[1536]), ',') || ']', 'orden', o)) from generate_series(0, 1) o)), false, 'versión fallida con motivo_error igual al reclamo: no es dueña (false)');
+select is(public.insertar_fragmentos_si_dueno('f4000000-0000-0000-0000-000000000005', 'f1111111-1111-1111-1111-111111111180', null,
+  (select jsonb_agg(jsonb_build_object('texto', 'pisado', 'embedding', '[' || array_to_string(array_fill(0, array[1536]), ',') || ']', 'orden', o)) from generate_series(0, 1) o)), false, 'versión activa con motivo_error nulo y reclamo nulo: no es dueña (false)');
+select is((select array_agg(texto || ':' || orden order by version_id, orden) from fragmentos_indexados where version_id in ('f4000000-0000-0000-0000-0000000000a9', 'f4000000-0000-0000-0000-0000000000aa', 'f4000000-0000-0000-0000-000000000005')), array['original:0', 'original:0', 'original:0'], 'los fragmentos de las versiones activa y fallida quedaron intactos y sin filas nuevas');
+
+-- Otras guardas de insertar_fragmentos_si_dueno (versión 7: procesando con reclamo-propio): cada una rechaza y no toca nada.
+select throws_ok($$select public.insertar_fragmentos_si_dueno('f4000000-0000-0000-0000-000000000007', 'f1111111-1111-1111-1111-111111111180', 'reclamo-propio', '{"a":1}'::jsonb)$$, '22023', 'p_filas debe ser un arreglo', 'p_filas que no es un arreglo: 22023');
+select throws_ok($$select public.insertar_fragmentos_si_dueno('f4000000-0000-0000-0000-000000000007', 'f1111111-1111-1111-1111-111111111180', 'reclamo-propio', null)$$, '22023', 'p_filas debe ser un arreglo', 'p_filas nulo: 22023');
+select is(public.insertar_fragmentos_si_dueno('f4000000-0000-0000-0000-000000000007', 'f1111111-1111-1111-1111-111111111180', 'reclamo-ajeno', '[{"texto":"x","embedding":"[0]","orden":60}]'::jsonb), false, 'reclamo distinto al de la versión: no es dueña');
+select is(public.insertar_fragmentos_si_dueno('f4000000-0000-0000-0000-000000000007', 'f2222222-2222-2222-2222-222222222280', 'reclamo-propio', '[{"texto":"x","embedding":"[0]","orden":60}]'::jsonb), false, 'organización que no es la de la versión: no es dueña');
+select is(public.insertar_fragmentos_si_dueno('00000000-0000-0000-0000-00000000dead', 'f1111111-1111-1111-1111-111111111180', 'reclamo-propio', '[{"texto":"x","embedding":"[0]","orden":60}]'::jsonb), false, 'versión inexistente: no es dueña');
+select is((select count(*) from fragmentos_indexados where orden = 60), 0::bigint, 'ninguna de las llamadas rechazadas insertó nada');
+
+-- Índice único inválido (creación concurrente fallida): la migración lo rechaza en vez de «pasar» sin unicidad.
+select lives_ok($$select private.exigir_indice_fragmentos_valido()$$, 'con el índice válido la comprobación pasa');
+create temp table es_super as select rolsuper as v from pg_roles where rolname = current_user;
+select case when (select v from es_super)
+  then (select throws_ok($$update pg_catalog.pg_index set indisvalid = false where indexrelid = 'public.fragmentos_indexados_version_orden_uidx'::regclass; select private.exigir_indice_fragmentos_valido()$$,
+    '55000', 'El índice public.fragmentos_indexados_version_orden_uidx existe pero no es válido (una creación concurrente falló): ejecutá drop index concurrently public.fragmentos_indexados_version_orden_uidx; y repetí la migración', 'índice INVALID: la migración aborta con la instrucción'))
+  else skip(1, 'requiere superusuario para marcar el índice como inválido') end;
+select case when (select v from es_super)
+  then (select lives_ok($$update pg_catalog.pg_index set indisvalid = true where indexrelid = 'public.fragmentos_indexados_version_orden_uidx'::regclass; select private.exigir_indice_fragmentos_valido()$$, 'restablecido el índice la comprobación pasa de nuevo'))
+  else skip(1, 'requiere superusuario') end;
 
 -- Políticas de escritura: la versión debe ser de la organización del usuario.
 select pg_temp.como('f1000000-0000-0000-0000-000000000080');
@@ -191,6 +230,8 @@ select throws_ok($$select public.iniciar_ejecucion_mcp('f2000000-0000-0000-0000-
 update ejecuciones_mcp set iniciada_en = now() - interval '9 minutes' where credencial_id = 'f2000000-0000-0000-0000-000000000001';
 select throws_ok($$select public.iniciar_ejecucion_mcp('f2000000-0000-0000-0000-000000000001', 'f-l80')$$, '23505', 'duplicate key value violates unique constraint "ejecuciones_mcp_en_curso_idx"', 'a los 9 minutos todavía no vence');
 select ok(public.iniciar_ejecucion_mcp('f2000000-0000-0000-0000-000000000002', 'f-l80') is not null, 'otra credencial inicia sin interferir');
+-- Una ejecución ya cerrada (completada) de 11 minutos no se reescribe como vencida.
+insert into ejecuciones_mcp (credencial_id, feature_id, estado, iniciada_en, finalizada_en) values ('f2000000-0000-0000-0000-000000000001', 'f-l80', 'completada', now() - interval '11 minutes', now() - interval '10 minutes');
 -- Aislamiento del vencimiento: abandonadas (11 min) de OTRA credencial y de OTRA funcionalidad de la misma credencial no se tocan.
 insert into ejecuciones_mcp (credencial_id, feature_id, estado, iniciada_en) values ('f2000000-0000-0000-0000-000000000001', 'f-l80-b', 'en_curso', now() - interval '11 minutes');
 update ejecuciones_mcp set iniciada_en = now() - interval '11 minutes' where credencial_id = 'f2000000-0000-0000-0000-000000000002' and feature_id = 'f-l80';
@@ -199,6 +240,7 @@ select ok(public.iniciar_ejecucion_mcp('f2000000-0000-0000-0000-000000000001', '
 select is((select count(*) from ejecuciones_mcp where credencial_id = 'f2000000-0000-0000-0000-000000000001' and estado = 'fallida' and motivo_error = 'vencida' and finalizada_en is not null), 1::bigint, 'la abandonada quedó fallida/vencida con fecha de cierre');
 select is((select count(*) from ejecuciones_mcp where credencial_id = 'f2000000-0000-0000-0000-000000000002' and feature_id = 'f-l80' and estado = 'en_curso'), 1::bigint, 'la ejecución de 11 minutos de OTRA credencial sigue en_curso');
 select is((select count(*) from ejecuciones_mcp where credencial_id = 'f2000000-0000-0000-0000-000000000001' and feature_id = 'f-l80-b' and estado = 'en_curso'), 1::bigint, 'la ejecución de 11 minutos de OTRA funcionalidad de la misma credencial sigue en_curso');
+select is((select count(*) from ejecuciones_mcp where credencial_id = 'f2000000-0000-0000-0000-000000000001' and feature_id = 'f-l80' and estado = 'completada' and motivo_error is null), 1::bigint, 'una ejecución completada no se reescribe como vencida');
 select throws_ok($$select public.iniciar_ejecucion_mcp('f2000000-0000-0000-0000-000000000003', 'f-l80')$$, '42501', 'Credencial inválida o revocada', 'credencial revocada: 42501');
 select throws_ok($$select public.iniciar_ejecucion_mcp('f2000000-0000-0000-0000-000000000001', 'f-l80-sin-capacidad')$$, '42501', 'Funcionalidad no ejecutable para esta organización', 'funcionalidad no ejecutable: 42501');
 

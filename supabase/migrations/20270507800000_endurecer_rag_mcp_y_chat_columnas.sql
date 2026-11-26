@@ -58,9 +58,11 @@
 --   drop function if exists private.liberar_versiones_documento_atascadas(int);
 --   drop function if exists private.exigir_una_fila_por_funcionalidad_mcp();
 --   drop function if exists private.deduplicar_fragmentos_indexados();
---   y volver a las políticas `fragmentos_indexados_insert` / `fragmentos_indexados_update` de 20270507180400 (sin la comprobación de la versión),
---   a las definiciones de `private.insertar_fragmentos_si_dueno` (20270507260000) y `private.iniciar_ejecucion_mcp` (20261003231600)
---   con `create or replace function` copiando esos archivos, y borrar `private.ejecucion_mcp_vence_min()`. Los fragmentos que borró
+--   drop function if exists private.exigir_indice_fragmentos_valido();
+--   y volver a las definiciones anteriores copiando SOLO esos bloques (no los archivos completos: 20261003231600 vuelve a crear tablas y falla con
+--   «relation ejecuciones_mcp already exists»): los `drop policy if exists` + `create policy fragmentos_indexados_insert` / `fragmentos_indexados_update`
+--   de 20270507180400, el `create or replace function private.insertar_fragmentos_si_dueno` de 20270507260000 y el
+--   `create or replace function private.iniciar_ejecucion_mcp` de 20261003231600; después `drop function if exists private.ejecucion_mcp_vence_min();`. Los fragmentos que borró
 --   la deduplicación (repetidos o de otra organización) no se pueden restaurar (se reindexan con `indexar-documento`).
 
 -- ============================================================================
@@ -108,6 +110,32 @@ select private.deduplicar_fragmentos_indexados();
 
 create unique index if not exists fragmentos_indexados_version_orden_uidx
   on public.fragmentos_indexados (version_id, orden);
+
+-- Un `create unique index concurrently` fallido (ruta en caliente de producción) deja un índice INVALID con este mismo nombre y el
+-- `if not exists` de arriba lo omitiría: la migración «pasaría» sin unicidad real. Se comprueba y se aborta con la instrucción.
+create or replace function private.exigir_indice_fragmentos_valido()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if exists (
+    select 1 from pg_catalog.pg_index i
+     where i.indexrelid = to_regclass('public.fragmentos_indexados_version_orden_uidx') and not i.indisvalid
+  ) then
+    raise exception 'El índice public.fragmentos_indexados_version_orden_uidx existe pero no es válido (una creación concurrente falló): ejecutá drop index concurrently public.fragmentos_indexados_version_orden_uidx; y repetí la migración'
+      using errcode = '55000';
+  end if;
+end;
+$$;
+
+comment on function private.exigir_indice_fragmentos_valido() is
+  'Lote 89 (MSF-728): aborta con 55000 si el índice único de fragmentos existe pero está INVALID. La corre la migración después de crearlo.';
+
+revoke execute on function private.exigir_indice_fragmentos_valido() from public, anon, authenticated, service_role;
+
+select private.exigir_indice_fragmentos_valido();
 
 -- La versión de un fragmento debe pertenecer a su organización (la FK sola no lo garantiza). Las subconsultas corren con el RLS de quien escribe.
 drop policy if exists fragmentos_indexados_insert on public.fragmentos_indexados;

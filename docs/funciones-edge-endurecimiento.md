@@ -253,8 +253,12 @@ deja de leer datos hasta aplicar la migración).
   `select version_id, orden, count(*) from public.fragmentos_indexados group by 1, 2 having count(*) > 1;`. Si la tabla es grande y no hay
   ventana, hacerlo en caliente antes de la migración: (1) borrar a mano los repetidos y los fragmentos de otra organización en tandas
   (la lógica es la de `private.deduplicar_fragmentos_indexados`); (2) `create unique index concurrently if not exists
-  fragmentos_indexados_version_orden_uidx on public.fragmentos_indexados (version_id, orden);` fuera de una transacción; (3) aplicar la
-  migración, cuyo `create unique index if not exists` ya no hace nada y cuya deduplicación no encuentra filas.
+  fragmentos_indexados_version_orden_uidx on public.fragmentos_indexados (version_id, orden);` fuera de una transacción;
+  (3) **verificar que quedó válido**: `select indisvalid from pg_index where indexrelid = 'public.fragmentos_indexados_version_orden_uidx'::regclass;`
+  debe dar `true`. Un `create unique index concurrently` que falla (p. ej. por un repetido nuevo) deja un índice INVALID con ese nombre; si
+  `indisvalid` es `false`, `drop index concurrently public.fragmentos_indexados_version_orden_uidx;` y repetir desde (1); (4) aplicar la
+  migración, cuyo `create unique index if not exists` ya no hace nada y cuya deduplicación no encuentra filas. Como red de seguridad, la
+  migración llama a `private.exigir_indice_fragmentos_valido()` y aborta (55000) con esa misma instrucción si el índice existe pero es INVALID.
 - **Barrido de versiones atascadas, sin agendar.** `public.liberar_versiones_documento_atascadas(p_minutos int default 30)`
   (envoltorio de `private.…`, `security definer`, `search_path=''`, solo `service_role`) marca `fallida`, con el motivo «Se
   interrumpió el procesamiento: más de N minutos sin completarse. Subí el archivo de nuevo.», toda versión `procesando` subida
