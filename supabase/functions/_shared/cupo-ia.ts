@@ -2,7 +2,7 @@
 // para probarla con `node --test` (cupo-ia.test.ts). Lo consume `public.consumir_cupo_ia` (solo service_role) con el cliente admin:
 // el contador vive en la base (`private.ia_cupo_uso`), no en el isolate ni en tablas que el usuario pueda borrar.
 // Se llama DESPUÉS de verificar funcionalidad y conversación y ANTES de llamar al proveedor; un error al consumir NO deja pasar (503).
-import { leerCampo, limpiarParaLog, redactarCredenciales, textoDeError } from './log-seguro.ts'
+import { leerCampo, limpiarParaLog, recortarSinTokenParcial, redactarCredenciales, textoDeError } from './log-seguro.ts'
 
 export const LIMITE_CUPO_POR_HORA = 30
 // Máximo razonable por hora configurable con ENV (igual que el tope de `private.consumir_cupo_ia`): un valor mayor, no entero o no
@@ -25,12 +25,12 @@ const CORREO = /[^\s@]{1,64}@[^\s@]{1,255}/g
 // precede al recorte, un uuid completo nunca queda cortado por él y no hace falta descartar nada al final (hacerlo borraría texto legítimo, p. ej. `commit deadbeef`).
 function describirError(error: unknown, usuarioId: string): string {
   // Cada lectura es segura: un error hostil (getter que lanza, Proxy) no puede lanzar desde el `catch` que llama a esta función.
-  // Un error que no es objeto (un string lanzado o devuelto) sigue el MISMO orden que el resto: primero un recorte con margen holgado
-  // (MAX_ANTES_DE_TACHAR), luego la redacción y el tachado, y recién al final el recorte a MAX_ERROR_LOG. Recortar a 300 antes de redactar
-  // dejaría a la vista el prefijo de un secreto que cruza el límite.
-  const e = error && typeof error === 'object' ? error : { message: limpiarParaLog(error, MAX_ANTES_DE_TACHAR) }
+  // Orden (igual para un objeto de error y para un string lanzado o devuelto): recorte PREVIO con margen (MAX_ANTES_DE_TACHAR) sin token parcial,
+  // aplanado, redacción, tachado y recién al final el recorte a MAX_ERROR_LOG. Recortar a 300 antes de redactar, o dejar un secreto cortado
+  // por el margen, mostraría el prefijo de un secreto.
+  const e = error && typeof error === 'object' ? error : { message: typeof error === 'string' ? error : limpiarParaLog(error, MAX_ANTES_DE_TACHAR) }
   const partes = [leerCampo(e, 'name'), leerCampo(e, 'code'), leerCampo(e, 'message')].filter((p): p is string => typeof p === 'string' && p !== '')
-  let texto = redactarCredenciales(limpiarParaLog(partes.join(' '), MAX_ANTES_DE_TACHAR))
+  let texto = redactarCredenciales(limpiarParaLog(recortarSinTokenParcial(partes.join(' '), MAX_ANTES_DE_TACHAR), MAX_ANTES_DE_TACHAR))
   if (usuarioId) texto = texto.replace(new RegExp(usuarioId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '[usuario]')
   return texto.replace(UUID_GENERICO, '[uuid]').replace(UUID_SIN_GUIONES, '[uuid]').replace(CORREO, '[correo]').slice(0, MAX_ERROR_LOG).trim()
 }

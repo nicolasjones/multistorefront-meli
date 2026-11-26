@@ -25,6 +25,26 @@ export function limpiarParaLog(valor: unknown, max: number): string {
   return ultimo >= 0xd800 && ultimo <= 0xdbff ? texto.slice(0, -1) : texto
 }
 
+function aTexto(valor: unknown): string {
+  try { return typeof valor === 'string' ? valor : String(valor) } catch { return '[no representable]' }
+}
+
+const BLANCO = /[\s\u0000-\u001f\u007f]/
+const COLA_SIN_BLANCOS = 64
+
+// Recorte PREVIO a una redacción (nunca el recorte final): si el texto excede `max`, lo corta en `max` y descarta el último token PARCIAL,
+// porque un secreto cortado a la mitad ya no lo reconocen los patrones de redacción y su prefijo sobreviviría si una redacción posterior
+// acorta el texto. Reglas: (1) si el texto cabe en `max` se devuelve igual; (2) si el carácter que sigue al corte es un blanco, el último token
+// está completo y se conserva; (3) si no, se retrocede hasta el último blanco del tramo (se descarta el token parcial); (4) si el tramo no
+// tiene ningún blanco (un texto largo sin espacios), se descartan sus últimos 64 caracteres. Solo mira los primeros `max + 1` caracteres.
+export function recortarSinTokenParcial(texto: string, max: number): string {
+  if (texto.length <= max) return texto
+  if (BLANCO.test(texto.charAt(max))) return texto.slice(0, max)
+  const corte = texto.slice(0, max)
+  for (let i = corte.length - 1; i >= 0; i--) if (BLANCO.test(corte.charAt(i))) return corte.slice(0, i)
+  return corte.slice(0, Math.max(0, max - COLA_SIN_BLANCOS))
+}
+
 const NOMBRE_O_CODIGO = /^[A-Za-z0-9_.:-]{1,64}$/
 // Un nombre o `code` que parezca una credencial (`sk-…`, JWT `eyJ…`, `Bearer`) se omite aunque cumpla la clase de caracteres.
 const PARECE_CREDENCIAL = /sk-|eyJ|bearer/i
@@ -78,7 +98,8 @@ const CLAVE_SK = /sk-[A-Za-z0-9_-]{10,}/g
 const CAMPO = /([\w-]{0,40}(?:password|passwd|secret|token|apikey|api_key|api-key|authorization|credential|cookie)[\w-]{0,40}[\\"']{0,4}\s{0,16}[:=])[\s\S]*/i
 
 export function redactarCredenciales(texto: string): string {
-  return (typeof texto === 'string' ? texto : limpiarParaLog(texto, MAX_ENTRADA_REDACCION)).slice(0, MAX_ENTRADA_REDACCION)
+  // Recorte PREVIO a la redacción: sin token parcial (recortarSinTokenParcial).
+  return recortarSinTokenParcial(typeof texto === 'string' ? texto : limpiarParaLog(texto, MAX_ENTRADA_REDACCION), MAX_ENTRADA_REDACCION)
     .replace(URL_, '[url]')
     .replace(JWT, '[jwt]')
     .replace(BEARER, 'Bearer [token]')
@@ -86,13 +107,14 @@ export function redactarCredenciales(texto: string): string {
     .replace(CAMPO, '$1 [oculto]')
 }
 
-// Mensaje de la base (PostgREST/Postgres) para el log: una línea, credenciales y URLs redactadas y acotado a `max`. La redacción va SIEMPRE
-// antes del recorte final (se redacta sobre `max * 4`), así un secreto que cruza el límite no deja su prefijo en la salida. El margen
-// `* 4` está fijado por test en ambos sentidos: uno menor perdería texto que sobrevive a una redacción que acorta (p. ej. una URL
-// larga) y uno mayor mostraría más.
+// Mensaje de la base (PostgREST/Postgres) para el log: una línea, credenciales y URLs redactadas y acotado a `max`. Orden: recorte PREVIO con
+// margen `max * 4` sin token parcial (recortarSinTokenParcial), aplanado, redacción y recorte final a `max`. El margen `* 4` está fijado por
+// test en ambos sentidos: uno menor perdería texto que sobrevive a una redacción que acorta (p. ej. una URL larga) y uno mayor mostraría más;
+// el descarte del token parcial evita que un secreto cortado por el margen deje su prefijo si una redacción posterior acorta el texto.
 export function mensajeParaLog(valor: unknown, max: number): string {
   const tope = normalizarMax(max)
-  return limpiarParaLog(redactarCredenciales(limpiarParaLog(valor, tope * 4)), tope)
+  const previo = limpiarParaLog(recortarSinTokenParcial(aTexto(valor), tope * 4), tope * 4)
+  return limpiarParaLog(redactarCredenciales(previo), tope)
 }
 
 // Log de un error de la base (`{ code, message }` de PostgREST) con prefijo propio: código acotado a 64 y mensaje saneado y redactado.

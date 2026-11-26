@@ -259,6 +259,7 @@ describe('rechazoPorCupo con valores hostiles', () => {
 describe('bordes de las constantes de describirError (tabla)', () => {
   const rep = (c: string, n: number) => c.repeat(n)
   const hex31 = '0123456789abcdef0123456789abcde'
+  // Texto de largo total `largo` cuyo último token ' visible' termina en el último caracter (relleno de 'z' dentro de una URL).
   const url2000 = (largo: number, resto = '') => `https://${rep('z', largo - 16)} visible${resto}`
   const filas: Array<{ nombre: string; mensaje: string; esperado: string }> = [
     // MAX_ERROR_LOG = 300 (código vacío para que el log sea solo el mensaje).
@@ -268,7 +269,9 @@ describe('bordes de las constantes de describirError (tabla)', () => {
     // MAX_ANTES_DE_TACHAR = 2000: una URL que colapsa 1900 caracteres a '[url]' deja ver el texto que sigue si cae dentro de los 2000.
     { nombre: 'entrada de 1999', mensaje: url2000(1999), esperado: '[url] visible' },
     { nombre: 'entrada de 2000', mensaje: url2000(2000), esperado: '[url] visible' },
-    { nombre: 'entrada de 2001 (el último caracter queda afuera)', mensaje: url2000(2000, 'X'), esperado: '[url] visible' },
+    // Con 2001 el corte cae dentro de ' visible' (último token cortado): se descarta el token parcial y queda solo '[url]'.
+    { nombre: 'entrada de 2001 (el último token queda cortado y se descarta)', mensaje: url2000(2001), esperado: '[url]' },
+    { nombre: 'entrada de 2002 con un blanco justo en el corte: el último token está completo', mensaje: `${url2000(2000)} X`, esperado: '[url] visible' },
     // UUID sin guiones: 31 hexadecimales no se tachan; 32 y 33 sí.
     { nombre: '31 hex', mensaje: `id=${hex31}`, esperado: `id=${hex31}` },
     { nombre: '32 hex', mensaje: `id=${hex31}f`, esperado: 'id=[uuid]' },
@@ -303,6 +306,33 @@ describe('bordes de las constantes de describirError (tabla)', () => {
       assert.equal((logs[0][1] as { error: string }).error, esperado)
     })
   }
+
+  it('un secreto que cruza el recorte previo de 2000 no deja su prefijo detrás de una URL larga (string y objeto de error)', async () => {
+    const secretos = ['sk-A1b2C3d4E5f6G7h8I9j0K1l2M3n4', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c3VhcmlvIn0.firmaSECRETA1234567890', 'persona.prueba@example.com', '12345678-1234-4234-8234-123456789012', 'apikey=claveSECRETA1234567890']
+    const ventanas = (secreto: string) => Array.from({ length: secreto.length - 5 }, (_, i) => secreto.slice(i, i + 6))
+    for (const secreto of secretos) {
+      for (const dentro of [3, 6, 7, 10]) {
+        const mensaje = `http://${'a'.repeat(2000 - 7 - 1 - dentro)} ${secreto}`
+        for (const error of [mensaje, { message: mensaje }]) {
+          logs.length = 0
+          await rechazoPorCupo(admin({ data: null, error }), 'usuario-x', 'chat-ia', 30, textos)
+          const salida = (logs[0][1] as { error: string }).error
+          for (const w of ventanas(secreto)) assert.equal(salida.includes(w), false, `queda «${w}» en ${salida}`)
+          assert.equal(salida.startsWith('[url]'), true, salida)
+        }
+      }
+    }
+    // El caso exacto reportado: sale solo '[url]'.
+    logs.length = 0
+    await rechazoPorCupo(admin({ data: null, error: `http://${'a'.repeat(1985)} sk-A1b2C3d4E5f6G7h8I9j0K1l2M3n4` }), 'usuario-x', 'chat-ia', 30, textos)
+    assert.equal((logs[0][1] as { error: string }).error, '[url]')
+  })
+
+  it('un texto largo SIN blancos (3000 caracteres): pierde los últimos 64 del tramo previo y sale a 300', async () => {
+    logs.length = 0
+    await rechazoPorCupo(admin({ data: null, error: { message: 'z'.repeat(3000) } }), 'usuario-x', 'chat-ia', 30, textos)
+    assert.equal((logs[0][1] as { error: string }).error, 'z'.repeat(300))
+  })
 
   it('un error que es un string sigue el mismo orden (recorte con margen, redacción, recorte final): un secreto que cruza el 300 no deja prefijo', async () => {
     const log = async (error: string) => {

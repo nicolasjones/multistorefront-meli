@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, it } from 'node:test'
-import { MAX_ENTRADA_REDACCION, leerCampo, limpiarParaLog, mensajeParaLog, normalizarMax, redactarCredenciales, registrarErrorDeBase, textoDeError } from './log-seguro.ts'
+import { MAX_ENTRADA_REDACCION, leerCampo, limpiarParaLog, mensajeParaLog, normalizarMax, recortarSinTokenParcial, redactarCredenciales, registrarErrorDeBase, textoDeError } from './log-seguro.ts'
 
 // Medición robusta a CPU cargada: si la primera corrida pasa del tope se repite 2 veces más y se compara el MÍNIMO (código correcto mide
 // milisegundos; una regex cuadrática de verdad mide segundos en las tres). Los topes tienen margen amplio sobre lo medido.
@@ -300,26 +300,31 @@ describe('redactarCredenciales', () => {
     assert.equal(MAX_ENTRADA_REDACCION, 4000)
     assert.equal(redactarCredenciales('a'.repeat(3999)), 'a'.repeat(3999))
     assert.equal(redactarCredenciales('a'.repeat(4000)), 'a'.repeat(4000))
-    assert.equal(redactarCredenciales(`${'a'.repeat(4000)}X`), 'a'.repeat(4000))
-    assert.equal(redactarCredenciales('a'.repeat(4001)).length, 4000)
+    // Más de 4000 caracteres: recorte PREVIO sin token parcial. Sin ningún blanco se descartan además los últimos 64 (4000 - 64 = 3936).
+    assert.equal(redactarCredenciales(`${'a'.repeat(4000)}X`), 'a'.repeat(3936))
+    assert.equal(redactarCredenciales('a'.repeat(4001)), 'a'.repeat(3936))
+    // Con blancos se retrocede hasta el último blanco del tramo (3998 caracteres) y se conserva el token completo si el corte cae en un blanco.
+    assert.equal(redactarCredenciales('ab '.repeat(1334)).length, 3998)
+    assert.equal(redactarCredenciales(`${'a'.repeat(3999)} X`), 'a'.repeat(3999))
     // Un secreto que termina justo en la posición 4000 se redacta; uno que empieza después se descarta (no sale ni redactado).
     const conSecreto = `${'z'.repeat(4000 - 19)}Bearer abcdefghijkl`
     assert.equal(conSecreto.length, 4000)
     assert.equal(redactarCredenciales(conSecreto), `${'z'.repeat(4000 - 19)}Bearer [token]`)
     const despues = `${'z'.repeat(4001)}Bearer SECRETO`
-    assert.equal(redactarCredenciales(despues), 'z'.repeat(4000))
+    assert.equal(redactarCredenciales(despues), 'z'.repeat(3936))
   })
 
   it('un texto de más de MAX_ENTRADA_REDACCION caracteres sale acotado y lo que está dentro del tope se redacta', () => {
     const salida = redactarCredenciales(`Bearer abcSECRETO ${'x'.repeat(10_000)}`)
-    assert.equal(salida.startsWith('Bearer [token] '), true)
+    // El tramo cortado ('xxxx…') es un token parcial sin blancos delante más que el de 'abcSECRETO': se retrocede al último blanco.
+    assert.equal(salida, 'Bearer [token]')
     assert.ok(salida.length <= 2 * MAX_ENTRADA_REDACCION)
     assert.equal(redactarCredenciales('a'.repeat(MAX_ENTRADA_REDACCION)).length, MAX_ENTRADA_REDACCION)
-    assert.equal(redactarCredenciales('a'.repeat(MAX_ENTRADA_REDACCION + 1)).length, MAX_ENTRADA_REDACCION)
+    assert.equal(redactarCredenciales('a'.repeat(MAX_ENTRADA_REDACCION + 1)).length, MAX_ENTRADA_REDACCION - 64)
   })
 
   it('un JWT con segmentos de hasta 2000 caracteres se redacta; uno con un segmento de más de 2000 no se trata como JWT (se acotan los cuantificadores)', () => {
-    assert.equal(redactarCredenciales(`eyJ${'a'.repeat(1_990)}.${'b'.repeat(1_990)}.${'c'.repeat(1_990)}`), '[jwt]')
+    assert.equal(redactarCredenciales(`eyJ${'a'.repeat(1_300)}.${'b'.repeat(1_300)}.${'c'.repeat(1_300)}`), '[jwt]')
     // Límite conocido: un segmento de más de 2000 caracteres no se reconoce como JWT (no es un formato real).
     assert.match(redactarCredenciales(`eyJ${'a'.repeat(2_500)}.bbbbbbbbbb.cccccccccc`), /^eyJa+\.bbbbbbbbbb\.cccccccccc$/)
   })
@@ -354,10 +359,10 @@ describe('normalizarMax: limpiarParaLog y mensajeParaLog dan el mismo resultado'
   for (const [max, esperado] of casos) {
     it(`max = ${String(max)}`, () => {
       assert.equal(normalizarMax(max), esperado)
-      const largo = 'abcdefghij'.repeat(60)
+      const largo = 'abc def ghi '.repeat(50)
       assert.equal(limpiarParaLog(largo, max as number), largo.slice(0, esperado))
       assert.equal(mensajeParaLog(largo, max as number), largo.slice(0, esperado))
-      assert.equal(limpiarParaLog('abcdef', max as number), mensajeParaLog('abcdef', max as number))
+      assert.equal(limpiarParaLog('abc', max as number), mensajeParaLog('abc', max as number))
     })
   }
 })
@@ -433,8 +438,10 @@ describe('bordes de las constantes de log-seguro (tabla)', () => {
   it('mensajeParaLog: el margen previo es exactamente tope * 4 (distingue *3 y *5)', () => {
     // 1020 caracteres: con *3 (900) se corta dentro de la URL y se pierde ' fin-visible'; con *4 (1200) entra todo.
     assert.equal(mensajeParaLog(`https://${rep('a', 1000)} fin-visible`, 300), '[url] fin-visible')
-    // Justo en el borde de 1200: 'https://' + 1190 'a' + ' fin' llega a 1202 caracteres; con *4 se ve ' f', con *5 se vería ' fin'.
-    assert.equal(mensajeParaLog(`https://${rep('a', 1190)} fin`, 300), '[url] f')
+    // Justo en el borde de 1200: 'https://' + 1190 'a' + ' fin' llega a 1202 caracteres; con *4 el último token queda cortado ('f') y se descarta
+    // (sale solo '[url]'), con *5 entra todo y se ve '[url] fin'.
+    assert.equal(mensajeParaLog(`https://${rep('a', 1190)} fin`, 300), '[url]')
+    // Con exactamente 1200 caracteres no se corta nada: se ve ' f'.
     assert.equal(mensajeParaLog(`https://${rep('a', 1190)} f`, 300), '[url] f')
   })
 
@@ -448,5 +455,60 @@ describe('bordes de las constantes de log-seguro (tabla)', () => {
     } finally { console.error = original }
     assert.deepEqual(logs.slice(0, 3).map((l) => String(l[1]).length), [63, 64, 64])
     assert.deepEqual(logs.slice(3).map((l) => String(l[2]).length), [299, 300, 300])
+  })
+})
+
+describe('recortarSinTokenParcial (recorte PREVIO a la redacción)', () => {
+  const filas: Array<{ nombre: string; texto: string; max: number; esperado: string }> = [
+    { nombre: 'cabe justo (largo = max)', texto: 'abc def', max: 7, esperado: 'abc def' },
+    { nombre: 'más corto que max', texto: 'abc', max: 7, esperado: 'abc' },
+    { nombre: 'largo = max + 1 con un blanco en el corte: el último token está completo', texto: 'abc def ghi', max: 7, esperado: 'abc def' },
+    { nombre: 'largo = max + 1 con token cortado: se descarta el parcial', texto: 'abc def ghi', max: 9, esperado: 'abc def' },
+    { nombre: 'token parcial tras varios blancos', texto: 'abc def  ghi jkl', max: 13, esperado: 'abc def  ghi' },
+    { nombre: 'un salto de línea también es blanco', texto: 'abc\ndef ghi', max: 9, esperado: 'abc\ndef' },
+    { nombre: 'solo un salto de línea como blanco', texto: 'abc\ndefghij', max: 8, esperado: 'abc' },
+    { nombre: 'solo un tabulador como blanco', texto: 'abc\tdefghij', max: 8, esperado: 'abc' },
+    { nombre: 'solo un NUL (control) como blanco', texto: 'abc\u0000defghij', max: 8, esperado: 'abc' },
+    { nombre: 'blanco en el carácter siguiente al corte (salto de línea)', texto: 'abcdefg\nhij', max: 7, esperado: 'abcdefg' },
+    { nombre: 'sin blancos: se descartan los últimos 64', texto: 'a'.repeat(200), max: 100, esperado: 'a'.repeat(36) },
+    { nombre: 'sin blancos y max menor que 64: vacío', texto: 'a'.repeat(200), max: 40, esperado: '' },
+    { nombre: 'sin blancos, largo = max + 1', texto: 'a'.repeat(101), max: 100, esperado: 'a'.repeat(36) },
+    { nombre: 'sin blancos pero cabe: intacto', texto: 'a'.repeat(100), max: 100, esperado: 'a'.repeat(100) },
+  ]
+  for (const { nombre, texto, max, esperado } of filas) it(nombre, () => assert.equal(recortarSinTokenParcial(texto, max), esperado))
+
+  it('un texto largo sin blancos (3000 caracteres) pierde los últimos 64 del tramo previo y sale igual a 300 caracteres', () => {
+    assert.equal(recortarSinTokenParcial('z'.repeat(3000), 2000), 'z'.repeat(1936))
+    assert.equal(mensajeParaLog('z'.repeat(3000), 300), 'z'.repeat(300))
+  })
+})
+
+describe('un secreto que cruza el recorte PREVIO no deja su prefijo aunque una redacción anterior acorte el texto', () => {
+  const secretos: Array<[string, string]> = [
+    ['sk-', 'sk-A1b2C3d4E5f6G7h8I9j0K1l2M3n4'],
+    ['JWT', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c3VhcmlvIn0.firmaSECRETA1234567890'],
+    ['correo', 'persona.prueba@example.com'],
+    ['uuid', '12345678-1234-4234-8234-123456789012'],
+    ['apikey', 'apikey=claveSECRETA1234567890'],
+    ['Basic', 'dXNlcjpTRUNSRVRPMTIzNDU2'],
+  ]
+  const ventanas = (secreto: string) => Array.from({ length: secreto.length - 5 }, (_, i) => secreto.slice(i, i + 6))
+  // Construye 'http://' + relleno + ' ' + secreto de modo que el recorte en `tope` caiga a los `dentro` caracteres del secreto.
+  const armar = (secreto: string, tope: number, dentro: number) => `http://${'a'.repeat(tope - 7 - 1 - dentro)} ${secreto}`
+  for (const [nombre, secreto] of secretos) {
+    it(`${nombre}: mensajeParaLog (cruza tope*4 = 1200) y redactarCredenciales (cruza 4000)`, () => {
+      for (const dentro of [3, 6, 7, 10, 12]) {
+        const m = mensajeParaLog(armar(secreto, 1200, dentro), 300)
+        const r = redactarCredenciales(armar(secreto, 4000, dentro))
+        for (const salida of [m, r]) for (const w of ventanas(secreto)) assert.equal(salida.includes(w), false, `${nombre} dentro=${dentro}: queda «${w}» en ${salida.slice(-30)}`)
+        assert.ok(m.startsWith('[url]'))
+        assert.ok(r.startsWith('[url]'))
+      }
+    })
+  }
+  it('el texto que NO se corta queda igual que antes (mensaje corto, 1199/1200 caracteres para tope 300)', () => {
+    assert.equal(mensajeParaLog('fallo simple', 300), 'fallo simple')
+    assert.equal(mensajeParaLog(`http://${'a'.repeat(1199 - 7 - 1 - 4)} sk-A`, 300), '[url] sk-A')
+    assert.equal(mensajeParaLog(`http://${'a'.repeat(1200 - 7 - 1 - 4)} sk-A`, 300), '[url] sk-A')
   })
 })
