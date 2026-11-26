@@ -1154,9 +1154,9 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "6c782509ee5b419f87924010df634a3784937c1989d698396788212f11beb748",
-      "sourceHash": "edf3a30d46f0ae558fba0d64344c63cc614cf7c2add27ee22b9289e8652fab93",
-      "sourceAt": "c6d0dee53",
+      "pageHash": "f4b6992f8bcbec1b098cd4fade847bb15f9f35e2c5047311cb9b04ee01e893c3",
+      "sourceHash": "56fb0cc1e481bb130069f2d53aa696dbd2935986758cf881bcc2f7179b87a5f2",
+      "sourceAt": "60296b8ff",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/chat-ia-responder/handler.ts",
@@ -1171,6 +1171,7 @@
         "supabase/functions/_shared/fetch-ia.ts",
         "supabase/functions/_shared/limite-memoria.ts",
         "supabase/functions/_shared/cupo-ia.ts",
+        "supabase/functions/_shared/log-seguro.ts",
         "supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql",
         "packages/ia/src/proveedores/index.ts",
         "supabase/functions/_shared/token.ts",
@@ -1181,7 +1182,7 @@
         "infra/kestra/flows/correo-masivo.yml"
       ],
       "owner": "plataforma",
-      "commit": "c6d0dee53"
+      "commit": "60296b8ff"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",
