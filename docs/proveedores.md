@@ -9,6 +9,9 @@ sources:
   - apps/web/src/pages/proveedores/show.tsx
   - supabase/migrations/20261018190001_proveedores_tabla.sql
   - supabase/migrations/20261018190100_proveedores_rpc.sql
+  - supabase/migrations/20270508000000_registro_de_envios_de_correo_a_proveedores.sql
+  - supabase/functions/enviar-correo-proveedor/handler.ts
+  - supabase/functions/enviar-correo-proveedor/index.ts
 ---
 
 # Proveedores
@@ -150,12 +153,22 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
   (`permisos_actuales()`) y lee el proveedor con la sesión de quien llama (RLS acota a su organización). El
   destinatario **no viaja desde el navegador**: es siempre `dominio.proveedores.correo`. Aun así el asunto y el
   mensaje son libres y el correo lo edita cualquier usuario con `edicion`, por lo que la función **no es un relay
-  cerrado**: valida que el proveedor esté activo y que el correo sea una única dirección válida, limita a 20 envíos
-  por hora y usuario (`CORREO_PROVEEDOR_LIMITE_HORA`, mejor esfuerzo por instancia) y deja una línea de log por envío
-  (usuario, proveedor y resultado). Envía por el SMTP de `_shared/correo.ts` (`SMTP_*` solo en la función; sin
-  service-role). Pruebas: `pnpm test:edge:enviar-correo-proveedor`.
-- Sin tablas ni migraciones. Pendiente (necesita migración, propuesta en `funciones-edge-endurecimiento.md`):
-  historial persistente de envíos y tope persistente por usuario. Fuera de alcance: remitente por organización.
+  cerrado** y se acota así: valida que el proveedor esté activo y que el correo sea una única dirección válida;
+  limita a **20 envíos por hora y usuario** (`CORREO_PROVEEDOR_LIMITE_HORA`, de 1 a 1000) con un cupo **persistente y
+  atómico** en la base (`public.consumir_cupo_ia` del lote 90 con la funcionalidad `correo-proveedor`: no se reinicia al
+  reciclarse la instancia ni se esquiva repartiendo pedidos entre instancias); si se supera responde **429** con
+  `Retry-After` y, si el cupo no se puede verificar, **503** sin enviar. El cupo se consume solo con un pedido
+  válido y antes de enviar (un fallo de SMTP no lo devuelve). Cada envío, exitoso o fallido, queda registrado en
+  `private.correo_proveedor_envios` (usuario, proveedor, fecha y resultado `enviado`/`fallido`; **sin asunto, cuerpo ni
+  dirección**) por `public.registrar_envio_correo_proveedor` (solo `service_role`). El registro es de mejor esfuerzo: si
+  falla, el correo igual sale y el fallo se anota en el log sin detalle. Envía por el SMTP de `_shared/correo.ts`
+  (`SMTP_*` solo en la función). Los datos del proveedor se leen con la sesión de quien llama; la clave de servicio se
+  usa únicamente para esas dos RPC. Pruebas: `pnpm test:edge:enviar-correo-proveedor` y pgTAP
+  `lote91_registro_envios_correo_proveedor.test.sql`.
+- Migración `20270508000000_registro_de_envios_de_correo_a_proveedores.sql` (aplicarla **antes** que la función; su
+  encabezado trae la reversión). Sin pantalla para consultar el historial (lo lee soporte con `service_role`), sin
+  purga ni retención automática y sin tope por organización (el tope es por usuario): ver pendientes en
+  `funciones-edge-endurecimiento.md`. Fuera de alcance: remitente por organización.
 
 ## Relación con los productos (F-PRV-03, MSF-367)
 

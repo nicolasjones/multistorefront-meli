@@ -29,6 +29,15 @@ describe('limiteDeCupo', () => {
       assert.equal(limiteDeCupo(v), 30, `valor ${JSON.stringify(v)}`)
     }
   })
+
+  it('con otro valor por defecto (20 en enviar-correo-proveedor): válido 1..1000, el resto vuelve al por defecto', () => {
+    assert.equal(limiteDeCupo(undefined, 20), 20)
+    assert.equal(limiteDeCupo('0', 20), 20)
+    assert.equal(limiteDeCupo('1', 20), 1)
+    assert.equal(limiteDeCupo('1000', 20), 1000)
+    assert.equal(limiteDeCupo('1001', 20), 20)
+    assert.equal(limiteDeCupo('abc', 20), 20)
+  })
 })
 
 describe('rechazoPorCupo', () => {

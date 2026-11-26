@@ -64,7 +64,9 @@ antes del intento (solo el que creó esta misma subida).
   la nueva `activa` (FR-003: la activación es atómica, nunca hay una ventana sin versión usable).
 - El **nombre del documento sigue al archivo** que se subió: el servidor elige el parser por la
   extensión de `documentos.nombre`, así que un `.pdf` nuevo sobre un documento que era `.txt`
-  se puede indexar.
+  se puede indexar. Si falla la actualización del nombre, la versión recién subida se marca `fallida` y no se invoca
+  la indexación (no queda en `procesando`); si tampoco se puede marcar, el mensaje avisa que quedó sin procesar y que
+  se reintente desde el historial (MSF-750).
 - «Actualizar» y «Subir documento» no se mezclan: si se cancela el selector de archivos, la
   siguiente subida por «Subir documento» crea un **documento nuevo**, no una versión del anterior.
 

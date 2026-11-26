@@ -12,18 +12,22 @@ type Opciones = {
   proveedor?: { razon_social: string; correo: string | null; activo: boolean } | null
   proveedorError?: boolean
   falloSmtp?: boolean
+  rechazoCupo?: { status: number; error: string; retryAfter?: number } | null
+  falloRegistro?: boolean
 }
 
 function montar(opciones: Opciones = {}) {
   const enviados: { para: string[]; asunto: string; texto: string }[] = []
   const lecturas: string[] = []
+  const cupos: string[] = []
+  const eventos: unknown[] = []
   const deps: Deps = {
     getUser: async (jwt) => jwt === 'valido' ? { data: { user: { id: 'u1' } }, error: null } : { data: { user: null }, error: { message: 'x' } },
     caller: () => ({
-      nivelProveedores: async () => opciones.nivelError ? { data: null, error: { message: 'boom' } } : { data: opciones.nivel === undefined ? 'edicion' : opciones.nivel, error: null },
+      nivelProveedores: async () => opciones.nivelError ? { data: null, error: { message: 'fallo en postgres://u:clave-secreta@db/x' } } : { data: opciones.nivel === undefined ? 'edicion' : opciones.nivel, error: null },
       proveedor: async (id) => {
         lecturas.push(id)
-        if (opciones.proveedorError) return { data: null, error: { message: 'boom' } }
+        if (opciones.proveedorError) return { data: null, error: { message: 'fallo en postgres://u:clave-secreta@db/x' } }
         const sin = opciones.proveedor === null
         return { data: sin ? null : opciones.proveedor ?? { razon_social: 'Acme', correo: 'ventas@acme.com', activo: true }, error: null }
       },
@@ -32,8 +36,24 @@ function montar(opciones: Opciones = {}) {
       if (opciones.falloSmtp) throw new Error('smtp caído')
       enviados.push(mensaje)
     },
+    consumirCupo: async (usuarioId) => {
+      cupos.push(usuarioId)
+      return opciones.rechazoCupo ?? null
+    },
+    registrar: async (evento) => {
+      if (opciones.falloRegistro) throw new Error('registro caído con clave sk-secreta')
+      eventos.push(evento)
+    },
   }
-  return { deps, enviados, lecturas }
+  return { deps, enviados, lecturas, cupos, eventos }
+}
+
+// Captura lo que la función escribe en `console.error` (cada argumento unido por espacio) para comprobar que el log no trae errores crudos.
+function capturarErrores() {
+  const original = console.error
+  const textos: string[] = []
+  console.error = (...args: unknown[]) => { textos.push(args.map(String).join(' ')) }
+  return { textos, restaurar: () => { console.error = original } }
 }
 
 const pedir = (deps: Deps, body: unknown, jwt: string | null = 'valido', method = 'POST') =>
@@ -91,28 +111,73 @@ describe('enviar-correo-proveedor', () => {
     }
   })
 
-  it('aplica el tope por usuario: pasado el límite responde 429 y no envía', async () => {
-    const { deps, enviados } = montar()
-    let usos = 0
-    deps.limitar = () => ++usos <= 2
-    assert.equal((await pedir(deps, valido)).status, 200)
-    assert.equal((await pedir(deps, valido)).status, 200)
-    assert.equal((await pedir(deps, valido)).status, 429)
-    assert.equal(enviados.length, 2)
+  it('cupo agotado: 429 con Retry-After, sin enviar ni registrar', async () => {
+    const { deps, enviados, cupos, eventos } = montar({ rechazoCupo: { status: 429, error: 'Demasiados correos', retryAfter: 1234 } })
+    const res = await pedir(deps, valido)
+    assert.equal(res.status, 429)
+    assert.equal(res.headers.get('Retry-After'), '1234')
+    assert.deepEqual(await res.json(), { error: 'Demasiados correos' })
+    assert.deepEqual(cupos, ['u1'])
+    assert.equal(enviados.length, 0)
+    assert.equal(eventos.length, 0)
+  })
+
+  it('cupo no verificable (falla cerrado): 503 sin Retry-After, sin enviar', async () => {
+    const { deps, enviados } = montar({ rechazoCupo: { status: 503, error: 'No se pudo verificar tu cuota de uso.' } })
+    const res = await pedir(deps, valido)
+    assert.equal(res.status, 503)
+    assert.equal(res.headers.get('Retry-After'), null)
+    assert.equal(enviados.length, 0)
+  })
+
+  it('el cupo se consume una vez por pedido válido y solo después de validar todo', async () => {
+    const ok = montar()
+    assert.equal((await pedir(ok.deps, valido)).status, 200)
+    assert.deepEqual(ok.cupos, ['u1'])
+    const rechazados = [
+      montar({ nivel: 'lectura' }), montar({ proveedor: null }), montar({ proveedor: { razon_social: 'A', correo: null, activo: true } }),
+      montar({ proveedor: { razon_social: 'A', correo: 'ventas@acme.com', activo: false } }), montar({ proveedor: { razon_social: 'A', correo: 'sin-arroba', activo: true } }),
+    ]
+    for (const m of rechazados) {
+      await pedir(m.deps, valido)
+      assert.equal(m.cupos.length, 0)
+    }
+    const invalido = montar()
+    await pedir(invalido.deps, { ...valido, asunto: '' })
+    assert.equal(invalido.cupos.length, 0)
   })
 
   it('registra cada envío (usuario, proveedor y resultado) sin asunto ni cuerpo', async () => {
     const ok = montar()
-    const eventos: unknown[] = []
-    ok.deps.registrar = (e) => eventos.push(e)
     await pedir(ok.deps, valido)
     const roto = montar({ falloSmtp: true })
-    roto.deps.registrar = (e) => eventos.push(e)
     await pedir(roto.deps, valido)
-    assert.deepEqual(eventos, [
-      { usuarioId: 'u1', proveedorId: ID, resultado: 'enviado' },
-      { usuarioId: 'u1', proveedorId: ID, resultado: 'fallido' },
-    ])
+    assert.deepEqual(ok.eventos, [{ usuarioId: 'u1', proveedorId: ID, resultado: 'enviado' }])
+    assert.deepEqual(roto.eventos, [{ usuarioId: 'u1', proveedorId: ID, resultado: 'fallido' }])
+  })
+
+  it('si falla el registro el correo igual sale (200) y el log no trae el error crudo', async () => {
+    const { deps, enviados } = montar({ falloRegistro: true })
+    const lineas = capturarErrores()
+    try {
+      const res = await pedir(deps, valido)
+      assert.equal(res.status, 200)
+      assert.equal(enviados.length, 1)
+    } finally {
+      lineas.restaurar()
+    }
+    assert.ok(lineas.textos.some((t) => t.includes('no se pudo registrar el envío')))
+    assert.doesNotMatch(lineas.textos.join('\n'), /sk-secreta|registro caído/)
+  })
+
+  it('si falla el registro tras un fallo de SMTP la respuesta sigue siendo 502', async () => {
+    const { deps } = montar({ falloSmtp: true, falloRegistro: true })
+    const lineas = capturarErrores()
+    try {
+      assert.equal((await pedir(deps, valido)).status, 502)
+    } finally {
+      lineas.restaurar()
+    }
   })
 
   it('valida proveedor_id, asunto y mensaje (vacíos, largos, tipos)', async () => {
@@ -128,6 +193,19 @@ describe('enviar-correo-proveedor', () => {
     }
   })
 
+  it('fronteras de longitud (n-1, n, n+1): asunto 200, mensaje 5000 y correo 254', async () => {
+    const correoDe = (largo: number) => `${'a'.repeat(largo - '@acme.com'.length)}@acme.com`
+    const casos: { nombre: string; cuerpo: Record<string, unknown>; correo?: string; esperado: number }[] = [
+      ...[[199, 200], [200, 200], [201, 400]].map(([n, esperado]) => ({ nombre: `asunto de ${n}`, cuerpo: { ...valido, asunto: 'a'.repeat(n) }, esperado })),
+      ...[[4999, 200], [5000, 200], [5001, 400]].map(([n, esperado]) => ({ nombre: `mensaje de ${n}`, cuerpo: { ...valido, mensaje: 'a'.repeat(n) }, esperado })),
+      ...[[253, 200], [254, 200], [255, 422]].map(([n, esperado]) => ({ nombre: `correo de ${n}`, cuerpo: valido, correo: correoDe(n), esperado })),
+    ]
+    for (const { nombre, cuerpo, correo, esperado } of casos) {
+      const { deps } = montar(correo ? { proveedor: { razon_social: 'Acme', correo, activo: true } } : {})
+      assert.equal((await pedir(deps, cuerpo)).status, esperado, nombre)
+    }
+  })
+
   it('pasa el asunto tal cual al envío (el saneo de saltos de línea lo hace enviarPorSmtp/lineaSegura)', async () => {
     const { deps, enviados } = montar()
     await pedir(deps, { ...valido, asunto: 'Hola\r\nBcc: x@y.com' })
@@ -135,15 +213,33 @@ describe('enviar-correo-proveedor', () => {
     assert.equal(enviados[0].para.length, 1)
   })
 
-  it('falla de SMTP: 502 con mensaje controlado, sin filtrar el error', async () => {
+  it('falla de SMTP: 502 con mensaje controlado, sin filtrar el error ni a la respuesta ni al log', async () => {
     const { deps } = montar({ falloSmtp: true })
-    const res = await pedir(deps, valido)
+    const lineas = capturarErrores()
+    let res: Response
+    try {
+      res = await pedir(deps, valido)
+    } finally {
+      lineas.restaurar()
+    }
     assert.equal(res.status, 502)
     assert.doesNotMatch(JSON.stringify(await res.json()), /smtp caído/)
+    assert.deepEqual(lineas.textos, ['enviar-correo-proveedor: falló el envío Error'])
   })
 
-  it('error al resolver permiso o proveedor: 502', async () => {
-    assert.equal((await pedir(montar({ nivelError: true }).deps, valido)).status, 502)
-    assert.equal((await pedir(montar({ proveedorError: true }).deps, valido)).status, 502)
+
+
+  it('error al resolver permiso o proveedor: 502, y el log redacta URLs y credenciales de la base', async () => {
+    const lineas = capturarErrores()
+    try {
+      assert.equal((await pedir(montar({ nivelError: true }).deps, valido)).status, 502)
+      assert.equal((await pedir(montar({ proveedorError: true }).deps, valido)).status, 502)
+    } finally {
+      lineas.restaurar()
+    }
+    assert.equal(lineas.textos.length, 2)
+    assert.match(lineas.textos[0], /no se pudo resolver el permiso/)
+    assert.match(lineas.textos[1], /no se pudo leer el proveedor/)
+    assert.doesNotMatch(lineas.textos.join('\n'), /postgres:\/\/|clave-secreta/)
   })
 })

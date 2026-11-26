@@ -187,8 +187,16 @@ export function IaDocumentos() {
         const { error: nombreError } = await supabaseClient.from('documentos').update({ nombre: archivo.name }).eq('id', docId)
         if (nombreError) {
           // Sin el nombre nuevo la indexación no se invoca: la versión no puede quedar en «procesando» (MSF-750).
-          await supabaseClient.from('versiones_documento').update({ estado: 'fallida' }).eq('id', versionId)
-          throw new Error(`No pudimos actualizar el nombre del documento: ${nombreError.message}`)
+          // Si ni siquiera se puede marcar (mismo fallo de red o de permisos), se avisa que quedó pendiente.
+          let versionMarcada = false
+          try {
+            const { error: marcaError } = await supabaseClient.from('versiones_documento').update({ estado: 'fallida' }).eq('id', versionId)
+            versionMarcada = !marcaError
+          } catch {
+            versionMarcada = false
+          }
+          if (!versionMarcada) console.error('No pudimos marcar la versión como fallida.', versionId)
+          throw new Error(`No pudimos actualizar el nombre del documento: ${nombreError.message}${versionMarcada ? '' : ' La versión quedó sin procesar: reintentala desde el historial.'}`)
         }
       }
 
