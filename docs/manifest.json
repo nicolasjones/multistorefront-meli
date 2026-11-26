@@ -712,9 +712,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "645d6027965c20b53adc9f2e1c35e6a31ce6fa42c69886617c96b95823bd2c26",
+      "pageHash": "9c7a32a0e609c8a35e172416796de905a9c52f8fe3a9cd0d50ada222af6f5fb8",
       "sourceHash": "bcb4d9f52330eec80140ed1cdb8c61e1b6d5ea6fe6097a39717295b67009253a",
-      "sourceAt": "7767147ff",
+      "sourceAt": "af0142a09",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -726,7 +726,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "7767147ff"
+      "commit": "af0142a09"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -928,11 +928,17 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "4d34f138cf018f3b1793c895958c8c9751586a1997d2ca523081eeb82c83dfb3",
-      "sourceHash": "8c0a61514b17f72f46572f001ed60d9ea9efeb85be34efa7007f63cf9be5dd3b",
-      "sourceAt": "ef93aab68",
+      "pageHash": "e6538a6a9b0f45be53708459a7e6a5c4cbd4271bc5d0b006ba54f1a67220be1b",
+      "sourceHash": "cc5633e76497f1708e2e0997ecb51071acf12c7fd959c888cca2c376df24651d",
+      "sourceAt": "604620925",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
+        "scripts/verificar-documentacion-cambios.test.mjs",
+        "scripts/docs-correspondencia.mjs",
+        "scripts/docs-correspondencia.test.mjs",
+        "scripts/docs-lineas.mjs",
+        "scripts/docs-regex-barrido.test.mjs",
+        "scripts/docs-yaml.mjs",
         "scripts/docs-check.mjs",
         "scripts/docs-drift.mjs",
         "scripts/docs-enlaces.mjs",
@@ -943,7 +949,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "ef93aab68"
+      "commit": "604620925"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",

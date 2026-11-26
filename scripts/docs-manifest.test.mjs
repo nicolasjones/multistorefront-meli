@@ -106,3 +106,20 @@ test('una página sin cambios no queda con `commit` en null (MSF-895)', () => {
     assert.equal(despues.commit, despues.sourceAt);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// Un ítem de `sources:` con 200k blancos y un terminador Unicode no debe colgar el manifest (ReDoS).
+for (const [relleno, cola] of [[' ', '\u2028'], ['\t', '\u2029'], ['\u00a0', '\u0085']]) {
+  test(`el parser de front matter es lineal con 200k ${JSON.stringify(relleno)} y cola ${JSON.stringify(cola)}`, () => {
+    const dir = repo();
+    try {
+      writeFileSync(path.join(dir, 'docs/a.md'), `---\nowner: producto\nsources:\n  - src\n  - ${relleno.repeat(200000)}${cola}\n  - x${relleno.repeat(200000)}${cola}y\n---\n# A\n`);
+      const t0 = performance.now();
+      const r = spawnSync('node', [script], { cwd: dir, encoding: 'utf8' });
+      const ms = performance.now() - t0;
+      assert.equal(r.status, 0, r.stderr + r.stdout);
+      assert.ok(ms < 5000, `${ms} ms`); // ver la nota sobre topes en docs-correspondencia.test.mjs
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+}

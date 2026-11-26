@@ -4,6 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { despuesDeGuion } from "./docs-lineas.mjs";
 import { erroresYaml, erroresFrontMatter, enlacesMarkdown, MAX_EXCESOS_ENLACE } from "./docs-yaml.mjs";
 
 function walk(dir, acc = []) {
@@ -39,8 +40,13 @@ export function paginasNav(yml) {
       continue;
     }
     // - Etiqueta: ruta.md
-    m = linea.match(/^\s*-\s+[^:"'\n]+:\s*(\S+\.md)\s*$/);
-    if (m) paginas.push(m[1]);
+    const sinGuion = despuesDeGuion(linea);
+    if (sinGuion !== null && /^\s/.test(sinGuion)) {
+      const etiqueta = sinGuion.slice(1);
+      const dosPuntos = etiqueta.indexOf(":");
+      const ruta = etiqueta.slice(dosPuntos + 1).trim();
+      if (dosPuntos > 0 && !/["']/.test(etiqueta.slice(0, dosPuntos)) && /^\S+\.md$/.test(ruta)) paginas.push(ruta);
+    }
   }
   return paginas;
 }
