@@ -14,8 +14,8 @@
 --   2. `private.consumir_cupo_ia(p_usuario, p_funcionalidad, p_limite)`: consume UN uso de la hora actual de forma atómica
 --      (`insert ... on conflict do update ... where usos < p_limite returning`): dos sesiones simultáneas nunca pasan del tope, porque
 --      la segunda espera el candado de la fila y reevalúa el `where` con el valor ya incrementado. Devuelve `se_consumio`,
---      `usos_actuales` y `segundos_hasta_reinicio` (hasta la próxima hora en punto UTC, mínimo 1). `p_limite < 1`, usuario o funcionalidad
---      vacíos se rechazan con `22023`. `public.consumir_cupo_ia` es su envoltorio invocable por RPC (el patrón de
+--      `usos_actuales` y `segundos_hasta_reinicio` (hasta la próxima hora en punto UTC, mínimo 1). `p_limite` nulo o fuera de 1..1000 (el máximo razonable por hora; las funciones Edge
+--      vuelven a 30 si el ENV pide más), usuario o funcionalidad vacíos se rechazan con `22023`. `public.consumir_cupo_ia` es su envoltorio invocable por RPC (el patrón de
 --      `resolver_politica_ia`: `private` no está expuesto en la API).
 --   3. `private.purgar_cupo_ia(p_dias int default 2)`: borra las ventanas anteriores a `p_dias` días (idempotente; devuelve cuántas filas
 --      borró; `p_dias < 1` o nulo se rechaza con `22023`). NO está agendada (ni Kestra ni cron): se invoca a mano con
@@ -23,8 +23,10 @@
 --
 -- ACL: las tres funciones son `security definer` con `search_path = ''`; `revoke all ... from public, anon, authenticated` y
 -- `grant execute` solo a `service_role` (la función pública y las dos privadas).
--- Sin tabla de auditoría de consumo: no existe una tabla de registro de IA reutilizable (`ia_consulta_registro` es solo el nombre de un
--- test de las fuentes del asistente), así que no se inventó otra.
+-- Sin tabla de auditoría de consumo: `ia_interacciones` es la máquina de estados de la IA gobernada (una fila por ejecución, con política,
+-- perfil e `idempotency_key`), no la escriben estas dos funciones, guarda estados por ejecución y no un contador atómico por usuario
+-- y hora, y no cubre lo rechazado antes de invocar; `ia_cupo_uso` guarda solo los contadores de la hora.
+-- El cupo es por usuario y funcionalidad (no por organización) y un uso consumido no se reintegra si el proveedor falla.
 --
 -- Orden de despliegue: esta migración ANTES que las funciones Edge `chat-ia-responder` y `preguntar-documentos` de este lote. Las
 -- funciones nuevas llaman a `public.consumir_cupo_ia` y, si falta o falla, responden 503 (fallan cerrado, nunca gastan crédito).
@@ -86,8 +88,8 @@ begin
   if p_funcionalidad is null or btrim(p_funcionalidad) = '' then
     raise exception 'consumir_cupo_ia: falta la funcionalidad' using errcode = '22023';
   end if;
-  if p_limite is null or p_limite < 1 then
-    raise exception 'consumir_cupo_ia: el límite debe ser un entero mayor o igual a 1' using errcode = '22023';
+  if p_limite is null or p_limite < 1 or p_limite > 1000 then
+    raise exception 'consumir_cupo_ia: el límite debe ser un entero entre 1 y 1000' using errcode = '22023';
   end if;
 
   v_segundos := greatest(1, ceil(extract(epoch from (v_ventana + interval '1 hour' - now())))::integer);

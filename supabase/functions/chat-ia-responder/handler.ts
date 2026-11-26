@@ -184,35 +184,10 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     )
   }
 
-  // Cupo persistente: 30 consultas por usuario y hora (configurable con CHAT_IA_LIMITE_HORA). Se consume después de resolver la
-  // política (una configuración faltante no gasta cupo) y antes de crear nada o llamar al proveedor. Agotado: 429 con Retry-After.
-  const sinCupo = await rechazoPorCupo(admin, callerData.user.id, FUNCIONALIDAD_CHAT, limiteDeCupo(deps.limiteHora()), {
-    agotado: 'Superaste el límite de mensajes por hora. Probá de nuevo más tarde.',
-  })
-  if (sinCupo) return jsonResponse({ error: sinCupo.error }, sinCupo.status, sinCupo.retryAfter ? { 'Retry-After': String(sinCupo.retryAfter) } : {})
-
-  // Conversación nueva si no vino conversacion_id (si vino, ya se verificó arriba).
-  if (!conversacionId) {
-    const { data: nueva, error: nuevaError } = await asUser
-      .from('conversaciones_chat_ia')
-      .insert({ usuario_id: callerData.user.id })
-      .select('id')
-      .single()
-    if (nuevaError || !nueva) return jsonResponse({ error: 'No se pudo crear la conversación.' }, 500)
-    conversacionId = nueva.id
-  }
-
-  try {
-    await guardarMensaje(asUser, { conversacion_id: conversacionId, origen: 'usuario', contenido: body.mensaje })
-  } catch {
-    return jsonResponse({ error: 'No se pudo guardar tu mensaje.' }, 500)
-  }
-
-  async function responderError(mensaje: string, status: number) {
-    // Mejor esfuerzo: el error ya se informa en la respuesta HTTP; si tampoco se puede guardar, no se pisa el status.
-    await asUser.from('mensajes_chat_ia').insert({ conversacion_id: conversacionId, origen: 'chat', contenido: mensaje, estado: 'fallida' })
-    return jsonResponse({ conversacion_id: conversacionId, error: mensaje }, status)
-  }
+  // Rechazos de configuración o de entrada (400/500/501): ocurren ANTES de consumir cupo y de escribir nada, así que no queman un uso
+  // ni dejan conversaciones o mensajes. Si el cliente mandó una conversacion_id (ya verificada) se devuelve en el cuerpo.
+  const rechazoDeConfiguracion = (mensaje: string, status: number) =>
+    jsonResponse(conversacionId ? { conversacion_id: conversacionId, error: mensaje } : { error: mensaje }, status)
 
   // prepararInvocacion valida presupuesto/esquema/aislamiento y sanitiza
   // antes de que nada salga hacia el proveedor — mismo camino que
@@ -242,23 +217,55 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       new Date(deps.ahora()),
     )
   } catch (error) {
-    return await responderError(error instanceof Error ? error.message : 'ENTRADA_IA_INVALIDA', 400)
+    return rechazoDeConfiguracion(error instanceof Error ? error.message : 'ENTRADA_IA_INVALIDA', 400)
   }
 
   const { data: credencialFilas, error: credencialError } = await admin.rpc('obtener_clave_perfil_ia', { p_perfil_id: politica.perfil_principal_id })
   const credencial = credencialFilas?.[0]
-  if (credencialError || !credencial) return await responderError('No se pudo resolver la credencial del proveedor de IA.', 500)
+  if (credencialError || !credencial) return rechazoDeConfiguracion('No se pudo resolver la credencial del proveedor de IA.', 500)
 
   // Anthropic y OpenAI implementados — el adaptador real a usar lo decide
   // la política que un superadmin apruebe; cualquier otro falla con un
   // error claro en vez de armar un cuerpo de request con el formato
   // equivocado (nunca asumir un formato no verificado).
   if (credencial.adaptador !== 'anthropic' && credencial.adaptador !== 'openai') {
-    return await responderError(`El chat todavía no soporta el adaptador "${credencial.adaptador}" — solo Anthropic y OpenAI por ahora.`, 501)
+    return rechazoDeConfiguracion(`El chat todavía no soporta el adaptador "${credencial.adaptador}" — solo Anthropic y OpenAI por ahora.`, 501)
   }
 
   const perfilLimiteSegundos = Math.min(Number(politica.limite_segundos) || CONTRATO.limiteSegundos, 90)
   const perfil: PerfilModelo = { id: politica.perfil_principal_id, proveedorCodigo: credencial.proveedor_codigo, modeloId: credencial.modelo_id }
+
+  // Cupo persistente: 30 consultas por usuario y hora (configurable con CHAT_IA_LIMITE_HORA). Se consume después de TODOS los
+  // chequeos (funcionalidad, conversación, política, entrada, credencial y adaptador) y justo antes de la primera escritura y de la
+  // llamada al proveedor: un 429 no crea conversación ni mensaje. Agotado: 429 con Retry-After.
+  const sinCupo = await rechazoPorCupo(admin, callerData.user.id, FUNCIONALIDAD_CHAT, limiteDeCupo(deps.limiteHora()), {
+    agotado: 'Superaste el límite de mensajes por hora. Probá de nuevo más tarde.',
+  })
+  if (sinCupo) return jsonResponse({ error: sinCupo.error }, sinCupo.status, sinCupo.retryAfter ? { 'Retry-After': String(sinCupo.retryAfter) } : {})
+
+  // Conversación nueva si no vino conversacion_id (si vino, ya se verificó arriba).
+  if (!conversacionId) {
+    const { data: nueva, error: nuevaError } = await asUser
+      .from('conversaciones_chat_ia')
+      .insert({ usuario_id: callerData.user.id })
+      .select('id')
+      .single()
+    if (nuevaError || !nueva) return jsonResponse({ error: 'No se pudo crear la conversación.' }, 500)
+    conversacionId = nueva.id
+  }
+
+  try {
+    await guardarMensaje(asUser, { conversacion_id: conversacionId, origen: 'usuario', contenido: body.mensaje })
+  } catch {
+    return jsonResponse({ error: 'No se pudo guardar tu mensaje.' }, 500)
+  }
+
+  async function responderError(mensaje: string, status: number) {
+    // Mejor esfuerzo: el error ya se informa en la respuesta HTTP; si tampoco se puede guardar, no se pisa el status.
+    await asUser.from('mensajes_chat_ia').insert({ conversacion_id: conversacionId, origen: 'chat', contenido: mensaje, estado: 'fallida' })
+    return jsonResponse({ conversacion_id: conversacionId, error: mensaje }, status)
+  }
+
 
   async function leer(vista: string, filtros: Record<string, string | number> = {}) {
     const { data: fuente } = await asUser.from('fuentes_chat_ia').select('feature_id, columnas').eq('vista', vista).maybeSingle()

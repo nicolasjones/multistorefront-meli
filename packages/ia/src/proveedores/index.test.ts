@@ -73,7 +73,7 @@ describe('invocarProveedorIa', () => {
   })
 
   it('un timeoutMs no positivo o inválido no agrega signal (0 abortaría al instante)', async () => {
-    for (const timeoutMs of [0, -5, Number.NaN]) {
+    for (const timeoutMs of [0, -5, Number.NaN, Number.POSITIVE_INFINITY]) {
       const fetchInvocacion = vi.fn().mockResolvedValue(respuesta({}))
       await invocarProveedorIa(perfil('openai', 'gpt-fixture'), 'clave-fixture', {}, fetchInvocacion, { timeoutMs })
       expect(fetchInvocacion.mock.calls[0][1]).not.toHaveProperty('signal')
@@ -92,6 +92,13 @@ describe('invocarProveedorIa', () => {
     })
     await expect(invocarProveedorIa(perfil('openai', 'gpt-fixture'), 'clave-fixture', {}, colgado, { timeoutMs: 20 }))
       .rejects.toThrow('INVOCACION_PROVEEDOR_IA_TIMEOUT')
+  })
+
+  it('un fetch abortado (AbortError) también se informa como timeout, en invocar y en descubrir modelos', async () => {
+    const abortado: FetchInvocacion = vi.fn().mockRejectedValue(new DOMException('abortado', 'AbortError'))
+    await expect(invocarProveedorIa(perfil('openai', 'gpt-fixture'), 'clave-fixture', {}, abortado)).rejects.toThrow('INVOCACION_PROVEEDOR_IA_TIMEOUT')
+    const modelos = vi.fn().mockRejectedValue(new DOMException('abortado', 'AbortError'))
+    await expect(descubrirModelos('openai', 'clave-fixture', modelos)).rejects.toThrow('DESCUBRIMIENTO_MODELOS_IA_TIMEOUT')
   })
 
   it('el tiempo agotado leyendo el cuerpo también es un timeout; otros errores se propagan', async () => {
@@ -114,5 +121,21 @@ describe('descubrirModelos con timeout', () => {
     const fetchModelos = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) })
     await expect(descubrirModelos('openai', 'clave-fixture', fetchModelos)).rejects.toThrow('DESCUBRIMIENTO_MODELOS_IA_FALLO_500')
     expect(fetchModelos.mock.calls[0][1]).not.toHaveProperty('signal')
+  })
+})
+
+describe('descubrirModelos: respuesta', () => {
+  const ok = (cuerpo: unknown) => vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => cuerpo })
+
+  it('normaliza la lista de OpenAI (data) y la de Gemini (models, sin el prefijo models/ y con sus acciones)', async () => {
+    await expect(descubrirModelos('openai', 'k', ok({ data: [{ id: 'gpt-x' }] }))).resolves.toEqual([{ modeloId: 'gpt-x', capacidades: {} }])
+    await expect(descubrirModelos('google', 'k', ok({ models: [{ name: 'models/gemini-x', supportedGenerationMethods: ['generateContent'] }] })))
+      .resolves.toEqual([{ modeloId: 'gemini-x', capacidades: { acciones: ['generateContent'] } }])
+  })
+
+  it('una respuesta con forma inválida falla con RESPUESTA_MODELOS_IA_INVALIDA (cuerpo no objeto, lista no arreglo, modelo sin id)', async () => {
+    for (const cuerpo of [null, 'texto', [1], { data: 'no-lista' }, { data: [null] }, { data: [{ id: 5 }] }, { data: [{ id: '' }] }, { data: [{}] }]) {
+      await expect(descubrirModelos('openai', 'k', ok(cuerpo))).rejects.toThrow('RESPUESTA_MODELOS_IA_INVALIDA')
+    }
   })
 })

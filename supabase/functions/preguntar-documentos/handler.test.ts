@@ -273,11 +273,35 @@ describe('funcionalidad y límite por usuario (antes de gastar crédito)', () =>
   })
 
   it('un error al consumir el cupo responde 503 sin embedding ni proveedor y sin filtrar el detalle', async () => {
-    for (const cupoRpc of [{ data: null, error: { message: 'detalle-interno-db' } }, { data: [], error: null }, { data: [{ se_consumio: 'si' }], error: null }]) {
+    for (const cupoRpc of [{ data: null, error: { message: 'detalle-interno-db' } }, { data: [], error: null }, { data: null, error: null }, { data: [{ se_consumio: 'si' }], error: null }]) {
       const { res, json, r } = await llamar({ cupoRpc })
       assert.equal(res.status, 503)
       assert.deepEqual(json, { error: 'No se pudo verificar tu cuota de uso.' })
       assert.equal(res.headers.get('Retry-After'), null)
+      assert.deepEqual(r.embeddings, [])
+      assert.equal(r.pedidos.length, 0)
+    }
+  })
+
+  it('el usuario del cupo sale del JWT validado, aunque el cuerpo traiga otro usuario_id o user_id', async () => {
+    const { r } = await llamar({ respuestas: [textoOpenAI('ok')] }, { pregunta: '¿plazo?', usuario_id: 'otro', user_id: 'otro', p_usuario: 'otro' })
+    const llamadas = r.rpcAdmin.filter((c) => c[0] === 'consumir_cupo_ia')
+    assert.equal(llamadas.length, 1)
+    assert.equal((llamadas[0][1] as { p_usuario: string }).p_usuario, 'u1')
+  })
+
+  it('si la RPC del cupo lanza o rechaza la promesa responde 503 controlado, sin embedding ni proveedor', async () => {
+    for (const modo of ['lanza', 'rechaza']) {
+      const { deps, r } = montar({ respuestas: [textoOpenAI('ok')] })
+      const admin = deps.crearAdmin()
+      deps.crearAdmin = () => ({ ...admin, rpc: (nombre: string, args: Record<string, unknown>) => {
+        if (nombre !== 'consumir_cupo_ia') return admin.rpc(nombre, args)
+        if (modo === 'lanza') throw new Error('detalle-interno-red')
+        return Promise.reject(new Error('detalle-interno-red'))
+      } })
+      const res = await manejar(pedir({ pregunta: 'hola' }), deps)
+      assert.equal(res.status, 503)
+      assert.deepEqual(await res.json(), { error: 'No se pudo verificar tu cuota de uso.' })
       assert.deepEqual(r.embeddings, [])
       assert.equal(r.pedidos.length, 0)
     }

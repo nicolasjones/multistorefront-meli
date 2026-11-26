@@ -2,7 +2,7 @@
 -- Todo con objetos reales y el rol del CI (no superusuario): nada se omite con skip. Datos inventados.
 begin;
 
-select plan(68);
+select plan(71);
 
 insert into auth.users (id, email) values
   ('c9000000-0000-0000-0000-000000000001', 'cupo-a-l90@example.com'),
@@ -118,9 +118,14 @@ select results_eq(
 select throws_ok($$ select * from private.consumir_cupo_ia(null, 'chat-ia', 3) $$, '22023', 'consumir_cupo_ia: falta el usuario', 'usuario nulo');
 select throws_ok($$ select * from private.consumir_cupo_ia('c9000000-0000-0000-0000-000000000001', null, 3) $$, '22023', 'consumir_cupo_ia: falta la funcionalidad', 'funcionalidad nula');
 select throws_ok($$ select * from private.consumir_cupo_ia('c9000000-0000-0000-0000-000000000001', '   ', 3) $$, '22023', 'consumir_cupo_ia: falta la funcionalidad', 'funcionalidad en blanco');
-select throws_ok($$ select * from private.consumir_cupo_ia('c9000000-0000-0000-0000-000000000001', 'chat-ia', null) $$, '22023', 'consumir_cupo_ia: el límite debe ser un entero mayor o igual a 1', 'límite nulo');
-select throws_ok($$ select * from private.consumir_cupo_ia('c9000000-0000-0000-0000-000000000001', 'chat-ia', 0) $$, '22023', 'consumir_cupo_ia: el límite debe ser un entero mayor o igual a 1', 'límite 0');
-select throws_ok($$ select * from private.consumir_cupo_ia('c9000000-0000-0000-0000-000000000001', 'chat-ia', -5) $$, '22023', 'consumir_cupo_ia: el límite debe ser un entero mayor o igual a 1', 'límite negativo');
+select throws_ok($$ select * from private.consumir_cupo_ia('c9000000-0000-0000-0000-000000000001', 'chat-ia', null) $$, '22023', 'consumir_cupo_ia: el límite debe ser un entero entre 1 y 1000', 'límite nulo');
+select throws_ok($$ select * from private.consumir_cupo_ia('c9000000-0000-0000-0000-000000000001', 'chat-ia', 0) $$, '22023', 'consumir_cupo_ia: el límite debe ser un entero entre 1 y 1000', 'límite 0');
+select throws_ok($$ select * from private.consumir_cupo_ia('c9000000-0000-0000-0000-000000000001', 'chat-ia', -5) $$, '22023', 'consumir_cupo_ia: el límite debe ser un entero entre 1 y 1000', 'límite negativo');
+select throws_ok($$ select * from private.consumir_cupo_ia('c9000000-0000-0000-0000-000000000001', 'chat-ia', 1001) $$, '22023', 'consumir_cupo_ia: el límite debe ser un entero entre 1 y 1000', 'límite 1001 (máximo + 1)');
+select throws_ok($$ select * from private.consumir_cupo_ia('c9000000-0000-0000-0000-000000000001', 'chat-ia', 2147483647) $$, '22023', 'consumir_cupo_ia: el límite debe ser un entero entre 1 y 1000', 'límite int máximo');
+select results_eq(
+  $$ select se_consumio, usos_actuales from public.consumir_cupo_ia('c9000000-0000-0000-0000-000000000002', 'tope-maximo', 1000) $$,
+  $$ values (true, 1) $$, 'límite 1000 (el máximo) es válido');
 select is((select count(*)::int from private.ia_cupo_uso where funcionalidad = '   '), 0, 'un argumento inválido no deja filas');
 select throws_ok(
   $$ select * from private.consumir_cupo_ia('c9000000-0000-0000-0000-0000000000ff', 'chat-ia', 3) $$,

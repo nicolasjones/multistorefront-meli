@@ -8,10 +8,14 @@ const admin = (resultado: { data: unknown; error: unknown }, llamadas: unknown[]
 })
 
 describe('limiteDeCupo', () => {
-  it('30 por defecto; acepta un entero positivo y descarta el resto', () => {
+  it('30 por defecto; acepta enteros de 1 a 1000 y todo lo demás vuelve a 30', () => {
     assert.equal(limiteDeCupo(undefined), 30)
+    assert.equal(limiteDeCupo('1'), 1)
     assert.equal(limiteDeCupo('10'), 10)
-    for (const v of ['abc', '0', '-1', '1.5', '']) assert.equal(limiteDeCupo(v), 30)
+    assert.equal(limiteDeCupo('1000'), 1000)
+    for (const v of ['1001', '2147483647', '2147483648', '3000000000', '99999999999', '1e9', '-1', '-1000', '0', 'NaN', 'Infinity', '', ' ', 'abc', '1.5', '2.5', '0x10x']) {
+      assert.equal(limiteDeCupo(v), 30, `valor ${JSON.stringify(v)}`)
+    }
   })
 })
 
@@ -27,6 +31,16 @@ describe('rechazoPorCupo', () => {
   it('429 con 3600 si el reinicio no es interpretable', async () => {
     for (const s of [null, 'x', 0, -4]) assert.equal((await rechazoPorCupo(admin({ data: [{ se_consumio: false, segundos_hasta_reinicio: s }], error: null }), 'u', 'f', 1, textos))?.retryAfter, 3600)
   })
+  it('503 (falla cerrado, sin detalle) si la RPC lanza, rechaza la promesa o devuelve NULL/formas raras', async () => {
+    const esperado = { status: 503, error: 'No se pudo verificar tu cuota de uso.' }
+    const lanza = { rpc: () => { throw new Error('detalle-interno') } }
+    const rechaza = { rpc: () => Promise.reject(new Error('detalle-interno')) }
+    assert.deepEqual(await rechazoPorCupo(lanza, 'u', 'f', 1, textos), esperado)
+    assert.deepEqual(await rechazoPorCupo(rechaza, 'u', 'f', 1, textos), esperado)
+    for (const data of [null, undefined, 5, 'x', [null], [[]], {}, { se_consumio: null }]) assert.deepEqual(await rechazoPorCupo(admin({ data, error: null }), 'u', 'f', 1, textos), esperado)
+    assert.equal(await rechazoPorCupo({ rpc: () => Promise.resolve(null as never) }, 'u', 'f', 1, textos).then(() => 'x', () => 'rechazo-no-controlado'), 'x')
+  })
+
   it('503 (falla cerrado) si la base falla o la respuesta no se entiende', async () => {
     for (const r of [{ data: null, error: { message: 'x' } }, { data: [{ se_consumio: true }], error: { message: 'x' } }, { data: [], error: null }, { data: null, error: null }, { data: [{ se_consumio: 'true' }], error: null }]) {
       assert.deepEqual(await rechazoPorCupo(admin(r), 'u', 'f', 1, textos), { status: 503, error: 'No se pudo verificar tu cuota de uso.' })
