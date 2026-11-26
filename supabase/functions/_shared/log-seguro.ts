@@ -61,7 +61,7 @@ export function textoDeError(error: unknown): string {
 // Tiempo acotado POR CONSTRUCCIÓN, no por afirmar que cada regex sea lineal (el JWT, con sus tres segmentos, no lo es): (1) la función
 // acota la entrada a MAX_ENTRADA_REDACCION caracteres antes de cualquier regex (la salida también queda acotada: no pasa de unas pocas veces el tope, porque una redacción como `Bearer [token]` puede alargar un poco; no es un texto completo);
 // (2) los cuantificadores de los patrones están acotados (esquema de URL 30, segmentos del JWT 2000, nombre de campo 40). Medido: 200k
-// caracteres hostiles por variante tardan milisegundos (log-seguro.test.ts).
+// caracteres hostiles por variante tardan decenas de milisegundos (log-seguro.test.ts).
 export const MAX_ENTRADA_REDACCION = 4000
 // Cualquier esquema `algo://…` (http, https, postgres, postgresql…).
 const URL_ = /[a-z][a-z0-9+.-]{0,30}:\/\/\S+/gi

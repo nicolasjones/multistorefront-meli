@@ -42,6 +42,23 @@ describe('limpiarParaLog', () => {
     assert.equal(limpiarParaLog('aaaaaaaa😀', 10), 'aaaaaaaa😀')
   })
 
+  it('el margen previo al saneo es exactamente max * 4: se descarta lo que queda más allá, ni más ni menos', () => {
+    // max = 3: se mira solo los primeros 12 caracteres; 11 saltos colapsan en un espacio y el resto ('bcd') queda afuera.
+    assert.equal(limpiarParaLog(`a${'\n'.repeat(11)}bcd`, 3), 'a ')
+    // Con 8 saltos caben 'bc' dentro de los 12 caracteres: 'a bc' acotado a 3 -> 'a b'.
+    assert.equal(limpiarParaLog(`a${'\n'.repeat(8)}bc`, 3), 'a b')
+    assert.equal(limpiarParaLog(`a${'\n'.repeat(10)}bc`, 3), 'a b')
+    assert.equal(limpiarParaLog(`a${'\n'.repeat(11)}b`, 3), 'a ')
+  })
+
+  it('límites del recorte: max - 1, max y max + 1 caracteres', () => {
+    assert.equal(limpiarParaLog('abcd', 3), 'abc')
+    assert.equal(limpiarParaLog('abc', 3), 'abc')
+    assert.equal(limpiarParaLog('ab', 3), 'ab')
+    assert.equal(limpiarParaLog('abcde', 5), 'abcde')
+    assert.equal(limpiarParaLog('abcdef', 5), 'abcde')
+  })
+
   it('recorta ANTES de limpiar: 10 MB con saltos alternados en menos de 400 ms (mínimo de hasta 3 corridas) y respetando el máximo', () => {
     const enorme = 'a\n'.repeat(5_000_000)
     const ms = minimoMs(() => limpiarParaLog(enorme, 300), 400)
@@ -60,6 +77,26 @@ describe('textoDeError: cada lectura es segura por separado', () => {
     assert.equal(textoDeError({ name: 'RangeError', get message() { return lanza() } }), 'RangeError')
     assert.equal(textoDeError({ get name() { return lanza() }, get code() { return lanza() }, message: 'POLITICA_IA_INACTIVA' }), 'Error POLITICA_IA_INACTIVA')
     assert.equal(textoDeError({ name: 'TypeError', code: 'E_X', get message() { return lanza() } }), 'TypeError E_X')
+  })
+})
+
+describe('textoDeError: bordes numéricos (n-1, n, n+1)', () => {
+  it('un código propio de la plataforma se imprime hasta 64 caracteres y no con 65', () => {
+    const propio = (largo: number) => `${'A'.repeat(largo - 3)}_IA`
+    for (const largo of [10, 63, 64]) assert.equal(textoDeError(new Error(propio(largo))), `Error ${propio(largo)}`, `largo ${largo}`)
+    for (const largo of [65, 66, 200]) assert.equal(textoDeError(new Error(propio(largo))), 'Error', `largo ${largo}`)
+  })
+
+  it('el `code` simple se imprime hasta 64 caracteres y se omite con 65 o con caracteres fuera de la clase', () => {
+    for (const largo of [1, 63, 64]) assert.equal(textoDeError(Object.assign(new Error('x'), { code: 'C'.repeat(largo) })), `Error ${'C'.repeat(largo)}`, `largo ${largo}`)
+    for (const largo of [65, 66]) assert.equal(textoDeError(Object.assign(new Error('x'), { code: 'C'.repeat(largo) })), 'Error', `largo ${largo}`)
+    assert.equal(textoDeError(Object.assign(new Error('x'), { code: '' })), 'Error')
+  })
+
+  it('el nombre se imprime hasta 64 caracteres; con 65 o vacío se usa Error', () => {
+    for (const largo of [1, 63, 64]) assert.equal(textoDeError(Object.assign(new Error('x'), { name: 'N'.repeat(largo) })), 'N'.repeat(largo), `largo ${largo}`)
+    for (const largo of [65, 66]) assert.equal(textoDeError(Object.assign(new Error('x'), { name: 'N'.repeat(largo) })), 'Error', `largo ${largo}`)
+    assert.equal(textoDeError(Object.assign(new Error('x'), { name: '' })), 'Error')
   })
 })
 
@@ -247,6 +284,20 @@ describe('redactarCredenciales', () => {
       assert.ok(ms < 1000, `${nombre} tardó ${ms} ms (mínimo de hasta 3 corridas)`)
       assert.ok(salida.length <= 2 * MAX_ENTRADA_REDACCION, `${nombre}: la salida debe quedar acotada (${salida.length})`)
     }
+  })
+
+  it('el tope de entrada es EXACTAMENTE 4000 caracteres (la constante no se compara consigo misma)', () => {
+    assert.equal(MAX_ENTRADA_REDACCION, 4000)
+    assert.equal(redactarCredenciales('a'.repeat(3999)), 'a'.repeat(3999))
+    assert.equal(redactarCredenciales('a'.repeat(4000)), 'a'.repeat(4000))
+    assert.equal(redactarCredenciales(`${'a'.repeat(4000)}X`), 'a'.repeat(4000))
+    assert.equal(redactarCredenciales('a'.repeat(4001)).length, 4000)
+    // Un secreto que termina justo en la posición 4000 se redacta; uno que empieza después se descarta (no sale ni redactado).
+    const conSecreto = `${'z'.repeat(4000 - 19)}Bearer abcdefghijkl`
+    assert.equal(conSecreto.length, 4000)
+    assert.equal(redactarCredenciales(conSecreto), `${'z'.repeat(4000 - 19)}Bearer [token]`)
+    const despues = `${'z'.repeat(4001)}Bearer SECRETO`
+    assert.equal(redactarCredenciales(despues), 'z'.repeat(4000))
   })
 
   it('un texto de más de MAX_ENTRADA_REDACCION caracteres sale acotado y lo que está dentro del tope se redacta', () => {

@@ -358,6 +358,25 @@ describe('funcionalidad y límite por usuario (antes de gastar crédito)', () =>
     }
   })
 
+  it('la funcionalidad se verifica ANTES de la política, la entrada, la credencial, el cupo y el embedding (con la funcionalidad apagada o no verificable nada de eso se toca)', async () => {
+    const casos: Array<[number, Opciones]> = [
+      [403, { feature: { data: false, error: null }, politica: { data: [], error: null } }],
+      [403, { feature: { data: false, error: null }, prepararError: new Error('ENTRADA_IA_INVALIDA') }],
+      [403, { feature: { data: false, error: null }, credencial: { data: [], error: null } }],
+      [403, { feature: { data: false, error: null }, proveedor: 'anthropic' }],
+      [403, { feature: { data: false, error: null }, cupoRpc: { data: [{ se_consumio: false, segundos_hasta_reinicio: 5 }], error: null } }],
+      [503, { feature: { data: null, error: { message: 'caída' } }, politica: { data: [], error: null } }],
+    ]
+    for (const [estado, opciones] of casos) {
+      const { res, r } = await llamar(opciones)
+      assert.equal(res.status, estado)
+      assert.deepEqual(r.rpcAdmin, [], 'no se llamó a nada con el cliente admin')
+      assert.deepEqual(r.embeddings, [])
+      assert.equal(r.pedidos.length, 0)
+      assert.equal(r.prepararLlamadas.length, 0)
+    }
+  })
+
   it('el log de la verificación de funcionalidad sale en una línea, acotado y con credenciales redactadas', async () => {
     const { res } = await llamar({ feature: { data: null, error: { message: `boom\nFAKE Bearer SECRETO eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1In0.firmaSECRETA ${'z'.repeat(500)}` } } })
     assert.equal(res.status, 503)

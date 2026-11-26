@@ -602,6 +602,27 @@ describe('preparación de la invocación y credencial', () => {
     }
   })
 
+  it('la funcionalidad se verifica ANTES que la conversación y que todo lo demás: sin la funcionalidad no se puede sondear si una conversación existe', async () => {
+    const consultoConversaciones = (r: { consultas: { tabla: string }[] }) => r.consultas.some((c) => c.tabla === 'conversaciones_chat_ia')
+    const casos: Array<[number, Opciones, unknown]> = [
+      [403, { feature: { data: false, error: null }, existente: { data: null, error: null } }, { mensaje: 'hola', conversacion_id: CONV }],
+      [403, { feature: { data: false, error: null }, existente: { data: null, error: null } }, { mensaje: 'hola', conversacion_id: '22222222-2222-4222-8222-222222222222' }],
+      [403, { feature: { data: null, error: null }, existente: { data: { id: CONV }, error: null } }, { mensaje: 'hola', conversacion_id: CONV }],
+      [503, { feature: { data: null, error: { message: 'caída' } }, existente: { data: null, error: null } }, { mensaje: 'hola', conversacion_id: CONV }],
+      [503, { feature: { data: true, error: { message: 'caída' } }, existente: { data: { id: CONV }, error: null } }, { mensaje: 'hola', conversacion_id: CONV }],
+      // Tampoco se llega a la política, a prepararInvocacion, a la credencial ni al cupo con la funcionalidad apagada.
+      [403, { feature: { data: false, error: null }, politica: { data: [], error: null }, prepararError: new Error('POLITICA_IA_INACTIVA'), credencial: { data: [], error: null }, cupo: { data: [{ se_consumio: false, segundos_hasta_reinicio: 5 }], error: null } }, { mensaje: 'hola' }],
+    ]
+    for (const [estado, opciones, cuerpo] of casos) {
+      const { res, r } = await llamar(opciones, cuerpo)
+      assert.equal(res.status, estado)
+      assert.equal(consultoConversaciones(r), false, 'no se consultó conversaciones_chat_ia')
+      assert.deepEqual(r.rpcAdmin, [], 'no se llamó a nada con el cliente admin')
+      assert.equal(r.inserts.length, 0)
+      assert.equal(r.pedidos.length, 0)
+    }
+  })
+
   it('un error al verificar la conversación (503) deja log con código y mensaje redactado, sin proveedor ni cupo', async () => {
     const { res, r, json } = await llamar({ existente: { data: null, error: { code: '57014', message: 'timeout Bearer SECRETO' } } }, { mensaje: 'hola', conversacion_id: CONV })
     assert.equal(res.status, 503)
