@@ -212,6 +212,7 @@ override de organización que une el criterio histórico (sufijo `organizacion_i
 | Tope persistente de **correos** a proveedor (MSF-731) | El lote 90 resolvió solo el de IA | Reutilizar `private.consumir_cupo_ia` con otra `funcionalidad` o una tabla propia; hoy `enviar-correo-proveedor` sigue con `_shared/limite-memoria.ts` (20/h por isolate) |
 | `indexar-documento` gasta crédito de embeddings sin cupo (MSF-727, hallazgo de la revisión del lote 90) | Fuera del alcance del lote 90: el cupo cubre `chat-ia-responder` y `preguntar-documentos` | Reutilizar `private.consumir_cupo_ia` con otra `funcionalidad` (por ejemplo `indexar-documento`) y un tope en caracteres o fragmentos por usuario y hora; ver también el tope de texto y de fragmentos de MSF-728 |
 | Cupo de IA por organización (lote 90) | El cupo es por usuario y funcionalidad, no por organización: una organización con N usuarios, o una persona con N cuentas, obtiene 30·N por hora | Decisión consciente del lote 90. Si hace falta un techo por organización: segunda clave (organización) en `private.ia_cupo_uso` o una tabla análoga y consumir ambos cupos en la misma transacción |
+| Logs con `error.message` crudo en funciones fuera de IA (lote 90) | Fuera del alcance del lote 90 (solo IA) | `enviar-aviso-faltante`, `crear-organizacion`, `verificar-dominio-tienda`, `invitar-miembro`, `enviar-correo-proveedor`, `cotizacion-sugerida`, `solicitar-acceso`, `invitar-cliente`, `consultar-estado-reparacion`, `api-v1`, `tienda-seo`, `recuperar-clave-cliente`, `recalcular-alertas-inicio`, `enviar-resumen-semanal`, `enviar-resumen-reposicion`, `entregar-webhook` y `baja-correo-masivo` imprimen `error.message` o el error completo en sus `console.error`/`console.warn`, sin `textoDeError` ni `redactarCredenciales`; pasar los que corresponda por `_shared/log-seguro.ts` |
 | Agendar `private.purgar_cupo_ia` (lote 90) | Sin agendar a propósito | Un flow de Kestra o pg_cron semanal con `select private.purgar_cupo_ia();` como `service_role`; sin purga la tabla crece una fila por usuario, funcionalidad y hora de uso |
 | Agendar el barrido de versiones `procesando` de `indexar-documento` (MSF-728) | La función ya existe (lote 89) pero no está agendada | Un flow de Kestra o pg_cron que llame `public.liberar_versiones_documento_atascadas(30)` con service_role; considerar que la pantalla ofrece «Reintentar» a los 15 minutos y que tras el barrido la versión queda `fallida` (hay que volver a subir el archivo) |
 | Historial persistente de envíos a proveedores (MSF-731) | Tabla nueva | `dominio.proveedores_correos_enviados(id, organizacion_id, proveedor_id, usuario_id, asunto, creado_en, resultado)` con RLS por organización y lectura con `proveedores`; la función la escribe con la sesión del usuario |
@@ -334,20 +335,34 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   (el cuerpo incluye `conversacion_id` solo si el cliente la había enviado). En su lugar dejan un **log de servidor** con prefijo
   `[chat-ia-responder] configuración de la plataforma:` y el motivo (`credencial_no_disponible`, `adaptador_no_soportado:<adaptador>` o
   `politica_invalida:<código>`), sin la clave, el contenido del mensaje ni datos del usuario; un error de entrada del cliente (esquema,
-  organización) no se registra. Un fallo del cupo deja el log `[cupo-ia]` con la funcionalidad y el error, sin el id del usuario.
-  **Higiene de los logs** (`supabase/functions/_shared/log-seguro.ts`): (1) los errores del proveedor, de red/`fetch` o inesperados se
-  registran con `textoDeError`, que deja solo el nombre del error (`TypeError`, `AbortError`) y un `code` corto de caracteres simples (o el
-  código propio de la plataforma, como `EMBEDDING_PROVEEDOR_IA_TIMEOUT`): nunca el mensaje, la `cause` ni la URL, que pueden traer claves;
-  (2) el resto de los datos variables pasa por `limpiarParaLog` (recorta antes de limpiar; una sola línea: saltos, controles, NUL y
-  U+2028/U+2029 por un espacio; sin par sustituto partido al final; adaptador y códigos a 64, mensajes a 300); (3) los mensajes de la base
-  (verificación de funcionalidad, error al marcar la versión fallida, RPC de cupo) pasan además por `redactarCredenciales` (URL, JWT,
-  `Bearer`, `sk-` y campos como `apikey`, `authorization`, `secret`, `token`, `password`) como segunda defensa, que no pretende ser
-  exhaustiva; (4) en `[cupo-ia]` se tachan, antes de acotar a 300, el uuid del usuario (sin distinguir mayúsculas), cualquier otro uuid, con
-  o sin guiones (`[uuid]`), y los correos (`[correo]`). Como el tachado precede al recorte, un uuid completo nunca queda cortado por él y no
-  se descarta nada al final (hacerlo borraría texto legítimo como `commit deadbeef`).
+  organización) no se registra. Un fallo del cupo deja el log `[cupo-ia]` con la funcionalidad y: si la RPC LANZÓ o rechazó la promesa (red, `fetch`), solo el
+  nombre y el código del error (`textoDeError`, sin mensaje ni URL); si la RPC DEVOLVIÓ un error de Postgres/PostgREST (23503, 22023,
+  `permission denied`…), su código y su mensaje saneado (sin el id del usuario, uuids y correos tachados, credenciales y URLs redactadas) y acotado a 300.
+  **Higiene de los logs** (`supabase/functions/_shared/log-seguro.ts`): (1) los errores del proveedor, de red/`fetch`, las excepciones de la RPC
+  de cupo e inesperados se registran con `textoDeError`, que deja solo el nombre del error (`TypeError`, `AbortError`) y un `code` corto de
+  caracteres simples (o el código propio de la plataforma, como `EMBEDDING_PROVEEDOR_IA_TIMEOUT`): nunca el mensaje, la `cause` ni la URL,
+  que pueden traer claves; un nombre o `code` con `sk-`, `eyJ` o `Bearer` se omite; (2) el resto de los datos variables pasa por
+  `limpiarParaLog` (recorta antes de limpiar; una sola línea: saltos, controles, NUL y U+2028/U+2029 por un espacio; sin par sustituto partido
+  al final; el `max` se normaliza igual en `limpiarParaLog` y `mensajeParaLog`: entero finito >= 0, los decimales se truncan y cualquier otro
+  valor usa 300; adaptador y códigos a 64, mensajes a 300); (3) los mensajes que DEVUELVE la base (verificación de funcionalidad, error al
+  marcar la versión fallida, búsqueda, creación de la conversación, error de la RPC de cupo) pasan además por `redactarCredenciales`, SIEMPRE
+  antes del recorte final: URL de cualquier esquema (`https://`, `postgres://`…), JWT, `Bearer`, `sk-…`, `Authorization` con su esquema
+  (`Basic`, `Digest`, `Token`) y campos sensibles (`apikey`, `api_key`, `secret`, `token`, `password`, `passwd`), también con el nombre
+  embebido en uno más largo (`sb-access-token`) y con comillas JSON. La redacción cubre esos formatos y **no es exhaustiva** (no cubre
+  `AIza…`, `xoxb-…`, `ghp_…` ni base64 sin prefijo): los errores de red o del proveedor no imprimen mensaje; (4) en `[cupo-ia]` se tachan,
+  antes de acotar a 300, el uuid del usuario (sin distinguir mayúsculas), cualquier otro uuid, con o sin guiones (`[uuid]`), y los correos
+  (`[correo]`). Como el tachado precede al recorte, un uuid completo nunca queda cortado por él y no se descarta nada al final (hacerlo
+  borraría texto legítimo como `commit deadbeef`); (5) los helpers de `log-seguro.ts` y los `catch` de `embeddings.ts` y `packages/ia` leen los
+  campos de un error sin lanzar (getters o `Proxy` hostiles), porque se usan dentro de bloques `catch`.
+  **Logs del chat y de preguntar-documentos** (cada uno con su prueba): chat: funcionalidad no verificable, `[chat-ia-responder] configuración de
+  la plataforma` (política, credencial, adaptador), fallo del proveedor (1.ª y 2.ª llamada en Anthropic y en OpenAI), error inesperado, no se
+  pudo crear la conversación, no se pudo guardar el mensaje del usuario y la respuesta; preguntar-documentos: funcionalidad no verificable,
+  credencial, proveedor no soportado, fallo del embedding, fallo del proveedor y búsqueda. Los rechazos del cliente o de estado (403, 400, 404, 429,
+  503 de política) no dejan log.
   **Alcance de la regla:** vale para `chat-ia-responder`, `preguntar-documentos`, `indexar-documento` (handler, `fragmentos.ts`, `index.ts`) y
   `_shared/cupo-ia.ts`. Quedan fuera, por no tener datos variables, `_shared/token.ts` (`console.warn` con un texto fijo) y, por no correr en
-  producción, `_shared/verificacion/smtp-real.deno.ts` (script manual de verificación).
+  producción, `_shared/verificacion/smtp-real.deno.ts` (script manual de verificación). Las demás funciones fuera de IA siguen imprimiendo
+  `error.message` (ver «Pendientes»).
   **Volumen:** son una línea por petición fallida, acotada en longitud y sin datos del usuario ni del contenido;
   con la base caída pueden repetirse una vez por petición y no hay limitador (el volumen lo acota el tamaño del tráfico, y el cupo no
   aplica si la RPC falla). Si se vuelve un problema, el seguimiento es agregar un limitador por minuto.
