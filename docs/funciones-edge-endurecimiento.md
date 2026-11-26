@@ -14,6 +14,7 @@ sources:
   - supabase/functions/_shared/fetch-ia.ts
   - supabase/functions/_shared/limite-memoria.ts
   - supabase/functions/_shared/cupo-ia.ts
+  - supabase/functions/_shared/log-seguro.ts
   - supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql
   - packages/ia/src/proveedores/index.ts
   - supabase/functions/_shared/token.ts
@@ -334,10 +335,20 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   `[chat-ia-responder] configuración de la plataforma:` y el motivo (`credencial_no_disponible`, `adaptador_no_soportado:<adaptador>` o
   `politica_invalida:<código>`), sin la clave, el contenido del mensaje ni datos del usuario; un error de entrada del cliente (esquema,
   organización) no se registra. Un fallo del cupo deja el log `[cupo-ia]` con la funcionalidad y el error, sin el id del usuario.
-  **Higiene de los logs:** todo dato variable pasa por `limpiarParaLog` (una sola línea: saltos, controles, NUL y U+2028/U+2029 se
-  reemplazan por un espacio; el adaptador se acota a 64 caracteres y los mensajes de error a 300). En `[cupo-ia]` se tachan, antes de acotar,
-  el uuid del usuario (sin distinguir mayúsculas), cualquier otro uuid, con o sin guiones (`[uuid]`), y los correos (`[correo]`), y se descarta el resto de un
-  uuid cortado por el recorte. **Volumen:** son una línea por petición fallida, acotada en longitud y sin datos del usuario ni del contenido;
+  **Higiene de los logs** (`supabase/functions/_shared/log-seguro.ts`): (1) los errores del proveedor, de red/`fetch` o inesperados se
+  registran con `textoDeError`, que deja solo el nombre del error (`TypeError`, `AbortError`) y un `code` corto de caracteres simples (o el
+  código propio de la plataforma, como `EMBEDDING_PROVEEDOR_IA_TIMEOUT`): nunca el mensaje, la `cause` ni la URL, que pueden traer claves;
+  (2) el resto de los datos variables pasa por `limpiarParaLog` (recorta antes de limpiar; una sola línea: saltos, controles, NUL y
+  U+2028/U+2029 por un espacio; sin par sustituto partido al final; adaptador y códigos a 64, mensajes a 300); (3) los mensajes de la base
+  (verificación de funcionalidad, error al marcar la versión fallida, RPC de cupo) pasan además por `redactarCredenciales` (URL, JWT,
+  `Bearer`, `sk-` y campos como `apikey`, `authorization`, `secret`, `token`, `password`) como segunda defensa, que no pretende ser
+  exhaustiva; (4) en `[cupo-ia]` se tachan, antes de acotar a 300, el uuid del usuario (sin distinguir mayúsculas), cualquier otro uuid, con
+  o sin guiones (`[uuid]`), y los correos (`[correo]`). Como el tachado precede al recorte, un uuid completo nunca queda cortado por él y no
+  se descarta nada al final (hacerlo borraría texto legítimo como `commit deadbeef`).
+  **Alcance de la regla:** vale para `chat-ia-responder`, `preguntar-documentos`, `indexar-documento` (handler, `fragmentos.ts`, `index.ts`) y
+  `_shared/cupo-ia.ts`. Quedan fuera, por no tener datos variables, `_shared/token.ts` (`console.warn` con un texto fijo) y, por no correr en
+  producción, `_shared/verificacion/smtp-real.deno.ts` (script manual de verificación).
+  **Volumen:** son una línea por petición fallida, acotada en longitud y sin datos del usuario ni del contenido;
   con la base caída pueden repetirse una vez por petición y no hay limitador (el volumen lo acota el tamaño del tráfico, y el cupo no
   aplica si la RPC falla). Si se vuelve un problema, el seguimiento es agregar un limitador por minuto.
   **Costo de ese orden:** un usuario sin cupo paga `prepararInvocacion` y `obtener_clave_perfil_ia` (una lectura que descifra la clave del
