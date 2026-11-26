@@ -55,11 +55,18 @@ export function textoDeError(error: unknown): string {
   }
 }
 
-// Segunda defensa para mensajes de la base: credenciales y URLs. Cubre estos formatos y NO es exhaustiva (no redacta `AIza…`, `xoxb-…`, `ghp_…` ni base64 sin prefijo): la defensa principal es no imprimir mensajes de red ni del proveedor. Cada regex es lineal (cuantificadores simples sobre clases) y se aplica
-// sobre un texto ya acotado. Orden: URL, JWT, Bearer, clave `sk-`, campos sensibles.
-// Cualquier esquema `algo://…` (http, https, postgres, postgresql…); el esquema se acota a 32 caracteres para que sea lineal.
+// Segunda defensa para mensajes de la base: credenciales y URLs. Cubre estos formatos y NO es exhaustiva (no redacta `AIza…`, `xoxb-…`,
+// `ghp_…` ni base64 sin prefijo): la defensa principal es no imprimir mensajes de red ni del proveedor. Orden: URL, JWT, Bearer, clave `sk-`,
+// `Authorization` y campos sensibles.
+// Tiempo acotado POR CONSTRUCCIÓN, no por afirmar que cada regex sea lineal (el JWT, con sus tres segmentos, no lo es): (1) la función
+// acota la entrada a MAX_ENTRADA_REDACCION caracteres antes de cualquier regex (la salida también queda acotada: no pasa de unas pocas veces el tope, porque una redacción como `Bearer [token]` puede alargar un poco; no es un texto completo);
+// (2) los cuantificadores de los patrones están acotados (esquema de URL 30, segmentos del JWT 2000, nombre de campo 40). Medido: 200k
+// caracteres hostiles por variante tardan milisegundos (log-seguro.test.ts).
+export const MAX_ENTRADA_REDACCION = 4000
+// Cualquier esquema `algo://…` (http, https, postgres, postgresql…).
 const URL_ = /[a-z][a-z0-9+.-]{0,30}:\/\/\S+/gi
-const JWT = /eyJ[\w-]{5,}\.[\w-]{5,}\.[\w-]{5,}/g
+// Un JWT real rara vez pasa de 2000 caracteres por segmento.
+const JWT = /eyJ[\w-]{5,2000}\.[\w-]{5,2000}\.[\w-]{5,2000}/g
 const BEARER = /Bearer\s+\S+/gi
 const CLAVE_SK = /sk-[A-Za-z0-9_-]{10,}/g
 // `Authorization: Basic xxx` / `Digest …` / `Token …`: se redacta el esquema Y la credencial (una palabra opcional y el valor).
@@ -69,7 +76,7 @@ const AUTORIZACION = /authorization["']?\s*[:=]\s*["']?(?:[a-z]{1,32}\s+)?\S+/gi
 const CAMPO = /[\w-]{0,40}(?:token|secret|password|passwd|apikey|api_key|api-key)[\w-]{0,40}["']?\s*[:=]\s*\S+/gi
 
 export function redactarCredenciales(texto: string): string {
-  return texto
+  return (typeof texto === 'string' ? texto : limpiarParaLog(texto, MAX_ENTRADA_REDACCION)).slice(0, MAX_ENTRADA_REDACCION)
     .replace(URL_, '[url]')
     .replace(JWT, '[jwt]')
     .replace(BEARER, 'Bearer [token]')

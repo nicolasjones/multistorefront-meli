@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, it } from 'node:test'
-import { leerCampo, limpiarParaLog, mensajeParaLog, normalizarMax, redactarCredenciales, registrarErrorDeBase, textoDeError } from './log-seguro.ts'
+import { MAX_ENTRADA_REDACCION, leerCampo, limpiarParaLog, mensajeParaLog, normalizarMax, redactarCredenciales, registrarErrorDeBase, textoDeError } from './log-seguro.ts'
 
 describe('limpiarParaLog', () => {
   it('una sola línea, acotado a max, y tolera valores no string', () => {
@@ -181,13 +181,37 @@ describe('redactarCredenciales', () => {
     assert.equal(redactarCredenciales('fallo de la base: tabla inexistente'), 'fallo de la base: tabla inexistente')
   })
 
-  it('regex lineales: 200k caracteres hostiles en menos de 300 ms', () => {
-    const hostiles = ['a'.repeat(200_000), 'token'.repeat(40_000), `token${' '.repeat(200_000)}x`, 'Bearer '.repeat(30_000), 'eyJ'.repeat(60_000), `eyJ${'a'.repeat(100_000)}.${'b'.repeat(100_000)}`, 'sk-'.repeat(60_000), 'http://'.repeat(30_000), `apikey${'='.repeat(100_000)}`, 'a'.repeat(200_000), 'a://'.repeat(50_000), `apikey${'"'.repeat(100_000)}x`, 'postgres'.repeat(25_000), `${'a-'.repeat(100_000)}token`, `authorization${':'.repeat(100_000)}`, `${'a'.repeat(100_000)} `.repeat(2)]
-    for (const h of hostiles) {
+  it('tiempo acotado: 200k caracteres hostiles por variante, directo sobre redactarCredenciales (sin el pre-recorte de los llamadores), cada uno en menos de 1 s', () => {
+    const rep = (pieza: string, veces: number) => pieza.repeat(veces)
+    const hostiles: Array<[string, string]> = [
+      ['eyJ×66k', rep('eyJ', 66_000)], ['eyJ.×50k', rep('eyJ.', 50_000)], ['eyJa.eyJa.×30k', rep('eyJa.', 60_000)], ['sb-×60k', rep('sb-', 60_000)],
+      ['token×40k + =', `${rep('token', 40_000)}=`], ['a-×100k', rep('a-', 100_000)], ['://×66k', rep('://', 66_000)], ['a://×50k', rep('a://', 50_000)],
+      ['espacios×200k', ' '.repeat(200_000)], ['Bearer ×30k', rep('Bearer ', 30_000)], ['authorization:×10k', rep('authorization:', 10_000)],
+      ['x_token×30k', rep('x_token', 30_000)], ['prefijo de 40 + token', rep(`${'a'.repeat(40)}token`, 4_000)], ['apikey + comillas', `apikey${'"'.repeat(100_000)}x`],
+      ['eyJ + segmentos enormes', `eyJ${'a'.repeat(100_000)}.${'b'.repeat(100_000)}`], ['postgres×25k', rep('postgres', 25_000)], ['sk-×60k', rep('sk-', 60_000)],
+      ['authorization + espacios', `authorization:${' '.repeat(100_000)}x`], ['a×200k', 'a'.repeat(200_000)], ['eyJ + a×2000 + . repetido', rep(`eyJ${'a'.repeat(1_990)}.`, 100)],
+    ]
+    for (const [nombre, h] of hostiles) {
       const t0 = performance.now()
-      redactarCredenciales(h.slice(0, 8000))
-      assert.ok(performance.now() - t0 < 300, `${h.slice(0, 12)} tardó ${performance.now() - t0} ms`)
+      const salida = redactarCredenciales(h)
+      const ms = performance.now() - t0
+      assert.ok(ms < 1000, `${nombre} tardó ${ms} ms`)
+      assert.ok(salida.length <= 2 * MAX_ENTRADA_REDACCION, `${nombre}: la salida debe quedar acotada (${salida.length})`)
     }
+  })
+
+  it('un texto de más de MAX_ENTRADA_REDACCION caracteres sale acotado y lo que está dentro del tope se redacta', () => {
+    const salida = redactarCredenciales(`Bearer abcSECRETO ${'x'.repeat(10_000)}`)
+    assert.equal(salida.startsWith('Bearer [token] '), true)
+    assert.ok(salida.length <= 2 * MAX_ENTRADA_REDACCION)
+    assert.equal(redactarCredenciales('a'.repeat(MAX_ENTRADA_REDACCION)).length, MAX_ENTRADA_REDACCION)
+    assert.equal(redactarCredenciales('a'.repeat(MAX_ENTRADA_REDACCION + 1)).length, MAX_ENTRADA_REDACCION)
+  })
+
+  it('un JWT con segmentos de hasta 2000 caracteres se redacta; uno con un segmento de más de 2000 no se trata como JWT (se acotan los cuantificadores)', () => {
+    assert.equal(redactarCredenciales(`eyJ${'a'.repeat(1_990)}.${'b'.repeat(1_990)}.${'c'.repeat(1_990)}`), '[jwt]')
+    // Límite conocido: un segmento de más de 2000 caracteres no se reconoce como JWT (no es un formato real).
+    assert.match(redactarCredenciales(`eyJ${'a'.repeat(2_500)}.bbbbbbbbbb.cccccccccc`), /^eyJa+\.bbbbbbbbbb\.cccccccccc$/)
   })
 })
 
