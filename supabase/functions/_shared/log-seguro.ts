@@ -57,7 +57,7 @@ export function textoDeError(error: unknown): string {
 
 // Segunda defensa para mensajes de la base: credenciales y URLs. Cubre estos formatos y NO es exhaustiva (no redacta `AIza…`, `xoxb-…`,
 // `ghp_…` ni base64 sin prefijo): la defensa principal es no imprimir mensajes de red ni del proveedor. Orden: URL, JWT, Bearer, clave `sk-`,
-// `Authorization` y campos sensibles.
+// y campos sensibles (que ocultan el resto del mensaje).
 // Tiempo acotado POR CONSTRUCCIÓN, no por afirmar que cada regex sea lineal (el JWT, con sus tres segmentos, no lo es): (1) la función
 // acota la entrada a MAX_ENTRADA_REDACCION caracteres antes de cualquier regex (la salida también queda acotada: no pasa de unas pocas veces el tope, porque una redacción como `Bearer [token]` puede alargar un poco; no es un texto completo);
 // (2) los cuantificadores de los patrones están acotados (esquema de URL 30, segmentos del JWT 2000, nombre de campo 40). Medido: 200k
@@ -69,11 +69,11 @@ const URL_ = /[a-z][a-z0-9+.-]{0,30}:\/\/\S+/gi
 const JWT = /eyJ[\w-]{5,2000}\.[\w-]{5,2000}\.[\w-]{5,2000}/g
 const BEARER = /Bearer\s+\S+/gi
 const CLAVE_SK = /sk-[A-Za-z0-9_-]{10,}/g
-// `Authorization: Basic xxx` / `Digest …` / `Token …`: se redacta el esquema Y la credencial (una palabra opcional y el valor).
-const AUTORIZACION = /authorization["']?\s*[:=]\s*["']?(?:[a-z]{1,32}\s+)?\S+/gi
-// Campos sensibles, también con el nombre embebido en uno más largo (`sb-access-token`, `x-api-key`, `db_password`); el nombre y el valor
-// pueden ir entre comillas (JSON): {"api_key":"k"}, 'secret': 'x'. Los prefijos y sufijos del nombre se acotan para que sea lineal.
-const CAMPO = /[\w-]{0,40}(?:token|secret|password|passwd|apikey|api_key|api-key)[\w-]{0,40}["']?\s*[:=]\s*\S+/gi
+// Campos sensibles: a partir de la PRIMERA aparición de un nombre sensible seguido de `:` o `=` se oculta TODO lo que sigue hasta el final
+// del mensaje (sobre-redacción deliberada: es diagnóstico, y no se intenta adivinar dónde termina un valor con espacios, comillas o JSON
+// escapado). El nombre puede estar embebido en uno más largo (`sb-access-token`, `x-api-key`, `db_password`) y rodeado de comillas o barras
+// invertidas (`"api_key":`, `\"api_key\":`). Prefijos, sufijos, comillas y espacios se acotan para que el costo sea acotado.
+const CAMPO = /([\w-]{0,40}(?:password|passwd|secret|token|apikey|api_key|api-key|authorization|credential|cookie)[\w-]{0,40}[\\"']{0,4}\s{0,16}[:=])[\s\S]*/i
 
 export function redactarCredenciales(texto: string): string {
   return (typeof texto === 'string' ? texto : limpiarParaLog(texto, MAX_ENTRADA_REDACCION)).slice(0, MAX_ENTRADA_REDACCION)
@@ -81,8 +81,7 @@ export function redactarCredenciales(texto: string): string {
     .replace(JWT, '[jwt]')
     .replace(BEARER, 'Bearer [token]')
     .replace(CLAVE_SK, '[clave]')
-    .replace(AUTORIZACION, '[campo]=[oculto]')
-    .replace(CAMPO, '[campo]=[oculto]')
+    .replace(CAMPO, '$1 [oculto]')
 }
 
 // Mensaje de la base (PostgREST/Postgres) para el log: una línea, credenciales y URLs redactadas y acotado a `max`. La redacción va SIEMPRE

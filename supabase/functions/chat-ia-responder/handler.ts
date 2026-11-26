@@ -175,7 +175,11 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   let conversacionId = body.conversacion_id
   if (conversacionId) {
     const { data: existente, error: existenteError } = await asUser.from('conversaciones_chat_ia').select('id').eq('id', conversacionId).maybeSingle()
-    if (existenteError) return jsonResponse({ error: 'No se pudo verificar la conversación.' }, 503)
+    if (existenteError) {
+      // Error de servidor (la base no respondió): deja log con nombre/código y mensaje redactado, como el resto de los errores de base.
+      registrarErrorDeBase('chat-ia-responder: no se pudo verificar la conversación', existenteError)
+      return jsonResponse({ error: 'No se pudo verificar la conversación.' }, 503)
+    }
     if (!existente) return jsonResponse({ error: 'La conversación no existe.' }, 404)
   }
 

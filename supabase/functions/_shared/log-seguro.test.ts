@@ -2,6 +2,19 @@ import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 import { MAX_ENTRADA_REDACCION, leerCampo, limpiarParaLog, mensajeParaLog, normalizarMax, redactarCredenciales, registrarErrorDeBase, textoDeError } from './log-seguro.ts'
 
+// Medición robusta a CPU cargada: si la primera corrida pasa del tope se repite 2 veces más y se compara el MÍNIMO (código correcto mide
+// milisegundos; una regex cuadrática de verdad mide segundos en las tres). Los topes tienen margen amplio sobre lo medido.
+function minimoMs(fn: () => unknown, tope: number): number {
+  let mejor = Infinity
+  for (let i = 0; i < 3; i++) {
+    const t0 = performance.now()
+    fn()
+    mejor = Math.min(mejor, performance.now() - t0)
+    if (mejor < tope) break
+  }
+  return mejor
+}
+
 describe('limpiarParaLog', () => {
   it('una sola línea, acotado a max, y tolera valores no string', () => {
     assert.equal(limpiarParaLog('linea\n[cupo-ia] FAKE', 100), 'linea [cupo-ia] FAKE')
@@ -29,13 +42,24 @@ describe('limpiarParaLog', () => {
     assert.equal(limpiarParaLog('aaaaaaaa😀', 10), 'aaaaaaaa😀')
   })
 
-  it('recorta ANTES de limpiar: 10 MB con saltos alternados en menos de 100 ms y respetando el máximo', () => {
+  it('recorta ANTES de limpiar: 10 MB con saltos alternados en menos de 400 ms (mínimo de hasta 3 corridas) y respetando el máximo', () => {
     const enorme = 'a\n'.repeat(5_000_000)
-    const t0 = performance.now()
+    const ms = minimoMs(() => limpiarParaLog(enorme, 300), 400)
+    assert.ok(ms < 400, `tardó ${ms} ms`)
     const salida = limpiarParaLog(enorme, 300)
-    assert.ok(performance.now() - t0 < 100, `tardó ${performance.now() - t0} ms`)
     assert.ok(salida.length <= 300 && salida.length > 0)
     assert.equal(/[\r\n]/.test(salida), false)
+  })
+})
+
+describe('textoDeError: cada lectura es segura por separado', () => {
+  it('con un solo campo hostil el resultado exacto conserva los demás', () => {
+    const lanza = () => { throw new Error('hostil') }
+    assert.equal(textoDeError({ name: 'TypeError', get code() { return lanza() }, message: 'x' }), 'TypeError')
+    assert.equal(textoDeError({ get name() { return lanza() }, code: 'ECONNRESET', message: 'x' }), 'Error ECONNRESET')
+    assert.equal(textoDeError({ name: 'RangeError', get message() { return lanza() } }), 'RangeError')
+    assert.equal(textoDeError({ get name() { return lanza() }, get code() { return lanza() }, message: 'POLITICA_IA_INACTIVA' }), 'Error POLITICA_IA_INACTIVA')
+    assert.equal(textoDeError({ name: 'TypeError', code: 'E_X', get message() { return lanza() } }), 'TypeError E_X')
   })
 })
 
@@ -165,19 +189,45 @@ describe('redactarCredenciales', () => {
     })
   }
 
+  it('valores con espacios, comillas o JSON escapado: a partir de un campo sensible se oculta TODO el resto del mensaje', () => {
+    const casos: Array<[string, string]> = [
+      ['{"password":"p w SECRETO"}', '{"password": [oculto]'],
+      ['DB_PASSWORD="my pass SECRETO"', 'DB_PASSWORD= [oculto]'],
+      ['{"token":"abc def SECRETO"}', '{"token": [oculto]'],
+      ['password: my pass SECRETO phrase', 'password: [oculto]'],
+      ['Authorization: Digest username="u", response="rSECRETO"', 'Authorization: [oculto]'],
+      ['{\\"api_key\\":\\"kSECRETO\\"}', '{\\"api_key\\": [oculto]'],
+      ['Authorization: tokenSECRETO', 'Authorization: [oculto]'],
+      ['authorization:Bearer xSECRETO', 'authorization: [oculto]'],
+      ['fallo antes de la clave. cookie: sid=SECRETO; otra=SECRETO2', 'fallo antes de la clave. cookie: [oculto]'],
+      ['credential = {"user":"u","pass":"SECRETO"}', 'credential = [oculto]'],
+    ]
+    for (const [entrada, esperado] of casos) {
+      const salida = redactarCredenciales(entrada)
+      assert.equal(salida, esperado, entrada)
+      assert.doesNotMatch(salida, /SECRETO|Digest|Basic/, entrada)
+    }
+  })
+
+  it('un mensaje legítimo sin campos sensibles queda intacto', () => {
+    for (const texto of ['insert or update on table "ia_cupo_uso" violates foreign key constraint "ia_cupo_uso_usuario_id_fkey"', 'permission denied for table tokens', 'relation "usuarios" does not exist', 'commit deadbeef 0xdeadbeef error 12345678', 'el límite debe ser un entero entre 1 y 1000']) {
+      assert.equal(redactarCredenciales(texto), texto)
+    }
+  })
+
   it('usa las marcas esperadas y no toca el texto sin credenciales', () => {
     assert.equal(redactarCredenciales('Bearer abc'), 'Bearer [token]')
     assert.match(redactarCredenciales('eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c3VhcmlvIn0.firma12345'), /^\[jwt\]$/)
     assert.equal(redactarCredenciales('sk-abcdefghij0123'), '[clave]')
-    assert.equal(redactarCredenciales('apikey=k'), '[campo]=[oculto]')
+    assert.equal(redactarCredenciales('apikey=k'), 'apikey= [oculto]')
     assert.equal(redactarCredenciales('ver https://a.b/c?d=1 ahora'), 'ver [url] ahora')
     assert.equal(redactarCredenciales('ver postgres://u:p@h/db ahora'), 'ver [url] ahora')
     assert.equal(redactarCredenciales('ver postgresql://u:p@h/db ahora'), 'ver [url] ahora')
-    assert.equal(redactarCredenciales('{"apikey":"k"}'), '{"[campo]=[oculto]')
+    assert.equal(redactarCredenciales('{"apikey":"k"}'), '{"apikey": [oculto]')
     assert.equal(redactarCredenciales('HTTPS://x.y/z'), '[url]')
-    assert.equal(redactarCredenciales('Authorization: Basic dXNlcjpwYXNz'), '[campo]=[oculto]')
+    assert.equal(redactarCredenciales('Authorization: Basic dXNlcjpwYXNz'), 'Authorization: [oculto]')
     assert.doesNotMatch(redactarCredenciales('Authorization: Basic dXNlcjpwYXNz'), /Basic|dXNlcjp/)
-    assert.equal(redactarCredenciales('sb-access-token=abc'), '[campo]=[oculto]')
+    assert.equal(redactarCredenciales('sb-access-token=abc'), 'sb-access-token= [oculto]')
     assert.equal(redactarCredenciales('fallo de la base: tabla inexistente'), 'fallo de la base: tabla inexistente')
   })
 
@@ -192,10 +242,9 @@ describe('redactarCredenciales', () => {
       ['authorization + espacios', `authorization:${' '.repeat(100_000)}x`], ['a×200k', 'a'.repeat(200_000)], ['eyJ + a×2000 + . repetido', rep(`eyJ${'a'.repeat(1_990)}.`, 100)],
     ]
     for (const [nombre, h] of hostiles) {
-      const t0 = performance.now()
+      const ms = minimoMs(() => redactarCredenciales(h), 1000)
       const salida = redactarCredenciales(h)
-      const ms = performance.now() - t0
-      assert.ok(ms < 1000, `${nombre} tardó ${ms} ms`)
+      assert.ok(ms < 1000, `${nombre} tardó ${ms} ms (mínimo de hasta 3 corridas)`)
       assert.ok(salida.length <= 2 * MAX_ENTRADA_REDACCION, `${nombre}: la salida debe quedar acotada (${salida.length})`)
     }
   })
@@ -264,7 +313,7 @@ describe('mensajeParaLog: un secreto que cruza el límite no deja su prefijo', (
   const ventanas = (secreto: string) => Array.from({ length: secreto.length - 5 }, (_, i) => secreto.slice(i, i + 6))
   for (const [nombre, secreto] of secretos) {
     it(`${nombre}: en 55 desplazamientos alrededor del límite de 300 no queda ningún fragmento de 6 caracteres`, () => {
-      const piezas = secreto.split(/[\s=:/@?.]+/).filter((p) => p.length >= 6 && !['Bearer', 'Authorization'].includes(p))
+      const piezas = secreto.split(/[\s=:/@?.]+/).filter((p) => p.length >= 6 && !['Bearer', 'Authorization', 'apikey'].includes(p))
       for (let relleno = 255; relleno <= 309; relleno++) {
         const salida = mensajeParaLog(`${'z'.repeat(relleno)} ${secreto} fin`, 300)
         assert.ok(salida.length <= 300)

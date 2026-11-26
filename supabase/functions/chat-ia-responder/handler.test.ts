@@ -512,6 +512,19 @@ describe('preparación de la invocación y credencial', () => {
     assert.doesNotMatch(JSON.stringify(errores), /SECRETO|api\.x/)
   })
 
+  it('con otro stop_reason (end_turn, max_tokens) y bloques tool_use NO se ejecuta ninguna herramienta: se responde el texto', async () => {
+    for (const stop_reason of ['end_turn', 'max_tokens', 'stop_sequence']) {
+      const { res, r, json } = await llamar({
+        respuestas: [{ stop_reason, content: [{ type: 'text', text: 'listo' }, { type: 'tool_use', id: 't1', name: 'ejecutar', input: { rpc: 'ajustar_stock', parametros: { sku: 'A' }, descripcion: 'Ajustar' } }, { type: 'tool_use', id: 't2', name: 'leer', input: { vista: 'v' } }] }],
+      })
+      assert.equal(res.status, 200, stop_reason)
+      assert.deepEqual(json, { conversacion_id: CONV, respuesta: 'listo' }, stop_reason)
+      assert.equal(r.pedidos.length, 1, stop_reason)
+      assert.equal(r.rpcUsuario.some(([n]) => n === 'proponer_accion_chat_ia' || n === 'puede_chat_leer_funcionalidad'), false, stop_reason)
+      assert.equal(r.consultas.some((c) => c.tabla === 'fuentes_chat_ia'), false, stop_reason)
+    }
+  })
+
   it('un error hostil del proveedor (getter o Proxy que lanza) sigue dando el 502 previsto, sin lanzar desde el catch', async () => {
     const conGetter = (campo: string) => Object.defineProperty(new Error('x'), campo, { get() { throw new Error('getter') } })
     const hostiles: Error[] = [conGetter('name'), conGetter('message'), conGetter('code'), new Proxy(new Error('x'), { get() { throw new Error('proxy') } })]
@@ -572,7 +585,6 @@ describe('preparación de la invocación y credencial', () => {
       [403, () => llamar({ jwtValido: false })],
       [403, () => llamar({}, { mensaje: 'hola' }, pedir({ mensaje: 'hola' }, { auth: null }))],
       [400, () => llamar({}, undefined, pedir(undefined, { metodo: 'GET' }))],
-      [503, () => llamar({ existente: { data: null, error: { message: 'detalle-interno' } } }, { mensaje: 'hola', conversacion_id: CONV })],
       [400, () => llamar({}, { mensaje: '' })],
       [400, () => llamar({}, { mensaje: 'x'.repeat(4001) })],
       [400, () => llamar({}, { mensaje: 'hola', conversacion_id: 'no-uuid' })],
@@ -588,6 +600,15 @@ describe('preparación de la invocación y credencial', () => {
       assert.equal(res.status, estado)
       assert.deepEqual(errores, [], `estado ${estado}`)
     }
+  })
+
+  it('un error al verificar la conversación (503) deja log con código y mensaje redactado, sin proveedor ni cupo', async () => {
+    const { res, r, json } = await llamar({ existente: { data: null, error: { code: '57014', message: 'timeout Bearer SECRETO' } } }, { mensaje: 'hola', conversacion_id: CONV })
+    assert.equal(res.status, 503)
+    assert.deepEqual(json, { error: 'No se pudo verificar la conversación.' })
+    assert.deepEqual(errores, [['chat-ia-responder: no se pudo verificar la conversación', '57014', 'timeout Bearer [token]']])
+    assert.equal(r.pedidos.length, 0)
+    assert.equal(r.rpcAdmin.some(([n]) => n === 'consumir_cupo_ia'), false)
   })
 
   it('prepararInvocacion: solo los códigos de política/perfil mal configurados dejan log; los errores del cliente no', async () => {
