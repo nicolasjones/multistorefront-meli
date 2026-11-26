@@ -962,9 +962,9 @@
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
-      "pageHash": "e76fcfd3f658680346cbcb70a46b6b2fa5fe469130a9c33c90a6d035ecd540c1",
+      "pageHash": "e0966f33ade12e5ba8f48bd7b2d2e36af31f9ac6cf101fe857344e47227d879f",
       "sourceHash": "ce4a5c2c0a6f919ce73aab65841eb29087ad04a8666e421bfc196f605fbbd869",
-      "sourceAt": "3b6f0ee63",
+      "sourceAt": "133007d44",
       "sources": [
         "specs/20261005-document-rag-mechanism",
         "apps/web/src/lib/documentosIa.ts",
@@ -980,7 +980,7 @@
         "supabase/functions/indexar-documento/consultas.ts"
       ],
       "owner": "tecnico",
-      "commit": "3b6f0ee63"
+      "commit": "133007d44"
     },
     "docs/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)",
@@ -1154,9 +1154,9 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "4c2b2007cf2846af75b34d94b216f9aab0a00c2868999edd1ea230547f297ab8",
-      "sourceHash": "d4a75c941397e1556c23daf0526b3545096cad42783f9a46732ec3ffb52fae42",
-      "sourceAt": "d913fd8e9",
+      "pageHash": "327d7794eadab9946d84adcda0060285fef5e3ea14ae14acb1c1a183114be740",
+      "sourceHash": "440aa352e718555d69850d87e0922ada9b64e597efd240e2e550b56aff65fe82",
+      "sourceAt": "133007d44",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/chat-ia-responder/handler.ts",
@@ -1181,7 +1181,7 @@
         "infra/kestra/flows/correo-masivo.yml"
       ],
       "owner": "plataforma",
-      "commit": "d913fd8e9"
+      "commit": "133007d44"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",
