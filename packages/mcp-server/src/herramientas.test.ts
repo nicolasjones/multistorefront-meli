@@ -194,14 +194,15 @@ describe('ejecutar_*', () => {
     expect(r2.content[0].text).toBe('ERROR_AL_EJECUTAR')
   })
 
-  it('vence las ejecuciones abandonadas antes de iniciar y avisa si no puede finalizar', async () => {
+  it('no vence ejecuciones desde el cliente (lo hace iniciar_ejecucion_mcp) y avisa si no puede finalizar', async () => {
     const m = montar({ finalizarError: true })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await registrarHerramientas(m.servidor as any, m.conexion)
     const consola = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const r = await m.ejecutar()
-    expect(m.vencimientos).toHaveLength(1)
-    expect(m.vencimientos[0]).toMatchObject({ estado: 'fallida', motivo_error: 'vencida' })
+    // El vencimiento ya no lo hace el servidor TS: vive en iniciar_ejecucion_mcp (SQL) y el cliente no toca ejecuciones_mcp.
+    expect(m.vencimientos).toHaveLength(0)
+    expect(m.llamadas.map((l) => l.nombre)).toEqual(['puede_mcp_ejecutar_funcionalidad', 'iniciar_ejecucion_mcp', 'rpc_x', 'finalizar_ejecucion_mcp'])
     expect(consola).toHaveBeenCalledWith('mcp: no se pudo finalizar la ejecución', 'ej-1', 'boom')
     expect(r.isError).toBeUndefined()
     consola.mockRestore()

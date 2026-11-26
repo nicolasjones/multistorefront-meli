@@ -8,6 +8,7 @@ sources:
   - supabase/functions/indexar-documento/handler.ts
   - supabase/functions/indexar-documento/consultas.ts
   - supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql
+  - supabase/migrations/20270507800000_endurecer_rag_mcp_y_chat_columnas.sql
   - supabase/functions/enviar-correo-proveedor/handler.ts
   - supabase/functions/_shared/embeddings.ts
   - supabase/functions/_shared/fetch-ia.ts
@@ -23,8 +24,9 @@ sources:
 # Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)
 
 Qué se corrigió de los hallazgos MSF-727 a MSF-732 y MSF-711, qué ya estaba resuelto y qué queda pendiente
-(con su propuesta). Ninguna corrección de este lote toca la base: lo que exige una migración figura en
-«Pendientes».
+(con su propuesta). Las correcciones del lote 25 no tocaron la base: lo que exigía una migración quedó en «Pendientes». El lote 89
+(migración `20270507800000_endurecer_rag_mcp_y_chat_columnas.sql`) cerró tres de esos pendientes de MSF-728, MSF-729 y
+MSF-730; ver «Lote 89» al final.
 
 ## Funciones de IA: nada de crédito sin verificar (MSF-727)
 
@@ -51,7 +53,7 @@ Qué se corrigió de los hallazgos MSF-727 a MSF-732 y MSF-711, qué ya estaba r
   turno; las sobrantes reciben un error corto) en vez de dar 400 en la segunda llamada al proveedor.
 - La propuesta de acción guarda lo que se ejecutaría de verdad: nombre de la acción y parámetros, más la descripción
   del asistente marcada «no verificada». Quien confirma ya ve los parámetros reales.
-- `leer`: los filtros elegidos por el modelo se validan (identificadores simples, valores escalares, hasta 8), las
+- `leer`: si la fuente define `fuentes_chat_ia.columnas` solo se piden esas columnas (ver «Lote 89»); los filtros elegidos por el modelo se validan (identificadores simples, valores escalares, hasta 8), las
   columnas con nombre de secreto se quitan (`sanitizarDato`) y el resultado viaja marcado como dato no confiable.
 - Ya estaba resuelto antes del lote: tope de 50 filas (`limites.ts`) y creación de la propuesta por RPC
   (`proponer_accion_chat_ia`, MSF-724).
@@ -141,7 +143,7 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
   responde **403** y, si quien invoca es quien subió o administrador, deja la versión `fallida` con un motivo claro; en
   otro caso solo suelta la reclamación, sin marcar ni borrar nada.
 - Errores transitorios (proveedor, descarga, base) **sueltan la reclamación y dejan la versión `procesando`**; la
-  función responde 502/503/500. **No hay reintento ni barrido automático.** El reintento es **manual**: la pantalla de
+  función responde 502/503/500. **No hay reintento automático ni barrido agendado** (existe `liberar_versiones_documento_atascadas`, sin agendar; ver «Lote 89»). El reintento es **manual**: la pantalla de
   Documentos IA marca como «Se interrumpió el procesamiento» toda versión que sigue `procesando` pasados 15 minutos
   desde su subida y ofrece el botón **Reintentar**, que vuelve a invocar `indexar-documento` para esa misma versión
   (los fragmentos del intento previo se borran antes de insertar). El botón solo aparece para quien subió la versión o un administrador. Si el backend responde 403, 422 o 502, el mensaje
@@ -166,7 +168,7 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
 Detalle en `packages/mcp-server/CONTRATO.md`, sección «Robustez del servidor». El MSF-677 (#1091) ya había resuelto la
 revalidación de credencial por solicitud. Este lote agrega: `try/catch` del handler HTTP (500 genérico, el proceso no
 muere), nombres de herramienta únicos cuando una funcionalidad tiene varias vistas o acciones, vencimiento de
-ejecuciones `en_curso` abandonadas (10 minutos, `MCP_EJECUCION_VENCE_MIN`), mensajes genéricos al cliente externo y un
+ejecuciones `en_curso` abandonadas (10 minutos; desde el lote 89 el vencimiento vive en `iniciar_ejecucion_mcp`, SQL), mensajes genéricos al cliente externo y un
 override de organización que une el criterio histórico (sufijo `organizacion_id`, p. ej. `proveedor_organizacion_id`) con variantes normalizadas (`organizacionId`, `org_id`, `p_organizacion_id`...).
 
 ## Deudas menores (MSF-732)
@@ -203,15 +205,14 @@ override de organización que une el criterio histórico (sufijo `organizacion_i
 
 | Pendiente | Por qué no se hizo | Propuesta |
 |---|---|---|
-| Barrido automático de versiones `procesando` de `indexar-documento` | Necesita migración | Función `private.cerrar_versiones_documento_colgadas(p_horas int default 6)` que pase a `fallida` (motivo «Se interrumpió el procesamiento») las `procesando` con más de N horas, programada con pg_cron o un flow de Kestra; hoy solo hay reintento manual |
+| Agendar el barrido de versiones `procesando` de `indexar-documento` (MSF-728) | La función ya existe (lote 89) pero no está agendada | Un flow de Kestra o pg_cron que llame `public.liberar_versiones_documento_atascadas(30)` con service_role; considerar que la pantalla ofrece «Reintentar» a los 15 minutos y que tras el barrido la versión queda `fallida` (hay que volver a subir el archivo) |
 | Tope persistente de uso de IA y de correos por usuario/organización (MSF-727, MSF-731) | Necesita una tabla y definir los topes por plan | `uso_funciones_edge(usuario_id, organizacion_id, funcion, creado_en)` con RLS, RPC `consumir_cupo_funcion(p_funcion, p_max, p_ventana)` que cuente e inserte en una transacción; reemplaza `_shared/limite-memoria.ts`. Topes por defecto: chat 60/h, preguntas 30/h, correos a proveedor 20/h (los de este lote). Decidir si el tope es por usuario, por organización o por ambos |
 | Historial persistente de envíos a proveedores (MSF-731) | Tabla nueva | `dominio.proveedores_correos_enviados(id, organizacion_id, proveedor_id, usuario_id, asunto, creado_en, resultado)` con RLS por organización y lectura con `proveedores`; la función la escribe con la sesión del usuario |
 | El tope del chat se elude borrando mensajes (MSF-727) | Revocar `DELETE` o mover el contador exige migración (no hay en este lote) | Opción A: `revoke delete on mensajes_chat_ia from authenticated` y una RPC `borrar_conversacion_chat_ia` que archive en vez de borrar. Opción B (preferida, y la misma tabla del tope persistente): `uso_funciones_edge` sin `DELETE` para el usuario, y que el chat cuente ahí |
-| El override de organización del MCP es por nombre de parámetro (MSF-729) | No cubre `id_organizacion`, `tenant_id`, `empresa_id` | El wrapper SQL por acción (fila de arriba) es la solución de fondo; abrir ticket y no registrar acciones con esos parámetros hasta tenerlo |
-| Lista negra de columnas secretas en `sanitizarDato` (MSF-730) | Es por nombre, ampliada pero no exhaustiva | La lista permitida por vista (`columnas`, fila siguiente) es el control real; priorizarla |
-| Columnas permitidas por vista en el chat (MSF-730) | `fuentes_chat_ia` no tiene la columna | `alter table fuentes_chat_ia add column columnas text[]`; `leer` hace `select(columnas.join(','))` y rechaza si es nula |
-| Índice único `(version_id, orden)` y estado `indexando` en `versiones_documento` (MSF-728) | Migración | `create unique index … on fragmentos_indexados (version_id, orden)`; ampliar el `check` de estado con `indexando` y que `activar_version_documento` acepte `indexando`. Con eso el candado deja de usar `motivo_error` |
-| `feature_id` único o nombres por vista/RPC en `fuentes_mcp` / `acciones_mcp`; wrapper SQL por acción que inyecte la organización desde la credencial; vencimiento dentro de `iniciar_ejecucion_mcp` (MSF-729) | Migración y decisión de modelo | Wrapper `private.ejecutar_accion_mcp(p_credencial_id, p_rpc, p_parametros)` que resuelva la organización por la credencial y llame a la RPC registrada; mover el vencimiento (hoy en TypeScript) a SQL |
+| El override de organización del MCP es por nombre de parámetro (MSF-729) | No cubre `id_organizacion`, `tenant_id`, `empresa_id` | El wrapper SQL por acción (fila anterior) es la solución de fondo; abrir ticket y no registrar acciones con esos parámetros hasta tenerlo |
+| Lista negra de columnas secretas en `sanitizarDato` (MSF-730) | Es por nombre, ampliada pero no exhaustiva | La lista permitida por vista (`fuentes_chat_ia.columnas`, lote 89) es el control real; cargarla en cada fuente registrada |
+| Estado `indexando` en `versiones_documento` (MSF-728) | Migración y cambio de `activar_version_documento` | Ampliar el `check` de estado con `indexando` y que `activar_version_documento` lo acepte; con eso el candado deja de usar `motivo_error` (el índice único `(version_id, orden)` ya existe, lote 89) |
+| Wrapper SQL por acción del MCP que inyecte la organización desde la credencial (MSF-729) | Riesgo latente: no hay acciones registradas en `acciones_mcp`; decisión de modelo | Wrapper `private.ejecutar_accion_mcp(p_credencial_id, p_rpc, p_parametros)` que resuelva la organización por la credencial y llame a la RPC registrada; no registrar acciones hasta tenerlo (el `feature_id` único y el vencimiento en SQL ya están, lote 89) |
 | `invitar-miembro` recorre todos los usuarios de Auth (MSF-732) | Necesita una RPC sobre `auth.users` | `private.usuario_auth_por_correo(p_correo)` (`security definer`, solo `service_role`) con un índice por `lower(email)` |
 | Pedidos de `recuperar-clave-cliente` descartados en silencio (MSF-731) | Decisión de diseño | Contar por IP/host además de correo y responder siempre igual; no se puede evitar que 3 pedidos bloqueen 10 minutos al cliente sin un límite por IP |
 | `Access-Control-Allow-Origin: *` en las funciones llamadas desde el navegador | Son llamadas por el panel | Restringir al origen del panel (`APP_URL`) cuando se decida el esquema de orígenes por ambiente |
@@ -222,3 +223,76 @@ override de organización que une el criterio histórico (sufijo `organizacion_i
 `pnpm test:edge:indexar-documento`, `pnpm test:edge:compartido-ia`, `pnpm test:edge:chat-ia-limites`, `pnpm test:edge:chat-ia-responder`,
 `pnpm test:edge:enviar-correo-proveedor`, `pnpm test:edge:crear-organizacion`, `pnpm test:edge:emitir-acceso-reporte`, `pnpm test:edge:iniciar-sesion-oauth`,
 `pnpm test:kestra:correo-masivo`, `pnpm --filter @platform/mcp-server test` y `pnpm --filter @platform/ia test`.
+
+## Lote 89: unicidad, barrido, vencimiento en SQL y columnas permitidas (MSF-728, MSF-729, MSF-730)
+
+Una sola migración, `20270507800000_endurecer_rag_mcp_y_chat_columnas.sql` (reaplicable; reversión documentada en el propio
+archivo). Prueba: `supabase/tests/database/lote89_endurecer_rag_mcp_y_chat_columnas.test.sql`.
+
+**Reversión: advertencia.** Revertir esta migración REABRE el hueco de aislamiento entre organizaciones de MSF-728: con las políticas
+viejas de `fragmentos_indexados` (20270507180400) un escritor puede insertar o mover fragmentos propios a una versión de otra organización, y con
+el `insertar_fragmentos_si_dueno` viejo se pierde la deduplicación y el `do update`. Es solo un paso transitorio: requiere una decisión
+explícita y volver a aplicar una migración equivalente cuanto antes. Los pasos están en el encabezado de la migración (se copian solo los
+bloques de función y política, no los archivos completos).
+
+**Orden de despliegue:** aplicar la migración ANTES de desplegar `chat-ia-responder`. El handler selecciona `fuentes_chat_ia.columnas`;
+si la función sale primero, esa columna no existe y toda lectura del chat responde `FUENTE_NO_DISPONIBLE` (falla cerrado, pero el chat
+deja de leer datos hasta aplicar la migración).
+
+- **Fragmentos únicos por `(version_id, orden)`** (`fragmentos_indexados_version_orden_uidx`).
+  - *Aislamiento entre organizaciones.* Las políticas INSERT y UPDATE de `authenticated` solo exigían
+    `organizacion_id = organización del usuario`: quien conociera el UUID de una versión de otra organización podía insertar ahí un
+    fragmento propio y, con el índice único, ocupar un `orden` de la versión ajena. Ahora además la versión debe pertenecer a la
+    organización del fragmento (versión, documento, organización); siguen exigiendo `private.puede_gestionar_documentos()`.
+  - *Deduplicación previa.* `private.deduplicar_fragmentos_indexados()` primero borra todo fragmento cuya organización no es la dueña
+    de su versión y recién después, entre los repetidos de la dueña (indistinguibles: mismo contenido), conserva el de menor `id`
+    (uuid aleatorio: determinista, no cronológico).
+  - *Conflicto.* `insertar_fragmentos_si_dueno` rechaza con 22023 «p_filas tiene valores de orden repetidos» y, ante un conflicto
+    `(version_id, orden)` con una fila ya guardada, la actualiza (`do update`: texto, embedding y organización) con lo recibido. Decisión:
+    el dueño con el reclamo vigente es la fuente de verdad; un reintento con las mismas filas es idempotente y una fila vieja o ajena
+    con otro contenido nunca queda en silencio (con `do nothing` la versión se activaba con un hueco). Devuelve `true` si era dueña.
+    `indexar-documento/handler.ts` no cambia (ya borraba los fragmentos del intento previo antes de insertar).
+- **Aplicar en producción (bloqueo).** `create unique index` dentro de la migración no es `concurrently`: toma un lock SHARE sobre
+  `fragmentos_indexados` (bloquea INSERT/UPDATE/DELETE durante la construcción; la tabla tiene además el índice HNSW del vector) y la
+  deduplicación recorre la tabla entera. La tabla crece ~1 fila por 1200 caracteres de documento. Aplicar en una ventana sin
+  indexaciones y sin Documentos IA en uso; medir antes con `select count(*) from public.fragmentos_indexados;` y buscar repetidos con
+  `select version_id, orden, count(*) from public.fragmentos_indexados group by 1, 2 having count(*) > 1;`. Si la tabla es grande y no hay
+  ventana, hacerlo en caliente antes de la migración: (1) borrar a mano los repetidos y los fragmentos de otra organización en tandas
+  (la lógica es la de `private.deduplicar_fragmentos_indexados`); (2) `create unique index concurrently if not exists
+  fragmentos_indexados_version_orden_uidx on public.fragmentos_indexados (version_id, orden);` fuera de una transacción;
+  (3) **verificar que quedó válido**: `select indisvalid from pg_index where indexrelid = 'public.fragmentos_indexados_version_orden_uidx'::regclass;`
+  debe dar `true`. Un `create unique index concurrently` que falla (p. ej. por un repetido nuevo) deja un índice INVALID con ese nombre; si
+  `indisvalid` es `false`, `drop index concurrently public.fragmentos_indexados_version_orden_uidx;` y repetir desde (1); (4) aplicar la
+  migración, cuyo `create unique index if not exists` ya no hace nada y cuya deduplicación no encuentra filas. Como red de seguridad, la
+  migración llama a `private.exigir_indice_fragmentos_valido()` (que usa `private.exigir_indice_valido(regclass)`) y aborta (55000) con esa
+  misma instrucción si el índice existe pero es INVALID. La prueba `lote89b_indice_invalido.test.sql` provoca un `create unique index
+  concurrently` fallido de verdad sobre una tabla scratch (fuera de transacción, sin superusuario) y la limpia al terminar; la tabla nace con clave primaria,
+  RLS y una política explícita para que, si la prueba se corta a mitad, el residuo no haga fallar los tests globales de higiene. Un índice inexistente
+  (parámetro nulo) aborta con 42704 en vez de pasar en silencio.
+- **Barrido de versiones atascadas, sin agendar.** `public.liberar_versiones_documento_atascadas(p_minutos int default 30)`
+  (envoltorio de `private.…`, `security definer`, `search_path=''`, solo `service_role`) marca `fallida`, con el motivo «Se
+  interrumpió el procesamiento: más de N minutos sin completarse. Subí el archivo de nuevo.», toda versión `procesando` subida
+  hace más de N minutos y sin candado de indexación vigente (`indexando:<ms>:<id>` de menos de 10 minutos, el mismo
+  vencimiento del handler; un candado ilegible o con un instante en el futuro, de más de un minuto, no protege) y borra sus
+  fragmentos huérfanos. Devuelve cuántas marcó; es idempotente. `p_minutos` nulo o menor que 1: 22023. Se invoca a mano, p. ej.
+  `select public.liberar_versiones_documento_atascadas(30);` con service_role; **agendarla (Kestra o pg_cron) queda como seguimiento**:
+  la pantalla ofrece «Reintentar» a los 15 minutos, así que conviene un N mayor y recordar que después del barrido la versión solo se
+  recupera subiendo el archivo de nuevo.
+- **MCP: una fila por funcionalidad** en `fuentes_mcp` y `acciones_mcp` (índices únicos por `feature_id`;
+  `private.mcp_leer_fila` resuelve una sola vista por funcionalidad y el candado de ejecución es por credencial y funcionalidad).
+  Son tablas de seguridad: si ya existen funcionalidades con varias filas, la migración **aborta** (23505) con un mensaje que las
+  nombra («fuentes_mcp tiene más de una fila por feature_id (…): dejá una sola por funcionalidad y reaplicá la migración») y un
+  superadmin debe dejar la fila correcta; no se borra ni se elige ninguna en silencio. `fuentes_chat_ia` no cambia: el chat parte de
+  la vista. El nombrado por vista/RPC del servidor TypeScript se mantiene como defensa.
+- **MCP: vencimiento en SQL.** `private.iniciar_ejecucion_mcp` pasa a `fallida` / `vencida` las ejecuciones `en_curso` de esa
+  credencial y funcionalidad (solo esas: probado con otra credencial y con otra funcionalidad) con más de
+  `private.ejecucion_mcp_vence_min()` minutos (10) antes de poner el candado, en la misma transacción. El servidor TypeScript ya no
+  toca `ejecuciones_mcp` y la variable `MCP_EJECUCION_VENCE_MIN` se retiró. Misma firma y ACL. **No se creó** el wrapper
+  `ejecutar_accion_mcp`: sigue pendiente (riesgo latente, no hay acciones registradas).
+- **Chat: columnas permitidas por vista.** `fuentes_chat_ia.columnas text[]` (nullable). Con `NULL` `leer` conserva
+  `select *` y acepta cualquier filtro válido (las fuentes existentes, p. ej. `ia_consulta_*`, no cambian); si está definida pide solo
+  esas columnas y **solo admite filtros sobre ellas** (`FILTROS_INVALIDOS` si no: filtrar por una columna no entregada sería un
+  oráculo). La base exige de 1 a 50 identificadores `[a-z0-9_]` sin nulos, vacíos ni repetidos (CHECK `fuentes_chat_ia_columnas_validas`)
+  y `handler.ts` lo vuelve a validar (`columnasParaSelect`, mismo criterio): una lista inválida responde `FUENTE_NO_DISPONIBLE` sin
+  consultar la vista. No se intersecta con las columnas reales (exigiría otra consulta): una columna inexistente da `ERROR_AL_LEER`.
+  `sanitizarDato` sigue quitando columnas con nombre de secreto. El contrato HTTP no cambia.

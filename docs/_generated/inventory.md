@@ -4,7 +4,7 @@
 
 - Rutas del panel: **276**
 - Tablas en migraciones: **207**
-- Variables de entorno: **111**
+- Variables de entorno: **112**
 - Specs: **160**
 - Páginas de documentación: **347**
 
@@ -570,6 +570,7 @@
 - `RESPALDOS_VERIFICAR_TABLAS`
 - `RUNNER_CPU_LIMIT`
 - `RUNNER_MEMORY_LIMIT`
+- `RUNNER_PIDS_LIMIT`
 - `RUNNER_PNPM_NETWORK_CONCURRENCY`
 - `RUNNER_PNPM_STORE_VOLUME`
 - `RUNNER_REPLICAS`
