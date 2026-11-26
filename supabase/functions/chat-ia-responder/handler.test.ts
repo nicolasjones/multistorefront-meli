@@ -495,6 +495,31 @@ describe('ciclo Anthropic', () => {
     assert.deepEqual(r.consultas.find((c) => c.tabla === 'v_stock')!.ops, [['select', 'sku,stock_disponible'], ['limit', 51], ['eq', 'sku', 'A']])
   })
 
+  it('leer con columnas definidas admite filtros solo sobre columnas permitidas', async () => {
+    const { r } = await llamar({
+      fuente: { data: { feature_id: 'inventario', columnas: ['sku', 'nombre'] }, error: null },
+      respuestas: [usoAnthropic({ id: 't1', name: 'leer', input: { vista: 'v_stock', filtros: { sku: 'A', nombre: 'x' } } }), textoAnthropic('fin')],
+    })
+    assert.deepEqual(r.consultas.find((c) => c.tabla === 'v_stock')!.ops, [['select', 'sku,nombre'], ['limit', 51], ['eq', 'sku', 'A'], ['eq', 'nombre', 'x']])
+  })
+
+  it('leer con columnas definidas rechaza filtros sobre una columna no autorizada sin consultar la vista (no es un oráculo)', async () => {
+    const { r } = await llamar({
+      fuente: { data: { feature_id: 'inventario', columnas: ['sku'] }, error: null },
+      respuestas: [usoAnthropic({ id: 't1', name: 'leer', input: { vista: 'v_stock', filtros: { sku: 'A', costo: 10 } } }), textoAnthropic('fin')],
+    })
+    assert.match(cuerpoProveedor(r, 1).messages[2].content[0].content as string, /FILTROS_INVALIDOS/)
+    assert.equal(r.consultas.some((c) => c.tabla === 'v_stock'), false)
+  })
+
+  it('leer con columnas NULL admite cualquier filtro válido (comportamiento anterior)', async () => {
+    const { r } = await llamar({
+      fuente: { data: { feature_id: 'inventario', columnas: null }, error: null },
+      respuestas: [usoAnthropic({ id: 't1', name: 'leer', input: { vista: 'v_stock', filtros: { costo: 10 } } }), textoAnthropic('fin')],
+    })
+    assert.deepEqual(r.consultas.find((c) => c.tabla === 'v_stock')!.ops, [['select', '*'], ['limit', 51], ['eq', 'costo', 10]])
+  })
+
   it('leer con columnas NULL conserva select * (fuentes existentes)', async () => {
     const { r } = await llamar({
       fuente: { data: { feature_id: 'inventario', columnas: null }, error: null },

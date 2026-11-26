@@ -269,6 +269,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     // se mantiene `*` (fuentes existentes). Una lista inválida falla cerrado.
     const columnas = columnasParaSelect((fuente as { columnas?: unknown }).columnas)
     if (!columnas.ok) return { error: 'FUENTE_NO_DISPONIBLE' }
+    // Con columnas definidas, tampoco se filtra por columnas no autorizadas (serviría de oráculo sobre datos que no se entregan).
+    if (columnas.permitidas && Object.keys(seguros.filtros).some((clave) => !columnas.permitidas!.includes(clave))) return { error: 'FILTROS_INVALIDOS' }
     let query = asUser.from(vista).select(columnas.seleccion).limit(TOPE_FILAS_CONSULTA + 1)
     for (const [clave, valor] of Object.entries(seguros.filtros)) query = query.eq(clave, valor)
     const { data: filasLeidas, error } = await query

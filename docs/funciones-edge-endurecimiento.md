@@ -226,33 +226,59 @@ override de organización que une el criterio histórico (sufijo `organizacion_i
 
 ## Lote 89: unicidad, barrido, vencimiento en SQL y columnas permitidas (MSF-728, MSF-729, MSF-730)
 
-Una sola migración, `20270507800000_endurecer_rag_mcp_y_chat_columnas.sql` (aditiva y reaplicable; reversión documentada en el
-propio archivo). Prueba: `supabase/tests/database/lote80_endurecer_rag_mcp_y_chat_columnas.test.sql`.
+Una sola migración, `20270507800000_endurecer_rag_mcp_y_chat_columnas.sql` (reaplicable; reversión documentada en el propio
+archivo). Prueba: `supabase/tests/database/lote89_endurecer_rag_mcp_y_chat_columnas.test.sql`.
 
-- **Fragmentos únicos por `(version_id, orden)`** (`fragmentos_indexados_version_orden_uidx`). Antes de crear el índice la
-  migración llama a `private.deduplicar_fragmentos_indexados()`: de cada grupo repetido conserva el fragmento de menor `id` y
-  borra el resto. `insertar_fragmentos_si_dueno` inserta con `on conflict (version_id, orden) do nothing`: un reintento que
-  repite filas no falla ni duplica, y la función sigue devolviendo `true` si era dueña. `indexar-documento/handler.ts` no cambia
-  (ya borraba los fragmentos del intento previo antes de insertar).
+**Orden de despliegue:** aplicar la migración ANTES de desplegar `chat-ia-responder`. El handler selecciona `fuentes_chat_ia.columnas`;
+si la función sale primero, esa columna no existe y toda lectura del chat responde `FUENTE_NO_DISPONIBLE` (falla cerrado, pero el chat
+deja de leer datos hasta aplicar la migración).
+
+- **Fragmentos únicos por `(version_id, orden)`** (`fragmentos_indexados_version_orden_uidx`).
+  - *Aislamiento entre organizaciones.* Las políticas INSERT y UPDATE de `authenticated` solo exigían
+    `organizacion_id = organización del usuario`: quien conociera el UUID de una versión de otra organización podía insertar ahí un
+    fragmento propio y, con el índice único, ocupar un `orden` de la versión ajena. Ahora además la versión debe pertenecer a la
+    organización del fragmento (versión, documento, organización); siguen exigiendo `private.puede_gestionar_documentos()`.
+  - *Deduplicación previa.* `private.deduplicar_fragmentos_indexados()` primero borra todo fragmento cuya organización no es la dueña
+    de su versión y recién después, entre los repetidos de la dueña (indistinguibles: mismo contenido), conserva el de menor `id`
+    (uuid aleatorio: determinista, no cronológico).
+  - *Conflicto.* `insertar_fragmentos_si_dueno` rechaza con 22023 «p_filas tiene valores de orden repetidos» y, ante un conflicto
+    `(version_id, orden)` con una fila ya guardada, la actualiza (`do update`: texto, embedding y organización) con lo recibido. Decisión:
+    el dueño con el reclamo vigente es la fuente de verdad; un reintento con las mismas filas es idempotente y una fila vieja o ajena
+    con otro contenido nunca queda en silencio (con `do nothing` la versión se activaba con un hueco). Devuelve `true` si era dueña.
+    `indexar-documento/handler.ts` no cambia (ya borraba los fragmentos del intento previo antes de insertar).
+- **Aplicar en producción (bloqueo).** `create unique index` dentro de la migración no es `concurrently`: toma un lock SHARE sobre
+  `fragmentos_indexados` (bloquea INSERT/UPDATE/DELETE durante la construcción; la tabla tiene además el índice HNSW del vector) y la
+  deduplicación recorre la tabla entera. La tabla crece ~1 fila por 1200 caracteres de documento. Aplicar en una ventana sin
+  indexaciones y sin Documentos IA en uso; medir antes con `select count(*) from public.fragmentos_indexados;` y buscar repetidos con
+  `select version_id, orden, count(*) from public.fragmentos_indexados group by 1, 2 having count(*) > 1;`. Si la tabla es grande y no hay
+  ventana, hacerlo en caliente antes de la migración: (1) borrar a mano los repetidos y los fragmentos de otra organización en tandas
+  (la lógica es la de `private.deduplicar_fragmentos_indexados`); (2) `create unique index concurrently if not exists
+  fragmentos_indexados_version_orden_uidx on public.fragmentos_indexados (version_id, orden);` fuera de una transacción; (3) aplicar la
+  migración, cuyo `create unique index if not exists` ya no hace nada y cuya deduplicación no encuentra filas.
 - **Barrido de versiones atascadas, sin agendar.** `public.liberar_versiones_documento_atascadas(p_minutos int default 30)`
   (envoltorio de `private.…`, `security definer`, `search_path=''`, solo `service_role`) marca `fallida`, con el motivo «Se
   interrumpió el procesamiento: más de N minutos sin completarse. Subí el archivo de nuevo.», toda versión `procesando` subida
   hace más de N minutos y sin candado de indexación vigente (`indexando:<ms>:<id>` de menos de 10 minutos, el mismo
-  vencimiento del handler; un candado ilegible no protege) y borra sus fragmentos huérfanos. Devuelve cuántas marcó; es
-  idempotente. `p_minutos` nulo o menor que 1: 22023. Se invoca a mano, p. ej. `select public.liberar_versiones_documento_atascadas(30);`
-  con service_role; **agendarla (Kestra o pg_cron) queda como seguimiento**: la pantalla ofrece «Reintentar» a los 15 minutos,
-  así que conviene un N mayor y recordar que después del barrido la versión solo se recupera subiendo el archivo de nuevo.
+  vencimiento del handler; un candado ilegible o con un instante en el futuro, de más de un minuto, no protege) y borra sus
+  fragmentos huérfanos. Devuelve cuántas marcó; es idempotente. `p_minutos` nulo o menor que 1: 22023. Se invoca a mano, p. ej.
+  `select public.liberar_versiones_documento_atascadas(30);` con service_role; **agendarla (Kestra o pg_cron) queda como seguimiento**:
+  la pantalla ofrece «Reintentar» a los 15 minutos, así que conviene un N mayor y recordar que después del barrido la versión solo se
+  recupera subiendo el archivo de nuevo.
 - **MCP: una fila por funcionalidad** en `fuentes_mcp` y `acciones_mcp` (índices únicos por `feature_id`;
   `private.mcp_leer_fila` resuelve una sola vista por funcionalidad y el candado de ejecución es por credencial y funcionalidad).
-  La migración deduplica antes (conserva la de menor `vista` / `rpc`). `fuentes_chat_ia` no cambia: el chat parte de la vista.
-  El nombrado por vista/RPC del servidor TypeScript se mantiene como defensa.
+  Son tablas de seguridad: si ya existen funcionalidades con varias filas, la migración **aborta** (23505) con un mensaje que las
+  nombra («fuentes_mcp tiene más de una fila por feature_id (…): dejá una sola por funcionalidad y reaplicá la migración») y un
+  superadmin debe dejar la fila correcta; no se borra ni se elige ninguna en silencio. `fuentes_chat_ia` no cambia: el chat parte de
+  la vista. El nombrado por vista/RPC del servidor TypeScript se mantiene como defensa.
 - **MCP: vencimiento en SQL.** `private.iniciar_ejecucion_mcp` pasa a `fallida` / `vencida` las ejecuciones `en_curso` de esa
-  credencial y funcionalidad con más de `private.ejecucion_mcp_vence_min()` minutos (10) antes de poner el candado, en la misma
-  transacción. El servidor TypeScript ya no toca `ejecuciones_mcp` y la variable `MCP_EJECUCION_VENCE_MIN` se retiró. Misma firma
-  y ACL. **No se creó** el wrapper `ejecutar_accion_mcp`: sigue pendiente (riesgo latente, no hay acciones registradas).
+  credencial y funcionalidad (solo esas: probado con otra credencial y con otra funcionalidad) con más de
+  `private.ejecucion_mcp_vence_min()` minutos (10) antes de poner el candado, en la misma transacción. El servidor TypeScript ya no
+  toca `ejecuciones_mcp` y la variable `MCP_EJECUCION_VENCE_MIN` se retiró. Misma firma y ACL. **No se creó** el wrapper
+  `ejecutar_accion_mcp`: sigue pendiente (riesgo latente, no hay acciones registradas).
 - **Chat: columnas permitidas por vista.** `fuentes_chat_ia.columnas text[]` (nullable). Con `NULL` `leer` conserva
-  `select *` (las fuentes existentes, p. ej. `ia_consulta_*`, no cambian); si está definida pide solo esas columnas. La base
-  exige de 1 a 50 identificadores `[a-z0-9_]` sin nulos ni vacíos (CHECK `fuentes_chat_ia_columnas_validas`) y `handler.ts`
-  vuelve a validarlo (`columnasParaSelect`): una lista inválida responde `FUENTE_NO_DISPONIBLE` sin consultar la vista. No se
-  intersecta con las columnas reales (exigiría otra consulta): una columna inexistente da `ERROR_AL_LEER`. `sanitizarDato`
-  sigue quitando columnas con nombre de secreto. El contrato HTTP no cambia.
+  `select *` y acepta cualquier filtro válido (las fuentes existentes, p. ej. `ia_consulta_*`, no cambian); si está definida pide solo
+  esas columnas y **solo admite filtros sobre ellas** (`FILTROS_INVALIDOS` si no: filtrar por una columna no entregada sería un
+  oráculo). La base exige de 1 a 50 identificadores `[a-z0-9_]` sin nulos, vacíos ni repetidos (CHECK `fuentes_chat_ia_columnas_validas`)
+  y `handler.ts` lo vuelve a validar (`columnasParaSelect`, mismo criterio): una lista inválida responde `FUENTE_NO_DISPONIBLE` sin
+  consultar la vista. No se intersecta con las columnas reales (exigiría otra consulta): una columna inexistente da `ERROR_AL_LEER`.
+  `sanitizarDato` sigue quitando columnas con nombre de secreto. El contrato HTTP no cambia.

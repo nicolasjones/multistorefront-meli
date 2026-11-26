@@ -59,16 +59,16 @@ const MAX_COLUMNAS = 50
 
 // Columnas que `fuentes_chat_ia.columnas` autoriza para una vista (MSF-730). `null`/`undefined` conserva el comportamiento
 // histórico (`*`, las columnas de la vista). Si está definida debe ser una lista no vacía de identificadores simples
-// (`[a-z0-9_]`, sin repetidos, hasta 50): cualquier otro valor falla cerrado (`ok: false`), nunca se arma SQL libre.
-export function columnasParaSelect(columnas: unknown): { ok: true; seleccion: string } | { ok: false } {
-  if (columnas === null || columnas === undefined) return { ok: true, seleccion: '*' }
+// (`[a-z0-9_]`, sin repetidos, hasta 50): cualquier otro valor falla cerrado (`ok: false`), nunca se arma SQL libre. `permitidas` (null = sin restricción) sirve para limitar también los filtros: filtrar por una columna no autorizada sería un oráculo.
+export function columnasParaSelect(columnas: unknown): { ok: true; seleccion: string; permitidas: string[] | null } | { ok: false } {
+  if (columnas === null || columnas === undefined) return { ok: true, seleccion: '*', permitidas: null }
   if (!Array.isArray(columnas) || columnas.length === 0 || columnas.length > MAX_COLUMNAS) return { ok: false }
   const vistas = new Set<string>()
   for (const c of columnas) {
     if (typeof c !== 'string' || !COLUMNA_PERMITIDA.test(c) || vistas.has(c)) return { ok: false }
     vistas.add(c)
   }
-  return { ok: true, seleccion: columnas.join(',') }
+  return { ok: true, seleccion: columnas.join(','), permitidas: [...vistas] }
 }
 
 // Texto que se guarda (y se le muestra al usuario) al proponer una acción. La confirmación humana tiene que ver la

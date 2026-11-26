@@ -107,11 +107,11 @@ describe('rechazoPorCuota', () => {
 
 describe('columnasParaSelect', () => {
   it('sin columnas definidas conserva el select * histórico', () => {
-    assert.deepEqual(columnasParaSelect(null), { ok: true, seleccion: '*' })
-    assert.deepEqual(columnasParaSelect(undefined), { ok: true, seleccion: '*' })
+    assert.deepEqual(columnasParaSelect(null), { ok: true, seleccion: '*', permitidas: null })
+    assert.deepEqual(columnasParaSelect(undefined), { ok: true, seleccion: '*', permitidas: null })
   })
   it('una lista de identificadores simples se pide tal cual', () => {
-    assert.deepEqual(columnasParaSelect(['sku', 'nombre_2']), { ok: true, seleccion: 'sku,nombre_2' })
+    assert.deepEqual(columnasParaSelect(['sku', 'nombre_2']), { ok: true, seleccion: 'sku,nombre_2', permitidas: ['sku', 'nombre_2'] })
   })
   it('rechaza (falla cerrado) todo lo que no sea una lista válida de identificadores', () => {
     const invalidos: unknown[] = [[], 'sku', {}, 5, ['sku;drop'], ['Sku'], ['a b'], ['a,b'], ['*'], [''], [1], [null], ['sku', 'sku'], ['a.b'], ['sku)'], Array.from({ length: 51 }, (_, i) => `c${i}`)]
