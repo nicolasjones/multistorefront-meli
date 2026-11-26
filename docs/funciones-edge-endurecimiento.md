@@ -209,10 +209,11 @@ override de organización que une el criterio histórico (sufijo `organizacion_i
 | Pendiente | Por qué no se hizo | Propuesta |
 |---|---|---|
 | Tope persistente de **correos** a proveedor (MSF-731) | El lote 90 resolvió solo el de IA | Reutilizar `private.consumir_cupo_ia` con otra `funcionalidad` o una tabla propia; hoy `enviar-correo-proveedor` sigue con `_shared/limite-memoria.ts` (20/h por isolate) |
+| `indexar-documento` gasta crédito de embeddings sin cupo (MSF-727, hallazgo de la revisión del lote 90) | Fuera del alcance del lote 90: el cupo cubre `chat-ia-responder` y `preguntar-documentos` | Reutilizar `private.consumir_cupo_ia` con otra `funcionalidad` (por ejemplo `indexar-documento`) y un tope en caracteres o fragmentos por usuario y hora; ver también el tope de texto y de fragmentos de MSF-728 |
+| Cupo de IA por organización (lote 90) | El cupo es por usuario y funcionalidad, no por organización: una organización con N usuarios, o una persona con N cuentas, obtiene 30·N por hora | Decisión consciente del lote 90. Si hace falta un techo por organización: segunda clave (organización) en `private.ia_cupo_uso` o una tabla análoga y consumir ambos cupos en la misma transacción |
 | Agendar `private.purgar_cupo_ia` (lote 90) | Sin agendar a propósito | Un flow de Kestra o pg_cron semanal con `select private.purgar_cupo_ia();` como `service_role`; sin purga la tabla crece una fila por usuario, funcionalidad y hora de uso |
 | Agendar el barrido de versiones `procesando` de `indexar-documento` (MSF-728) | La función ya existe (lote 89) pero no está agendada | Un flow de Kestra o pg_cron que llame `public.liberar_versiones_documento_atascadas(30)` con service_role; considerar que la pantalla ofrece «Reintentar» a los 15 minutos y que tras el barrido la versión queda `fallida` (hay que volver a subir el archivo) |
 | Historial persistente de envíos a proveedores (MSF-731) | Tabla nueva | `dominio.proveedores_correos_enviados(id, organizacion_id, proveedor_id, usuario_id, asunto, creado_en, resultado)` con RLS por organización y lectura con `proveedores`; la función la escribe con la sesión del usuario |
-| El tope del chat se elude borrando mensajes (MSF-727) | Revocar `DELETE` o mover el contador exige migración (no hay en este lote) | Opción A: `revoke delete on mensajes_chat_ia from authenticated` y una RPC `borrar_conversacion_chat_ia` que archive en vez de borrar. Opción B (preferida, y la misma tabla del tope persistente): `uso_funciones_edge` sin `DELETE` para el usuario, y que el chat cuente ahí |
 | El override de organización del MCP es por nombre de parámetro (MSF-729) | No cubre `id_organizacion`, `tenant_id`, `empresa_id` | El wrapper SQL por acción (fila anterior) es la solución de fondo; abrir ticket y no registrar acciones con esos parámetros hasta tenerlo |
 | Lista negra de columnas secretas en `sanitizarDato` (MSF-730) | Es por nombre, ampliada pero no exhaustiva | La lista permitida por vista (`fuentes_chat_ia.columnas`, lote 89) es el control real; cargarla en cada fuente registrada |
 | Estado `indexando` en `versiones_documento` (MSF-728) | Migración y cambio de `activar_version_documento` | Ampliar el `check` de estado con `indexando` y que `activar_version_documento` lo acepte; con eso el candado deja de usar `motivo_error` (el índice único `(version_id, orden)` ya existe, lote 89) |
@@ -320,13 +321,22 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   `segundos_hasta_reinicio`; `public.consumir_cupo_ia` es su envoltorio RPC (solo `service_role`). Probado con 24 sesiones simultáneas
   contra un tope de 5: se consumieron exactamente 5.
 - **Topes decididos:** 30 consultas por usuario y hora, por funcionalidad (`chat-ia` y `busqueda-documental` se cuentan por separado).
-  Configurables con `CHAT_IA_LIMITE_HORA` y `PREGUNTAR_DOCUMENTOS_LIMITE_HORA` (un valor ausente o inválido vuelve a 30). Antes: chat 60 por
+  Configurables con `CHAT_IA_LIMITE_HORA` y `PREGUNTAR_DOCUMENTOS_LIMITE_HORA`: se acepta un entero de **1 a 1000**; un valor ausente,
+  inválido, decimal, no positivo o **mayor que 1000 vuelve a 30**. La función SQL también rechaza `p_limite` fuera de 1..1000 con 22023
+  (un valor que no entra en `int` o equivale a «sin tope» no llega a la base). Antes: chat 60 por
   hora contados sobre `mensajes_chat_ia` (que el usuario podía borrar) y preguntas 30 por hora en memoria del isolate.
-- **Orden de los chequeos.** Chat: JWT, cuerpo (longitud), funcionalidad (403/503), conversación existente (404/503), política (503), cupo,
-  y recién entonces crea la conversación, guarda el mensaje y llama al proveedor. Preguntas: JWT, cuerpo, funcionalidad, política, credencial,
-  proveedor soportado (501) y cupo, justo antes del embedding. Una petición inválida o una configuración que falta no gasta cupo.
+- **Orden de los chequeos.** Chat: JWT, cuerpo (longitud), funcionalidad (403/503), conversación existente (404/503), política (503),
+  `prepararInvocacion` (400), credencial (500) y adaptador (501), y **recién entonces el cupo**, justo antes de la primera escritura y de la
+  llamada al proveedor (crear la conversación, guardar el mensaje). Preguntas: JWT, cuerpo, funcionalidad, política, credencial, proveedor
+  soportado (501) y cupo, justo antes del embedding. Una petición inválida o una configuración que falta no gasta cupo, y un 429 no crea
+  conversaciones ni mensajes. Cambio de contrato: los rechazos 400/500/501 del chat ya no guardan un mensaje `fallida` ni crean conversación
+  (el cuerpo incluye `conversacion_id` solo si el cliente la había enviado).
+- **Qué cuenta como un uso.** (a) El uso se consume ANTES de llamar al proveedor y **no se reintegra**: un error, un timeout (504) o un 502 del
+  proveedor ya gastaron ese uso. (b) Una unidad de cupo es **una petición HTTP**: el chat puede hacer hasta 2 llamadas al proveedor (la
+  consulta y el ciclo de la herramienta `leer`) por un solo uso. (c) El cupo es **por usuario y por funcionalidad, no por organización**: una
+  organización con N usuarios, o una persona con N cuentas, obtiene 30·N por hora; el techo por organización queda como seguimiento.
 - **Cupo agotado:** 429 con `Retry-After` (segundos hasta la próxima hora en punto UTC) y mensaje en español, sin llamar al proveedor ni crear
-  nada. **Falla cerrado:** si la base no responde o la respuesta no se entiende, 503 «No se pudo verificar tu cuota de uso.» y no se gasta crédito.
+  nada. **Falla cerrado:** si la base no responde, la RPC lanza o rechaza la promesa, o la respuesta no se entiende, 503 «No se pudo verificar tu cuota de uso.» y no se gasta crédito.
 - **Timeout.** `invocarProveedorIa` y `descubrirModelos` (`packages/ia`) aceptan `{ timeoutMs }` opcional (agregan `AbortSignal.timeout`) y
   convierten el tiempo agotado en `INVOCACION_PROVEEDOR_IA_TIMEOUT` / `DESCUBRIMIENTO_MODELOS_IA_TIMEOUT`; `embeddings.ts` en
   `EMBEDDING_PROVEEDOR_IA_TIMEOUT`. Las funciones responden **504** «El proveedor de IA tardó demasiado en responder, probá de nuevo.» (antes
@@ -334,8 +344,11 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   (máximo 90 s). Cambio de contrato: el 504 es nuevo; el resto de los estados no cambió.
 - **Purga:** `private.purgar_cupo_ia(p_dias int default 2)` borra las ventanas anteriores a `p_dias` días (idempotente, devuelve cuántas borró).
   **No está agendada.** Invocar como `service_role` o dueño: `select private.purgar_cupo_ia();`. Agendarla queda como seguimiento.
-- **Sin auditoría de consumo:** no existe una tabla de registro de IA reutilizable (`ia_consulta_registro` es solo el nombre de un test de las
-  fuentes del asistente), por eso no se inventó otra; `ia_cupo_uso` guarda los contadores de la hora y se purga.
+- **Sin auditoría de consumo.** Existe `ia_interacciones` (`actor_id`, `consumidor_codigo`, `iniciada_en`), pero no se usó: es la máquina de
+  estados de la capacidad de IA gobernada (una fila por ejecución con política, perfil, `idempotency_key` única por consumidor, estados y
+  purga de evidencia) y ni `chat-ia-responder` ni `preguntar-documentos` escriben en ella. Guarda estados por ejecución, no un contador atómico por usuario y hora,
+  y no cubre las peticiones rechazadas antes de invocar. `ia_cupo_uso` guarda solo los
+  contadores de la hora y se purga; (`ia_consulta_registro` es únicamente el nombre de un test de las fuentes del asistente).
 
 **Orden de despliegue:** aplicar la migración ANTES de desplegar `chat-ia-responder` y `preguntar-documentos`. Si una función sale primero,
 `public.consumir_cupo_ia` no existe y toda consulta responde 503 (falla cerrado: no se gasta crédito, pero el chat y la búsqueda

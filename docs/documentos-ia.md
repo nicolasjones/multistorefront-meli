@@ -80,7 +80,9 @@ antes del intento (solo el que creó esta misma subida).
 | El usuario ya hizo 30 preguntas en la hora (UTC) en curso (`PREGUNTAR_DOCUMENTOS_LIMITE_HORA`) | 429 con `Retry-After`; el contador está en la base (`private.ia_cupo_uso`) y no se reinicia al reciclarse la función |
 | El proveedor o los embeddings no responden dentro del tope de la política (máximo 90 s) | 504 |
 
-Una pregunta rechazada por los chequeos de arriba no consume cupo.
+Una pregunta rechazada por los chequeos de arriba no consume cupo. Cada pregunta consume **un** uso al empezar y no se reintegra si el proveedor
+falla o tarda demasiado (504). El cupo es por usuario, no por organización: una organización con N usuarios obtiene 30·N preguntas por hora. El
+máximo configurable es 1000 por hora; un valor mayor, inválido o no positivo vuelve a 30.
 
 ## Errores que se muestran
 
