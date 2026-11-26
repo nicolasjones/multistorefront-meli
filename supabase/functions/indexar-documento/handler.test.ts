@@ -522,6 +522,31 @@ describe('indexar-documento', () => {
     }
   })
 
+  it('un error hostil (getter o Proxy que lanza) en el flujo no rompe la respuesta prevista ni soltar el candado', async () => {
+    const revocable = Proxy.revocable({}, {})
+    revocable.revoke()
+    const hostiles: unknown[] = [{ get name() { throw new Error('x') } }, { get message() { throw new Error('x') } }, new Proxy({}, { get() { throw new Error('x') } }), revocable.proxy]
+    for (const h of hostiles) {
+      // Embeddings falla de forma hostil y además soltar el candado también lanza algo hostil: la respuesta sigue siendo el 502 reintentable.
+      const m = montar({})
+      m.deps.embeddings = async () => { throw h }
+      m.deps.soltar = async () => { throw h }
+      m.deps.borrarFragmentos = async () => { throw h }
+      const original = console.error
+      console.error = () => {}
+      let res: Response | undefined
+      try { res = await pedir(m.deps) } finally { console.error = original }
+      assert.equal(res?.status, 502)
+      // Un error inesperado hostil (activar lanza) responde el 500 previsto.
+      const n = montar({})
+      n.deps.activar = async () => { throw h }
+      n.deps.soltar = async () => { throw h }
+      console.error = () => {}
+      try { res = await pedir(n.deps) } finally { console.error = original }
+      assert.equal(res?.status, 500)
+    }
+  })
+
   it('no lee el contexto si quien invoca subió la versión; si la lectura lanza y no subió, 503', async () => {
     const subio = montar()
     let lecturas = 0

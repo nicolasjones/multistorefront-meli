@@ -2,7 +2,7 @@
 // para probarla con `node --test` (cupo-ia.test.ts). Lo consume `public.consumir_cupo_ia` (solo service_role) con el cliente admin:
 // el contador vive en la base (`private.ia_cupo_uso`), no en el isolate ni en tablas que el usuario pueda borrar.
 // Se llama DESPUÉS de verificar funcionalidad y conversación y ANTES de llamar al proveedor; un error al consumir NO deja pasar (503).
-import { limpiarParaLog, redactarCredenciales } from './log-seguro.ts'
+import { leerCampo, limpiarParaLog, redactarCredenciales, textoDeError } from './log-seguro.ts'
 
 export const LIMITE_CUPO_POR_HORA = 30
 // Máximo razonable por hora configurable con ENV (igual que el tope de `private.consumir_cupo_ia`): un valor mayor, no entero o no
@@ -22,8 +22,9 @@ const CORREO = /[^\s@]{1,64}@[^\s@]{1,255}/g
 // credenciales y URLs redactadas (segunda defensa), el id del usuario, cualquier otro uuid y los correos tachados ANTES de acotar a 300 caracteres: como el tachado
 // precede al recorte, un uuid completo nunca queda cortado por él y no hace falta descartar nada al final (hacerlo borraría texto legítimo, p. ej. `commit deadbeef`).
 function describirError(error: unknown, usuarioId: string): string {
-  const e = (error && typeof error === 'object' ? error : { message: String(error) }) as { name?: unknown; code?: unknown; message?: unknown }
-  const partes = [e.name, e.code, e.message].filter((p): p is string => typeof p === 'string' && p !== '')
+  // Cada lectura es segura: un error hostil (getter que lanza, Proxy) no puede lanzar desde el `catch` que llama a esta función.
+  const e = error && typeof error === 'object' ? error : { message: limpiarParaLog(error, 300) }
+  const partes = [leerCampo(e, 'name'), leerCampo(e, 'code'), leerCampo(e, 'message')].filter((p): p is string => typeof p === 'string' && p !== '')
   let texto = redactarCredenciales(limpiarParaLog(partes.join(' '), MAX_ANTES_DE_TACHAR))
   if (usuarioId) texto = texto.replace(new RegExp(usuarioId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '[usuario]')
   return texto.replace(UUID_GENERICO, '[uuid]').replace(UUID_SIN_GUIONES, '[uuid]').replace(CORREO, '[correo]').slice(0, MAX_ERROR_LOG).trim()
@@ -61,22 +62,30 @@ export async function rechazoPorCupo(
     ;({ data, error } = await admin.rpc('consumir_cupo_ia', { p_usuario: usuarioId, p_funcionalidad: funcionalidad, p_limite: limite }))
   } catch (excepcion) {
     // La RPC puede lanzar o rechazar la promesa (red, timeout, excepción del cliente): también falla cerrado, sin detalle al cliente.
-    console.error('[cupo-ia] la RPC de cupo lanzó una excepción', { funcionalidad, error: describirError(excepcion, usuarioId) })
+    // Un error de red/`fetch` se registra como el resto: solo nombre y código (sin mensaje ni URL). `describirError` queda para el error que DEVUELVE la RPC.
+    console.error('[cupo-ia] la RPC de cupo lanzó una excepción', { funcionalidad, error: textoDeError(excepcion) })
     return noVerificable
   }
-  const fila = Array.isArray(data) ? data[0] : data
-  // Sin respuesta interpretable no se gasta crédito: falla cerrado (503), igual que la verificación de funcionalidad.
-  if (error || !fila || typeof fila.se_consumio !== 'boolean') {
-    console.error('[cupo-ia] no se pudo consumir el cupo', { funcionalidad, error: error ? describirError(error, usuarioId) : 'respuesta no interpretable' })
+  try {
+    const fila = Array.isArray(data) ? data[0] : data
+    // Sin respuesta interpretable no se gasta crédito: falla cerrado (503), igual que la verificación de funcionalidad.
+    if (error || !fila || typeof fila.se_consumio !== 'boolean') {
+      console.error('[cupo-ia] no se pudo consumir el cupo', { funcionalidad, error: error ? describirError(error, usuarioId) : 'respuesta no interpretable' })
+      return noVerificable
+    }
+    if (fila.se_consumio) return null
+    return { status: 429, error: textos.agotado, retryAfter: segundosDeEspera(fila.segundos_hasta_reinicio) }
+  } catch {
+    // Una respuesta hostil (getter que lanza, Proxy revocado) tampoco puede romper el fail-closed: 503.
+    console.error('[cupo-ia] no se pudo interpretar la respuesta del cupo', { funcionalidad })
     return noVerificable
   }
-  if (fila.se_consumio) return null
-  return { status: 429, error: textos.agotado, retryAfter: segundosDeEspera(fila.segundos_hasta_reinicio) }
 }
 
 // ¿El fallo del proveedor fue por tiempo de espera? (AbortSignal.timeout / fetch abortado, o el error de negocio que el transporte lanza)
 export function esTimeoutDeProveedor(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
-  const { name, message } = error as { name?: unknown; message?: unknown }
+  const name = leerCampo(error, 'name')
+  const message = leerCampo(error, 'message')
   return name === 'TimeoutError' || name === 'AbortError' || message === 'INVOCACION_PROVEEDOR_IA_TIMEOUT' || message === 'EMBEDDING_PROVEEDOR_IA_TIMEOUT'
 }

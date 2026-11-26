@@ -23,7 +23,7 @@ import { invocarProveedorIa, type FetchInvocacion } from '../_shared/ia/proveedo
 import { sanitizarDato, marcarContenidoNoConfiable } from '../_shared/ia/sanitizar.ts'
 import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
 import { FUNCIONALIDAD_CHAT, esTimeoutDeProveedor, limiteDeCupo, rechazoPorCupo } from '../_shared/cupo-ia.ts'
-import { limpiarParaLog, mensajeParaLog, textoDeError } from '../_shared/log-seguro.ts'
+import { limpiarParaLog, mensajeParaLog, registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 import {
   ErrorPersistencia, MAX_TOKENS_RESPUESTA, columnasParaSelect, describirPropuesta, filtrosSeguros, guardarMensaje,
   resolverLlamadas, validarEntrada, type ResultadoHerramienta,
@@ -77,7 +77,7 @@ const CODIGOS_DE_CONFIGURACION = new Set(['POLITICA_IA_INACTIVA', 'LIMITE_INTENT
 
 // Log de servidor para los rechazos 400/500/501 de configuración (ya no dejan un mensaje `fallida`): prefijo estable y solo el motivo,
 // nunca la clave, el contenido del mensaje ni datos del usuario. El `motivo` es un texto fijo más piezas que ya llegan saneadas y acotadas
-// a 64 caracteres con `limpiarParaLog` (adaptador, código de política), por eso no necesita un tope propio.
+// a 64 caracteres con `limpiarParaLog` (adaptador) o salen de la lista fija CODIGOS_DE_CONFIGURACION (código de política), por eso no necesita un tope propio.
 const registrarConfiguracion = (motivo: string) => console.error(`[chat-ia-responder] configuración de la plataforma: ${motivo}`)
 
 const CONTRATO: ContratoConsumidor = {
@@ -228,7 +228,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     )
   } catch (error) {
     const codigo = error instanceof Error ? error.message : 'ENTRADA_IA_INVALIDA'
-    if (CODIGOS_DE_CONFIGURACION.has(codigo)) registrarConfiguracion(`politica_invalida:${limpiarParaLog(codigo, 64)}`)
+    if (CODIGOS_DE_CONFIGURACION.has(codigo)) registrarConfiguracion(`politica_invalida:${codigo}`)
     return rechazoDeConfiguracion(codigo, 400)
   }
 
@@ -266,13 +266,17 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       .insert({ usuario_id: callerData.user.id })
       .select('id')
       .single()
-    if (nuevaError || !nueva) return jsonResponse({ error: 'No se pudo crear la conversación.' }, 500)
+    if (nuevaError || !nueva) {
+      registrarErrorDeBase('chat-ia-responder: no se pudo crear la conversación', nuevaError)
+      return jsonResponse({ error: 'No se pudo crear la conversación.' }, 500)
+    }
     conversacionId = nueva.id
   }
 
   try {
     await guardarMensaje(asUser, { conversacion_id: conversacionId, origen: 'usuario', contenido: body.mensaje })
   } catch {
+    console.error('chat-ia-responder: no se pudo guardar el mensaje del usuario')
     return jsonResponse({ error: 'No se pudo guardar tu mensaje.' }, 500)
   }
 
@@ -500,7 +504,10 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     return credencial.adaptador === 'openai' ? await cicloOpenAI() : await cicloAnthropic()
   } catch (error) {
     // Un insert rechazado (RLS, conversación ajena, caída) ya no se ignora: se responde 500 en vez de «ok» sin historial.
-    if (error instanceof ErrorPersistencia) return jsonResponse({ conversacion_id: conversacionId, error: 'No se pudo guardar la respuesta del chat.' }, 500)
+    if (error instanceof ErrorPersistencia) {
+      console.error('chat-ia-responder: no se pudo guardar la respuesta del chat')
+      return jsonResponse({ conversacion_id: conversacionId, error: 'No se pudo guardar la respuesta del chat.' }, 500)
+    }
     console.error('chat-ia-responder: error inesperado', textoDeError(error))
     return jsonResponse({ error: 'No se pudo procesar el mensaje.' }, 500)
   }

@@ -32,7 +32,8 @@ export async function generarEmbeddings(
       cuerpo = await respuesta.json() as { data?: Array<{ embedding: number[] }> }
     } catch (error) {
       // Tiempo agotado (también leyendo el cuerpo): error de negocio sin detalle del proveedor.
-      const nombre = error && typeof error === 'object' ? (error as { name?: unknown }).name : undefined
+      let nombre: unknown
+      try { nombre = error && typeof error === 'object' ? (error as { name?: unknown }).name : undefined } catch { nombre = undefined }
       if (nombre === 'TimeoutError' || nombre === 'AbortError') throw new Error('EMBEDDING_PROVEEDOR_IA_TIMEOUT')
       throw error
     }

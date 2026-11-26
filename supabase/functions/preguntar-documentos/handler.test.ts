@@ -338,6 +338,26 @@ describe('funcionalidad y límite por usuario (antes de gastar crédito)', () =>
     }
   })
 
+  it('CADA console.error de preguntar-documentos fija su contenido: sin mensajes de red ni claves', async () => {
+    const red = () => new TypeError('fetch failed https://x.y/?apikey=SECRETO Bearer SECRETO', { cause: new Error('Bearer SECRETO') })
+    const casos: Array<[string, Opciones, number, unknown[][]]> = [
+      ['credencial', { credencial: { data: [], error: { message: 'Bearer SECRETO' } } }, 500, [['[preguntar-documentos] configuración de la plataforma: credencial_no_disponible']]],
+      ['proveedor no soportado', { proveedor: 'anthropic' }, 501, [['[preguntar-documentos] configuración de la plataforma: proveedor_no_soportado:anthropic']]],
+      ['proveedor no soportado con nombre hostil', { proveedor: `x\nFAKE${'A'.repeat(100)}` }, 501, [[`[preguntar-documentos] configuración de la plataforma: proveedor_no_soportado:x FAKE${'A'.repeat(58)}`]]],
+      ['embedding', { embeddingError: red() }, 502, [['preguntar-documentos: fallo al generar el embedding', 'TypeError']]],
+      ['embedding con timeout', { embeddingError: new Error('EMBEDDING_PROVEEDOR_IA_TIMEOUT') }, 504, [['preguntar-documentos: fallo al generar el embedding', 'Error EMBEDDING_PROVEEDOR_IA_TIMEOUT']]],
+      ['búsqueda', { busqueda: { data: null, error: { code: '42501', message: 'rls Bearer SECRETO' } } }, 500, [['preguntar-documentos: no se pudo buscar en los documentos', '42501', 'rls Bearer [token]']]],
+      ['proveedor de generación', { respuestas: [red()] }, 502, [['preguntar-documentos: fallo al invocar el proveedor', 'TypeError']]],
+    ]
+    for (const [nombre, opciones, estado, esperado] of casos) {
+      errores.length = 0
+      const { res } = await llamar(opciones)
+      assert.equal(res.status, estado, nombre)
+      assert.deepEqual(errores, esperado, nombre)
+      assert.doesNotMatch(JSON.stringify(errores), /SECRETO|x\.y/, nombre)
+    }
+  })
+
   it('el log de la verificación de funcionalidad sale en una línea, acotado y con credenciales redactadas', async () => {
     const { res } = await llamar({ feature: { data: null, error: { message: `boom\nFAKE Bearer SECRETO eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1In0.firmaSECRETA ${'z'.repeat(500)}` } } })
     assert.equal(res.status, 503)

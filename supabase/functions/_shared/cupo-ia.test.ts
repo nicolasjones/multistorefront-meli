@@ -12,6 +12,13 @@ const admin = (resultado: { data: unknown; error: unknown }, llamadas: unknown[]
   rpc: (nombre: string, args: Record<string, unknown>) => { llamadas.push({ nombre, args }); return Promise.resolve(resultado) },
 })
 
+// Valores hostiles que pueden llegar a un `catch`: getters que lanzan, Proxy con `get` que lanza y Proxy revocado.
+const hostiles = (): unknown[] => {
+  const revocable = Proxy.revocable({}, {})
+  revocable.revoke()
+  return [{ get name() { throw new Error('getter name') } }, { get code() { throw new Error('getter code') } }, { get message() { throw new Error('getter message') } }, new Proxy({}, { get() { throw new Error('proxy get') } }), revocable.proxy]
+}
+
 describe('limiteDeCupo', () => {
   it('30 por defecto; acepta enteros de 1 a 1000 y todo lo demás vuelve a 30', () => {
     assert.equal(limiteDeCupo(undefined), 30)
@@ -193,10 +200,42 @@ describe('rechazoPorCupo: log de servidor', () => {
     }
   })
 
+  it('una excepción de red (TypeError con URL y clave) deja solo el nombre; el error que DEVUELVE la RPC deja su mensaje saneado', async () => {
+    const red = new TypeError('fetch failed https://api.x/y?apikey=SEKRET Bearer SEKRET2', { cause: new Error('Bearer SEKRET3') })
+    for (const a of [{ rpc: () => { throw red } }, { rpc: () => Promise.reject(red) }]) {
+      logs.length = 0
+      await rechazoPorCupo(a, usuario, 'chat-ia', 30, textos)
+      assert.equal((logs[0][1] as { error: string }).error, 'TypeError')
+      assert.doesNotMatch(JSON.stringify(logs), /SEKRET|api\.x|\[url\]|fetch failed/)
+    }
+    const devuelto = await logDe(`permission denied for table ia_cupo_uso (usuario ${usuario}) Bearer SEKRET`, '42501')
+    assert.match(devuelto, /^42501 permission denied for table ia_cupo_uso \(usuario \[usuario\]\) Bearer \[token\]$/)
+  })
+
   it('no registra nada cuando se consume o se agota el cupo (no son fallos)', async () => {
     await rechazoPorCupo(admin({ data: [{ se_consumio: true }], error: null }), usuario, 'f', 1, textos)
     await rechazoPorCupo(admin({ data: [{ se_consumio: false, segundos_hasta_reinicio: 5 }], error: null }), usuario, 'f', 1, textos)
     assert.deepEqual(logs, [])
+  })
+})
+
+describe('rechazoPorCupo con valores hostiles', () => {
+  it('una RPC que rechaza, lanza o devuelve un objeto hostil da 503 sin lanzar (error, excepción y respuesta)', async () => {
+    const esperado = { status: 503, error: 'No se pudo verificar tu cuota de uso.' }
+    const originalError = console.error
+    const logs: unknown[][] = []
+    console.error = (...a: unknown[]) => { logs.push(a) }
+    try {
+      for (const h of hostiles()) {
+        assert.deepEqual(await rechazoPorCupo({ rpc: () => Promise.reject(h) }, 'u', 'f', 1, textos), esperado)
+        assert.deepEqual(await rechazoPorCupo({ rpc: () => { throw h } }, 'u', 'f', 1, textos), esperado)
+        assert.deepEqual(await rechazoPorCupo(admin({ data: null, error: h }), 'u', 'f', 1, textos), esperado)
+        assert.deepEqual(await rechazoPorCupo(admin({ data: h, error: null }), 'u', 'f', 1, textos), esperado)
+        assert.deepEqual(await rechazoPorCupo(admin({ data: [h], error: null }), 'u', 'f', 1, textos), esperado)
+      }
+    } finally { console.error = originalError }
+    assert.ok(logs.length >= hostiles().length * 5)
+    assert.ok(logs.every((l) => String(l[0]).startsWith('[cupo-ia]')))
   })
 })
 
@@ -209,5 +248,6 @@ describe('esTimeoutDeProveedor', () => {
     assert.equal(esTimeoutDeProveedor(new Error('INVOCACION_PROVEEDOR_IA_FALLO_500')), false)
     assert.equal(esTimeoutDeProveedor(null), false)
     assert.equal(esTimeoutDeProveedor('TimeoutError'), false)
+    for (const h of hostiles()) assert.doesNotThrow(() => esTimeoutDeProveedor(h))
   })
 })

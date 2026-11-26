@@ -19,7 +19,8 @@ export type FetchModelos = (url: string, init: { headers: Record<string, string>
 export type OpcionesTransporte = { timeoutMs?: number }
 
 function esAbortoPorTiempo(error: unknown): boolean {
-  const nombre = error && typeof error === 'object' ? (error as { name?: unknown }).name : undefined
+  let nombre: unknown
+  try { nombre = error && typeof error === 'object' ? (error as { name?: unknown }).name : undefined } catch { nombre = undefined }
   return nombre === 'TimeoutError' || nombre === 'AbortError'
 }
 

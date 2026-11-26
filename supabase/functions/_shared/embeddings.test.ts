@@ -49,6 +49,16 @@ describe('generarEmbeddings', () => {
     }
   })
 
+  it('un error hostil (getter de name o Proxy que lanza) se propaga tal cual: leer su nombre no lanza otra cosa', async () => {
+    const hostiles = [Object.defineProperty(new Error('x'), 'name', { get() { throw new Error('getter') } }), new Proxy(new Error('x'), { get() { throw new Error('proxy') } })]
+    for (const hostil of hostiles) {
+      const fetchFn: FetchEmbeddings = () => Promise.reject(hostil)
+      let capturado: unknown
+      try { await generarEmbeddings(['a'], 'k', { fetchFn }) } catch (e) { capturado = e }
+      assert.equal(capturado, hostil)
+    }
+  })
+
   it('otros errores del fetch se propagan sin convertirse en timeout', async () => {
     const fetchFn: FetchEmbeddings = () => Promise.reject(new Error('red caída'))
     await assert.rejects(generarEmbeddings(['a'], 'k', { fetchFn }), { message: 'red caída' })

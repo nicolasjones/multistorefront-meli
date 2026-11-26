@@ -101,6 +101,18 @@ describe('invocarProveedorIa', () => {
     await expect(descubrirModelos('openai', 'clave-fixture', modelos)).rejects.toThrow('DESCUBRIMIENTO_MODELOS_IA_TIMEOUT')
   })
 
+  it('un error hostil (getter de name o Proxy que lanza) se propaga tal cual, en invocar y en descubrir modelos', async () => {
+    const hostiles = [Object.defineProperty(new Error('x'), 'name', { get() { throw new Error('getter') } }), new Proxy(new Error('x'), { get() { throw new Error('proxy') } })]
+    for (const hostil of hostiles) {
+      const invocar: FetchInvocacion = () => Promise.reject(hostil)
+      const capturado = await invocarProveedorIa(perfil('openai', 'gpt-fixture'), 'clave-fixture', {}, invocar).then(() => undefined, (e: unknown) => ({ e }))
+      expect(capturado?.e === hostil).toBe(true)
+      const modelos = () => Promise.reject(hostil)
+      const capturadoModelos = await descubrirModelos('openai', 'clave-fixture', modelos).then(() => undefined, (e: unknown) => ({ e }))
+      expect(capturadoModelos?.e === hostil).toBe(true)
+    }
+  })
+
   it('el tiempo agotado leyendo el cuerpo también es un timeout; otros errores se propagan', async () => {
     const lento: FetchInvocacion = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => { throw new DOMException('x', 'TimeoutError') } })
     await expect(invocarProveedorIa(perfil('openai', 'gpt-fixture'), 'clave-fixture', {}, lento)).rejects.toThrow('INVOCACION_PROVEEDOR_IA_TIMEOUT')

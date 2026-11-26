@@ -295,7 +295,8 @@ describe('funcionalidad, cuota y política (antes de gastar crédito)', () => {
       assert.match(String(errores[0][0]), /^\[cupo-ia\]/)
       assert.equal((errores[0][1] as { funcionalidad: string }).funcionalidad, 'chat-ia')
       assert.doesNotMatch(JSON.stringify(errores), /u1|mensaje-privado-xyz/)
-      assert.match(JSON.stringify(errores), /\[usuario\]/)
+      // Un error devuelto por la RPC se imprime saneado ([usuario]); una excepción lanzada o rechazada solo deja el nombre.
+      assert.equal((errores[0][1] as { error: string }).error, modo === 'error' ? 'XX000 fallo para [usuario] en db' : 'Error')
       assert.equal(r.pedidos.length, 0)
     }
   })
@@ -509,6 +510,42 @@ describe('preparación de la invocación y credencial', () => {
     assert.equal(res.status, 502)
     assert.deepEqual(errores, [['chat-ia-responder: fallo al invocar proveedor', 'TypeError']])
     assert.doesNotMatch(JSON.stringify(errores), /SECRETO|api\.x/)
+  })
+
+  it('un error hostil del proveedor (getter o Proxy que lanza) sigue dando el 502 previsto, sin lanzar desde el catch', async () => {
+    const conGetter = (campo: string) => Object.defineProperty(new Error('x'), campo, { get() { throw new Error('getter') } })
+    const hostiles: Error[] = [conGetter('name'), conGetter('message'), conGetter('code'), new Proxy(new Error('x'), { get() { throw new Error('proxy') } })]
+    for (const h of hostiles) {
+      errores.length = 0
+      const { res, json } = await llamar({ respuestas: [h] })
+      assert.equal(res.status, 502)
+      assert.deepEqual(json, { conversacion_id: CONV, error: ERROR_PROVEEDOR })
+    }
+  })
+
+  it('CADA console.error del chat fija su contenido: sin mensajes de red ni claves (proveedor 1.ª y 2.ª llamada en ambos adaptadores, inesperado, persistencia, conversación)', async () => {
+    const red = () => new TypeError('fetch failed https://x.y/?apikey=SECRETO Bearer SECRETO', { cause: new Error('Bearer SECRETO') })
+    const lecturaAnthropic = usoAnthropic({ id: 't1', name: 'leer', input: { vista: 'v' } })
+    const lecturaOpenAI = usoOpenAI({ id: 'c1', name: 'leer', arguments: '{"vista":"v"}' })
+    const proveedor = 'chat-ia-responder: fallo al invocar proveedor'
+    const casos: Array<[string, Opciones, unknown[][]]> = [
+      ['anthropic, 1.ª llamada', { respuestas: [red()] }, [[proveedor, 'TypeError']]],
+      ['anthropic, 2.ª llamada', { respuestas: [lecturaAnthropic, red()] }, [[proveedor, 'TypeError']]],
+      ['openai, 1.ª llamada', { adaptador: 'openai', respuestas: [red()] }, [[proveedor, 'TypeError']]],
+      ['openai, 2.ª llamada', { adaptador: 'openai', respuestas: [lecturaOpenAI, red()] }, [[proveedor, 'TypeError']]],
+      ['error inesperado', { respuestas: [{ stop_reason: 'end_turn', get content() { throw new Error('Bearer SECRETO https://x.y/?apikey=SECRETO') } }] }, [['chat-ia-responder: error inesperado', 'Error']]],
+      ['crear la conversación', { nueva: { data: null, error: { code: '42501', message: 'rls Bearer SECRETO' } } }, [['chat-ia-responder: no se pudo crear la conversación', '42501', 'rls Bearer [token]']]],
+      ['crear la conversación sin detalle', { nueva: { data: null, error: null } }, [['chat-ia-responder: no se pudo crear la conversación', '', 'undefined']]],
+      ['guardar el mensaje del usuario', { insertUsuario: { message: 'rls Bearer SECRETO' } }, [['chat-ia-responder: no se pudo guardar el mensaje del usuario']]],
+      ['guardar la respuesta', { insertChat: { message: 'rls Bearer SECRETO' }, respuestas: [textoAnthropic('ok')] }, [['chat-ia-responder: no se pudo guardar la respuesta del chat']]],
+    ]
+    for (const [nombre, opciones, esperado] of casos) {
+      errores.length = 0
+      const { res } = await llamar(opciones)
+      assert.ok(res.status >= 500, nombre)
+      assert.deepEqual(errores, esperado, nombre)
+      assert.doesNotMatch(JSON.stringify(errores), /SECRETO|x\.y/, nombre)
+    }
   })
 
   it('el error inesperado deja solo nombre y código, no el mensaje', async () => {
