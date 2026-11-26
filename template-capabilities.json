@@ -110,7 +110,7 @@
     },
     {
       "id": "mcp-server-mechanism",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "title": "Servidor MCP genérico",
       "paths": [
         "packages/mcp-server/",
@@ -120,6 +120,7 @@
         "supabase/migrations/20261003232000_mcp_credenciales_rpc.sql",
         "supabase/migrations/20261003233000_mcp_lectura_centralizada.sql",
         "supabase/migrations/20261003234000_mcp_listar_credenciales.sql",
+        "supabase/migrations/20270507800000_endurecer_rag_mcp_y_chat_columnas.sql",
         "apps/web/src/pages/ia/capacidades-mcp.tsx"
       ]
     },
@@ -245,12 +246,13 @@
     },
     {
       "id": "chat-companion-mechanism",
-      "version": "1.0.2",
+      "version": "1.1.0",
       "title": "Chat companion con acceso a funcionalidades registradas",
       "paths": [
         "supabase/migrations/20261005000000_chat_companion_mechanism.sql",
         "supabase/migrations/20261005000500_chat_companion_ejecucion.sql",
         "supabase/migrations/20261005001000_chat_companion_capacidades_rpc.sql",
+        "supabase/migrations/20270507800000_endurecer_rag_mcp_y_chat_columnas.sql",
         "supabase/functions/chat-ia-responder/index.ts",
         "supabase/functions/chat-ia-responder/handler.ts",
         "supabase/functions/chat-ia-responder/guardas.ts",
@@ -269,13 +271,15 @@
     },
     {
       "id": "document-rag-mechanism",
-      "version": "1.0.4",
+      "version": "1.1.0",
       "title": "Búsqueda documental genérica con IA (RAG)",
       "paths": [
         "supabase/migrations/20261005000001_rag_busqueda_documental.sql",
         "supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql",
         "supabase/migrations/20270507260000_insertar_fragmentos_si_dueno.sql",
+        "supabase/migrations/20270507800000_endurecer_rag_mcp_y_chat_columnas.sql",
         "supabase/tests/database/rag_busqueda_documental.test.sql",
+        "supabase/tests/database/lote80_endurecer_rag_mcp_y_chat_columnas.test.sql",
         "supabase/functions/indexar-documento/index.ts",
         "supabase/functions/indexar-documento/handler.ts",
         "supabase/functions/indexar-documento/consultas.ts",

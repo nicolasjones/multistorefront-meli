@@ -1,0 +1,145 @@
+-- Lote 89 (MSF-728, MSF-729, MSF-730; migración 20270507800000): unicidad de fragmentos, barrido de versiones atascadas,
+-- vencimiento de ejecuciones MCP dentro de iniciar_ejecucion_mcp, una fila por funcionalidad en fuentes/acciones MCP y
+-- `fuentes_chat_ia.columnas`. Datos inventados; la deduplicación se prueba con las mismas funciones que usa la migración.
+begin;
+
+select plan(63);
+
+insert into organizaciones (id, nombre) values ('f1111111-1111-1111-1111-111111111180', 'Org L80');
+insert into auth.users (id, email) values ('f1000000-0000-0000-0000-000000000080', 'subidor-l80@example.com');
+insert into features (id, nombre) values ('mcp-servidor', 'MCP servidor'), ('f-l80', 'Funcionalidad L80'), ('f-l80-b', 'Funcionalidad L80 B')
+  on conflict (id) do nothing;
+insert into organizaciones_features (feature_id, organizacion_id, habilitado_por) values
+  ('mcp-servidor', 'f1111111-1111-1111-1111-111111111180', 'f1000000-0000-0000-0000-000000000080'),
+  ('f-l80', 'f1111111-1111-1111-1111-111111111180', 'f1000000-0000-0000-0000-000000000080')
+  on conflict do nothing;
+insert into capacidades_mcp (feature_id, lectura, ejecucion) values ('f-l80', true, true)
+  on conflict (feature_id) do update set ejecucion = true;
+insert into credenciales_mcp (id, organizacion_id, hash, creada_por, revocada_en) values
+  ('f2000000-0000-0000-0000-000000000001', 'f1111111-1111-1111-1111-111111111180', '\x01', 'f1000000-0000-0000-0000-000000000080', null),
+  ('f2000000-0000-0000-0000-000000000002', 'f1111111-1111-1111-1111-111111111180', '\x02', 'f1000000-0000-0000-0000-000000000080', null),
+  ('f2000000-0000-0000-0000-000000000003', 'f1111111-1111-1111-1111-111111111180', '\x03', 'f1000000-0000-0000-0000-000000000080', now());
+
+insert into documentos (id, organizacion_id, nombre, subido_por)
+  values ('f3000000-0000-0000-0000-000000000001', 'f1111111-1111-1111-1111-111111111180', 'l80.pdf', 'f1000000-0000-0000-0000-000000000080');
+
+-- ===== A1: unicidad (version_id, orden) =====
+insert into versiones_documento (id, documento_id, storage_path, estado, subida_por, motivo_error, subida_en) values
+  ('f4000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-000000000001', 'v1', 'procesando', 'f1000000-0000-0000-0000-000000000080', null, now() - interval '40 minutes'),
+  ('f4000000-0000-0000-0000-000000000002', 'f3000000-0000-0000-0000-000000000001', 'v2', 'procesando', 'f1000000-0000-0000-0000-000000000080', 'indexando:' || (extract(epoch from clock_timestamp()) * 1000)::bigint || ':vivo', now() - interval '40 minutes'),
+  ('f4000000-0000-0000-0000-000000000003', 'f3000000-0000-0000-0000-000000000001', 'v3', 'procesando', 'f1000000-0000-0000-0000-000000000080', 'indexando:' || ((extract(epoch from clock_timestamp()) * 1000)::bigint - 20 * 60 * 1000) || ':vencido', now() - interval '40 minutes'),
+  ('f4000000-0000-0000-0000-000000000004', 'f3000000-0000-0000-0000-000000000001', 'v4', 'procesando', 'f1000000-0000-0000-0000-000000000080', null, now() - interval '5 minutes'),
+  ('f4000000-0000-0000-0000-000000000005', 'f3000000-0000-0000-0000-000000000001', 'v5', 'activa', 'f1000000-0000-0000-0000-000000000080', null, now() - interval '40 minutes'),
+  ('f4000000-0000-0000-0000-000000000006', 'f3000000-0000-0000-0000-000000000001', 'v6', 'procesando', 'f1000000-0000-0000-0000-000000000080', 'indexando:basura:x', now() - interval '40 minutes'),
+  ('f4000000-0000-0000-0000-000000000007', 'f3000000-0000-0000-0000-000000000001', 'v7', 'procesando', 'f1000000-0000-0000-0000-000000000080', 'reclamo-propio', now() - interval '1 minute');
+
+create temp table filas as
+select jsonb_agg(jsonb_build_object('texto', 'texto ' || n, 'embedding', '[' || array_to_string(array_fill(0, array[1536]), ',') || ']', 'orden', n) order by n) as j
+  from generate_series(1, 3) n;
+
+select is(public.insertar_fragmentos_si_dueno('f4000000-0000-0000-0000-000000000007', 'f1111111-1111-1111-1111-111111111180', 'reclamo-propio', (select j from filas)), true, 'dueña: inserta 3 filas');
+select is(public.insertar_fragmentos_si_dueno('f4000000-0000-0000-0000-000000000007', 'f1111111-1111-1111-1111-111111111180', 'reclamo-propio', (select j from filas)), true, 'reintento con las mismas filas: sigue devolviendo true (idempotente, sin 23505)');
+select is((select count(*) from fragmentos_indexados where version_id = 'f4000000-0000-0000-0000-000000000007'), 3::bigint, 'el reintento no duplicó fragmentos');
+select throws_ok($$insert into fragmentos_indexados (version_id, organizacion_id, texto, embedding, orden) select 'f4000000-0000-0000-0000-000000000007', 'f1111111-1111-1111-1111-111111111180', 'dup', embedding, 1 from fragmentos_indexados where version_id = 'f4000000-0000-0000-0000-000000000007' limit 1$$,
+  '23505', 'duplicate key value violates unique constraint "fragmentos_indexados_version_orden_uidx"', 'un insert directo duplicado es rechazado por el índice único');
+select is((select indisunique from pg_index where indexrelid = 'public.fragmentos_indexados_version_orden_uidx'::regclass), true, 'el índice sobre (version_id, orden) es único');
+
+-- Deduplicación determinista (la misma función que corre la migración): sin el índice, con duplicados.
+drop index public.fragmentos_indexados_version_orden_uidx;
+insert into fragmentos_indexados (id, version_id, organizacion_id, texto, embedding, orden)
+select ('f5000000-0000-0000-0000-00000000000' || n)::uuid, 'f4000000-0000-0000-0000-000000000007', 'f1111111-1111-1111-1111-111111111180', 'repetido ' || n, (select embedding from fragmentos_indexados where version_id = 'f4000000-0000-0000-0000-000000000007' limit 1), 1
+  from generate_series(1, 3) n;
+select is((select count(*) from fragmentos_indexados where version_id = 'f4000000-0000-0000-0000-000000000007' and orden = 1), 4::bigint, 'sin índice hay 4 fragmentos con orden 1');
+select is(private.deduplicar_fragmentos_indexados(), 3::bigint, 'la deduplicación borra 3 repetidos');
+select is((select count(*) from fragmentos_indexados where version_id = 'f4000000-0000-0000-0000-000000000007' and orden = 1), 1::bigint, 'queda uno por (version_id, orden)');
+select is(private.deduplicar_fragmentos_indexados(), 0::bigint, 'la deduplicación es idempotente');
+create unique index if not exists fragmentos_indexados_version_orden_uidx on public.fragmentos_indexados (version_id, orden);
+select is((select count(*) from pg_indexes where indexname = 'fragmentos_indexados_version_orden_uidx'), 1::bigint, 'el índice único se recrea después de deduplicar');
+drop index public.fragmentos_indexados_version_orden_uidx;
+insert into fragmentos_indexados (id, version_id, organizacion_id, texto, embedding, orden) values
+  ('00000000-0000-0000-0000-0000000000a2', 'f4000000-0000-0000-0000-000000000007', 'f1111111-1111-1111-1111-111111111180', 'segundo', (select embedding from fragmentos_indexados where version_id = 'f4000000-0000-0000-0000-000000000007' limit 1), 99),
+  ('00000000-0000-0000-0000-0000000000a1', 'f4000000-0000-0000-0000-000000000007', 'f1111111-1111-1111-1111-111111111180', 'primero', (select embedding from fragmentos_indexados where version_id = 'f4000000-0000-0000-0000-000000000007' limit 1), 99);
+select is(private.deduplicar_fragmentos_indexados(), 1::bigint, 'borra el repetido del caso controlado');
+select is((select texto from fragmentos_indexados where version_id = 'f4000000-0000-0000-0000-000000000007' and orden = 99), 'primero', 'conserva el de menor id');
+create unique index if not exists fragmentos_indexados_version_orden_uidx on public.fragmentos_indexados (version_id, orden);
+
+-- ===== A2: barrido de versiones atascadas =====
+select is(has_function_privilege('service_role', 'public.liberar_versiones_documento_atascadas(int)', 'execute'), true, 'service_role ejecuta el barrido público');
+select is(has_function_privilege('authenticated', 'public.liberar_versiones_documento_atascadas(int)', 'execute'), false, 'authenticated no ejecuta el barrido público');
+select is(has_function_privilege('anon', 'public.liberar_versiones_documento_atascadas(int)', 'execute'), false, 'anon no ejecuta el barrido público');
+select is(has_function_privilege('service_role', 'private.liberar_versiones_documento_atascadas(int)', 'execute'), false, 'service_role no ejecuta el barrido privado directamente');
+select is(has_function_privilege('authenticated', 'private.liberar_versiones_documento_atascadas(int)', 'execute'), false, 'authenticated no ejecuta el barrido privado');
+select is((select prosecdef from pg_proc where oid = 'private.liberar_versiones_documento_atascadas(int)'::regprocedure), true, 'el barrido privado es security definer');
+select is((select proconfig from pg_proc where oid = 'private.liberar_versiones_documento_atascadas(int)'::regprocedure), array['search_path=""'], 'el barrido privado fija search_path vacío');
+select is((select proconfig from pg_proc where oid = 'public.liberar_versiones_documento_atascadas(int)'::regprocedure), array['search_path=""'], 'el barrido público fija search_path vacío');
+
+-- Fragmentos de una versión que se va a marcar fallida y de una con candado vivo.
+insert into fragmentos_indexados (version_id, organizacion_id, texto, embedding, orden)
+select v, 'f1111111-1111-1111-1111-111111111180', 'huérfano', (select embedding from fragmentos_indexados where version_id = 'f4000000-0000-0000-0000-000000000007' limit 1), 1
+  from unnest(array['f4000000-0000-0000-0000-000000000001', 'f4000000-0000-0000-0000-000000000002']::uuid[]) v;
+
+select throws_ok($$select public.liberar_versiones_documento_atascadas(0)$$, '22023', 'p_minutos debe ser un entero mayor o igual a 1', 'p_minutos 0 es rechazado');
+select throws_ok($$select public.liberar_versiones_documento_atascadas(null)$$, '22023', 'p_minutos debe ser un entero mayor o igual a 1', 'p_minutos nulo es rechazado');
+select throws_ok($$select public.liberar_versiones_documento_atascadas(-5)$$, '22023', 'p_minutos debe ser un entero mayor o igual a 1', 'p_minutos negativo es rechazado');
+
+select is(public.liberar_versiones_documento_atascadas(30), 3, 'marca 3 versiones: sin candado, candado vencido y candado ilegible');
+select is((select estado from versiones_documento where id = 'f4000000-0000-0000-0000-000000000001'), 'fallida', 'procesando de hace 40 min sin candado: fallida');
+select is((select motivo_error from versiones_documento where id = 'f4000000-0000-0000-0000-000000000001'), 'Se interrumpió el procesamiento: más de 30 minutos sin completarse. Subí el archivo de nuevo.', 'motivo_error claro');
+select is((select estado from versiones_documento where id = 'f4000000-0000-0000-0000-000000000003'), 'fallida', 'candado vencido (20 min): fallida');
+select is((select estado from versiones_documento where id = 'f4000000-0000-0000-0000-000000000006'), 'fallida', 'candado ilegible: fallida');
+select is((select estado from versiones_documento where id = 'f4000000-0000-0000-0000-000000000002'), 'procesando', 'candado vigente: no se pisa');
+select is((select estado from versiones_documento where id = 'f4000000-0000-0000-0000-000000000004'), 'procesando', 'subida hace 5 min: no se toca');
+select is((select estado from versiones_documento where id = 'f4000000-0000-0000-0000-000000000005'), 'activa', 'versión activa: no se toca');
+select is((select estado from versiones_documento where id = 'f4000000-0000-0000-0000-000000000007'), 'procesando', 'subida reciente con reclamo propio: no se toca');
+select is((select count(*) from fragmentos_indexados where version_id = 'f4000000-0000-0000-0000-000000000001'), 0::bigint, 'se borran los fragmentos huérfanos de la versión marcada');
+select is((select count(*) from fragmentos_indexados where version_id = 'f4000000-0000-0000-0000-000000000002'), 1::bigint, 'los de la versión con candado vigente se conservan');
+select is(public.liberar_versiones_documento_atascadas(30), 0, 'idempotente: segunda corrida no marca nada');
+select is(public.liberar_versiones_documento_atascadas(), 0, 'el default (30) funciona sin argumento');
+
+-- ===== B1: una fila por funcionalidad en fuentes_mcp / acciones_mcp =====
+insert into fuentes_mcp (feature_id, vista) values ('f-l80', 'v_l80_a');
+insert into acciones_mcp (feature_id, rpc) values ('f-l80', 'rpc_l80_a');
+select throws_ok($$insert into fuentes_mcp (feature_id, vista) values ('f-l80', 'v_l80_b')$$, '23505', 'duplicate key value violates unique constraint "fuentes_mcp_feature_unica_idx"', 'una segunda vista para la misma funcionalidad es rechazada');
+select throws_ok($$insert into acciones_mcp (feature_id, rpc) values ('f-l80', 'rpc_l80_b')$$, '23505', 'duplicate key value violates unique constraint "acciones_mcp_feature_unica_idx"', 'una segunda acción para la misma funcionalidad es rechazada');
+drop index public.fuentes_mcp_feature_unica_idx;
+drop index public.acciones_mcp_feature_unica_idx;
+insert into fuentes_mcp (feature_id, vista) values ('f-l80', 'v_l80_0');
+insert into acciones_mcp (feature_id, rpc) values ('f-l80', 'rpc_l80_0');
+select is(private.deduplicar_registro_mcp(), 2::bigint, 'la deduplicación borra una fuente y una acción repetidas');
+select is((select vista from fuentes_mcp where feature_id = 'f-l80'), 'v_l80_0', 'conserva la fuente de menor vista');
+select is((select rpc from acciones_mcp where feature_id = 'f-l80'), 'rpc_l80_0', 'conserva la acción de menor rpc');
+select is(private.deduplicar_registro_mcp(), 0::bigint, 'la deduplicación MCP es idempotente');
+create unique index if not exists fuentes_mcp_feature_unica_idx on public.fuentes_mcp (feature_id);
+create unique index if not exists acciones_mcp_feature_unica_idx on public.acciones_mcp (feature_id);
+
+-- ===== B2: vencimiento dentro de iniciar_ejecucion_mcp =====
+select is(private.ejecucion_mcp_vence_min(), 10, 'el vencimiento es de 10 minutos');
+select is(has_function_privilege('service_role', 'public.iniciar_ejecucion_mcp(uuid, text)', 'execute'), true, 'service_role sigue ejecutando iniciar_ejecucion_mcp');
+select is(has_function_privilege('authenticated', 'public.iniciar_ejecucion_mcp(uuid, text)', 'execute'), false, 'authenticated sigue sin ejecutar iniciar_ejecucion_mcp');
+select ok(public.iniciar_ejecucion_mcp('f2000000-0000-0000-0000-000000000001', 'f-l80') is not null, 'inicia una ejecución');
+select throws_ok($$select public.iniciar_ejecucion_mcp('f2000000-0000-0000-0000-000000000001', 'f-l80')$$, '23505', 'duplicate key value violates unique constraint "ejecuciones_mcp_en_curso_idx"', 'una segunda ejecución vigente es rechazada (EJECUCION_EN_CURSO)');
+update ejecuciones_mcp set iniciada_en = now() - interval '9 minutes' where credencial_id = 'f2000000-0000-0000-0000-000000000001';
+select throws_ok($$select public.iniciar_ejecucion_mcp('f2000000-0000-0000-0000-000000000001', 'f-l80')$$, '23505', 'duplicate key value violates unique constraint "ejecuciones_mcp_en_curso_idx"', 'a los 9 minutos todavía no vence');
+select ok(public.iniciar_ejecucion_mcp('f2000000-0000-0000-0000-000000000002', 'f-l80') is not null, 'otra credencial inicia sin interferir');
+update ejecuciones_mcp set iniciada_en = now() - interval '11 minutes' where credencial_id = 'f2000000-0000-0000-0000-000000000001';
+select ok(public.iniciar_ejecucion_mcp('f2000000-0000-0000-0000-000000000001', 'f-l80') is not null, 'a los 11 minutos la abandonada vence y se inicia una nueva');
+select is((select count(*) from ejecuciones_mcp where credencial_id = 'f2000000-0000-0000-0000-000000000001' and estado = 'fallida' and motivo_error = 'vencida' and finalizada_en is not null), 1::bigint, 'la abandonada quedó fallida/vencida con fecha de cierre');
+select is((select count(*) from ejecuciones_mcp where credencial_id = 'f2000000-0000-0000-0000-000000000002' and estado = 'en_curso'), 1::bigint, 'la ejecución en curso de la otra credencial no se tocó');
+select throws_ok($$select public.iniciar_ejecucion_mcp('f2000000-0000-0000-0000-000000000003', 'f-l80')$$, '42501', 'Credencial inválida o revocada', 'credencial revocada: 42501');
+select throws_ok($$select public.iniciar_ejecucion_mcp('f2000000-0000-0000-0000-000000000001', 'f-l80-b')$$, '42501', 'Funcionalidad no ejecutable para esta organización', 'funcionalidad no ejecutable: 42501');
+
+-- ===== C: fuentes_chat_ia.columnas =====
+insert into fuentes_chat_ia (feature_id, vista) values ('f-l80', 'v_chat_l80_null');
+insert into fuentes_chat_ia (feature_id, vista, columnas) values ('f-l80', 'v_chat_l80_ok', array['sku', 'nombre_2']);
+select is((select columnas from fuentes_chat_ia where vista = 'v_chat_l80_null'), null, 'columnas NULL por defecto (comportamiento anterior)');
+select is((select columnas from fuentes_chat_ia where vista = 'v_chat_l80_ok'), array['sku', 'nombre_2'], 'columnas válidas se guardan');
+select throws_ok($$insert into fuentes_chat_ia (feature_id, vista, columnas) values ('f-l80', 'x1', '{}')$$, '23514', 'new row for relation "fuentes_chat_ia" violates check constraint "fuentes_chat_ia_columnas_validas"', 'lista vacía rechazada');
+select throws_ok($$insert into fuentes_chat_ia (feature_id, vista, columnas) values ('f-l80', 'x2', array['Sku'])$$, '23514', 'new row for relation "fuentes_chat_ia" violates check constraint "fuentes_chat_ia_columnas_validas"', 'mayúsculas rechazadas');
+select throws_ok($$insert into fuentes_chat_ia (feature_id, vista, columnas) values ('f-l80', 'x3', array['a;b'])$$, '23514', 'new row for relation "fuentes_chat_ia" violates check constraint "fuentes_chat_ia_columnas_validas"', 'punto y coma rechazado');
+select throws_ok($$insert into fuentes_chat_ia (feature_id, vista, columnas) values ('f-l80', 'x4', array['a|b'])$$, '23514', 'new row for relation "fuentes_chat_ia" violates check constraint "fuentes_chat_ia_columnas_validas"', 'separador dentro de un elemento rechazado');
+select throws_ok($$insert into fuentes_chat_ia (feature_id, vista, columnas) values ('f-l80', 'x5', array['a', ''])$$, '23514', 'new row for relation "fuentes_chat_ia" violates check constraint "fuentes_chat_ia_columnas_validas"', 'elemento vacío rechazado');
+select throws_ok($$insert into fuentes_chat_ia (feature_id, vista, columnas) values ('f-l80', 'x6', array['a', null])$$, '23514', 'new row for relation "fuentes_chat_ia" violates check constraint "fuentes_chat_ia_columnas_validas"', 'elemento nulo rechazado');
+select throws_ok($$insert into fuentes_chat_ia (feature_id, vista, columnas) values ('f-l80', 'x7', (select array_agg('c' || n) from generate_series(1, 51) n))$$, '23514', 'new row for relation "fuentes_chat_ia" violates check constraint "fuentes_chat_ia_columnas_validas"', 'más de 50 columnas rechazado');
+
+select * from finish();
+rollback;

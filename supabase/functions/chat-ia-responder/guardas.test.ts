@@ -1,7 +1,7 @@
 // `node --test supabase/functions/chat-ia-responder/guardas.test.ts` (pnpm test:edge:chat-ia-limites).
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { ErrorPersistencia, MAX_HERRAMIENTAS_POR_TURNO, MENSAJE_MAX, describirPropuesta, excedeLimite, filtrosSeguros, guardarMensaje, limiteConfigurado, rechazoPorCuota, resolverLlamadas, validarEntrada } from './guardas.ts'
+import { ErrorPersistencia, MAX_HERRAMIENTAS_POR_TURNO, MENSAJE_MAX, columnasParaSelect, describirPropuesta, excedeLimite, filtrosSeguros, guardarMensaje, limiteConfigurado, rechazoPorCuota, resolverLlamadas, validarEntrada } from './guardas.ts'
 
 describe('validarEntrada', () => {
   it('acepta un mensaje normal con o sin conversación', () => {
@@ -102,5 +102,19 @@ describe('rechazoPorCuota', () => {
     assert.equal(rechazoPorCuota(null, null, 60), null)
     assert.equal(rechazoPorCuota(60, null, 60)?.status, 429)
     assert.equal(rechazoPorCuota(0, { message: 'x' }, 60)?.status, 503)
+  })
+})
+
+describe('columnasParaSelect', () => {
+  it('sin columnas definidas conserva el select * histórico', () => {
+    assert.deepEqual(columnasParaSelect(null), { ok: true, seleccion: '*' })
+    assert.deepEqual(columnasParaSelect(undefined), { ok: true, seleccion: '*' })
+  })
+  it('una lista de identificadores simples se pide tal cual', () => {
+    assert.deepEqual(columnasParaSelect(['sku', 'nombre_2']), { ok: true, seleccion: 'sku,nombre_2' })
+  })
+  it('rechaza (falla cerrado) todo lo que no sea una lista válida de identificadores', () => {
+    const invalidos: unknown[] = [[], 'sku', {}, 5, ['sku;drop'], ['Sku'], ['a b'], ['a,b'], ['*'], [''], [1], [null], ['sku', 'sku'], ['a.b'], ['sku)'], Array.from({ length: 51 }, (_, i) => `c${i}`)]
+    for (const v of invalidos) assert.deepEqual(columnasParaSelect(v), { ok: false }, JSON.stringify(v))
   })
 })

@@ -23,7 +23,7 @@ import { invocarProveedorIa, type FetchInvocacion } from '../_shared/ia/proveedo
 import { sanitizarDato, marcarContenidoNoConfiable } from '../_shared/ia/sanitizar.ts'
 import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
 import {
-  ErrorPersistencia, MAX_TOKENS_RESPUESTA, describirPropuesta, filtrosSeguros, guardarMensaje,
+  ErrorPersistencia, MAX_TOKENS_RESPUESTA, columnasParaSelect, describirPropuesta, filtrosSeguros, guardarMensaje,
   limiteConfigurado, rechazoPorCuota, resolverLlamadas, validarEntrada, type ResultadoHerramienta,
 } from './guardas.ts'
 
@@ -256,7 +256,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   const perfil: PerfilModelo = { id: politica.perfil_principal_id, proveedorCodigo: credencial.proveedor_codigo, modeloId: credencial.modelo_id }
 
   async function leer(vista: string, filtros: Record<string, string | number> = {}) {
-    const { data: fuente } = await asUser.from('fuentes_chat_ia').select('feature_id').eq('vista', vista).maybeSingle()
+    const { data: fuente } = await asUser.from('fuentes_chat_ia').select('feature_id, columnas').eq('vista', vista).maybeSingle()
     if (!fuente) return { error: 'FUENTE_NO_DISPONIBLE' }
 
     const { data: puedeLeer } = await asUser.rpc('puede_chat_leer_funcionalidad', { p_feature_id: fuente.feature_id })
@@ -265,7 +265,11 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     // Tope de filas (F-IA-01, FR-023): se pide una de más para saber si hubo recorte y avisarlo al modelo.
     const seguros = filtrosSeguros(filtros)
     if (!seguros.ok) return { error: 'FILTROS_INVALIDOS' }
-    let query = asUser.from(vista).select('*').limit(TOPE_FILAS_CONSULTA + 1)
+    // Columnas permitidas por vista (MSF-730): si `fuentes_chat_ia.columnas` está definida solo se piden esas; si es NULL
+    // se mantiene `*` (fuentes existentes). Una lista inválida falla cerrado.
+    const columnas = columnasParaSelect((fuente as { columnas?: unknown }).columnas)
+    if (!columnas.ok) return { error: 'FUENTE_NO_DISPONIBLE' }
+    let query = asUser.from(vista).select(columnas.seleccion).limit(TOPE_FILAS_CONSULTA + 1)
     for (const [clave, valor] of Object.entries(seguros.filtros)) query = query.eq(clave, valor)
     const { data: filasLeidas, error } = await query
     if (error) return { error: 'ERROR_AL_LEER' }
