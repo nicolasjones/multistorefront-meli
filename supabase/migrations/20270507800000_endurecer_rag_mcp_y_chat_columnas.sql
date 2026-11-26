@@ -126,6 +126,9 @@ security definer
 set search_path = ''
 as $$
 begin
+  if p_indice is null then
+    raise exception 'El índice indicado no existe: creálo antes de comprobar si es válido' using errcode = '42704';
+  end if;
   if exists (select 1 from pg_catalog.pg_index i where i.indexrelid = p_indice and not i.indisvalid) then
     raise exception 'El índice % existe pero no es válido (una creación concurrente falló): ejecutá drop index concurrently %; y repetí la migración', p_indice, p_indice
       using errcode = '55000';
@@ -134,7 +137,7 @@ end;
 $$;
 
 comment on function private.exigir_indice_valido(regclass) is
-  'Lote 89 (MSF-728): aborta con 55000 si el índice indicado existe pero está INVALID (creación concurrente fallida). Parametrizada para poder probarla con un índice inválido real sin ser superusuario.';
+  'Lote 89 (MSF-728): aborta con 55000 si el índice indicado existe pero está INVALID (creación concurrente fallida) y con 42704 si el índice no existe (parámetro nulo). Parametrizada para poder probarla con un índice inválido real sin ser superusuario.';
 
 create or replace function private.exigir_indice_fragmentos_valido()
 returns void

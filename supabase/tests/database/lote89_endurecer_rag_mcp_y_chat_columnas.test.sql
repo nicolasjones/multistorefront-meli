@@ -4,7 +4,7 @@
 -- usa la migración. Incluye el aislamiento entre organizaciones (políticas de escritura y deduplicación de fragmentos).
 begin;
 
-select plan(97);
+select plan(99);
 
 insert into organizaciones (id, nombre) values
   ('f1111111-1111-1111-1111-111111111180', 'Org L89'),
@@ -148,6 +148,8 @@ select is((select count(*) from fragmentos_indexados where orden = 60), 0::bigin
 
 -- Con el índice único válido la comprobación de la migración pasa.
 select lives_ok($$select private.exigir_indice_fragmentos_valido()$$, 'con el índice válido la comprobación pasa');
+select ok(position('public.fragmentos_indexados_version_orden_uidx' in pg_get_functiondef('private.exigir_indice_fragmentos_valido()'::regprocedure)) > 0, 'el envoltorio comprueba el índice único real de fragmentos');
+select throws_ok($$select private.exigir_indice_valido(null)$$, '42704', 'El índice indicado no existe: creálo antes de comprobar si es válido', 'un índice inexistente (nulo) aborta en vez de pasar en silencio');
 -- El caso del índice INVALID real vive en lote89b_indice_invalido.test.sql (requiere un create unique index concurrently fuera de transacción).
 
 -- Políticas de escritura: la versión debe ser de la organización del usuario.

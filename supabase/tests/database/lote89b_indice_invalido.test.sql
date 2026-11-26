@@ -7,8 +7,12 @@ select plan(5);
 drop table if exists public.lote89b_scratch;
 \set ON_ERROR_STOP 1
 
-create table public.lote89b_scratch (a int, b int);
-insert into public.lote89b_scratch (a, b) values (1, 1), (1, 2);
+create table public.lote89b_scratch (id int primary key, a int, b int);
+-- RLS con una política explícita y clave primaria desde el inicio: si la prueba se corta a mitad, el residuo no rompe los tests globales
+-- (rls_en_toda_tabla, higiene de la base).
+alter table public.lote89b_scratch enable row level security;
+create policy lote89b_scratch_nada on public.lote89b_scratch for select using (false);
+insert into public.lote89b_scratch (id, a, b) values (1, 1, 1), (2, 1, 2);
 
 create unique index lote89b_scratch_b_uidx on public.lote89b_scratch (b);
 
