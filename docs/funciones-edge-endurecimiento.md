@@ -355,7 +355,7 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   estados de la capacidad de IA gobernada (una fila por ejecución con política, perfil, `idempotency_key` única por consumidor, estados y
   purga de evidencia) y ni `chat-ia-responder` ni `preguntar-documentos` escriben en ella. Guarda estados por ejecución, no un contador atómico por usuario y hora,
   y no cubre las peticiones rechazadas antes de invocar. `ia_cupo_uso` guarda solo los
-  contadores de la hora y se purga; (`ia_consulta_registro` es únicamente el nombre de un test de las fuentes del asistente).
+  contadores de la hora y se purga. Tampoco `ia_consulta_registro` sirve: esa migración (`20270224110100_ia_consulta_registro.sql`) y su test registran las cuatro fuentes de consulta del asistente (`features`, `fuentes_chat_ia`, `fuentes_mcp`), no crean ninguna tabla de uso.
 
 **Orden de despliegue:** aplicar la migración ANTES de desplegar `chat-ia-responder` y `preguntar-documentos`. Si una función sale primero,
 `public.consumir_cupo_ia` no existe y toda consulta responde 503 (falla cerrado: no se gasta crédito, pero el chat y la búsqueda
