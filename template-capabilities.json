@@ -200,7 +200,7 @@
     },
     {
       "id": "local-ci-runners",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "title": "Runners self-hosted locales con store de pnpm compartido y topes",
       "paths": [
         "infra/runner/compose.yaml"
@@ -269,7 +269,7 @@
     },
     {
       "id": "document-rag-mechanism",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "title": "Búsqueda documental genérica con IA (RAG)",
       "paths": [
         "supabase/migrations/20261005000001_rag_busqueda_documental.sql",
@@ -282,6 +282,7 @@
         "supabase/functions/indexar-documento/fragmentos.ts",
         "supabase/functions/indexar-documento/reglas.ts",
         "supabase/functions/preguntar-documentos/index.ts",
+        "supabase/functions/preguntar-documentos/handler.ts",
         "supabase/functions/preguntar-documentos/contexto.ts",
         "supabase/functions/_shared/ia/",
         "supabase/functions/_shared/fetch-ia.ts",

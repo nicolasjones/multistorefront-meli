@@ -237,6 +237,12 @@ con default en `infra/runner/compose.yaml`; contrato en
   Evita que un job (vitest es multi-núcleo) se coma la máquina y deje sin CPU a
   los otros runners, a los stacks de Supabase y a los agentes. Ver
   `docs/control-ci.md`.
+- `RUNNER_PIDS_LIMIT` (default `4096`, `-1` = sin tope): tope de procesos por
+  réplica (`deploy.resources.limits.pids`). `init: true` cosecha los zombis, pero no frena un
+  fork-bomb ni un chrome-headless que no cierra sus hijos; con el tope, el
+  contenedor falla (`fork: retry: Resource temporarily unavailable`) sin agotar
+  los PIDs del host. Surte efecto al **recrear** los runners
+  (`docker compose up -d --force-recreate`), no con solo mergear el cambio.
 - `RUNNER_PNPM_NETWORK_CONCURRENCY` (default `16`): descargas simultáneas de
   cada `pnpm install` en el runner (pnpm usaría 64 en una máquina de 12
   núcleos). El runner fija además `pnpm_config_fetch_retries=5` para
