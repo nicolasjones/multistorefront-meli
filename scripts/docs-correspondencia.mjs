@@ -15,19 +15,40 @@ const esFuenteAmplia = (fuente) => fuente.split('/').length < 2 || fuente === '.
 
 const esArchivoRelevante = (ruta) => RUTAS_CODIGO.test(ruta) && !TRIVIAL.test(ruta);
 
+// Mismo criterio que `frontmatter()` de docs-manifest.mjs (lista en bloque, `[]`), más array en línea,
+// escalar, CRLF, comentarios finales y comillas.
+const limpiarItem = (v) => v.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '');
+
 function fuentesDeDoc(texto) {
-  const m = texto.match(/^---\n([\s\S]*?)\n---/);
+  const m = texto.replace(/\r\n?/g, '\n').match(/^---\n([\s\S]*?)\n---/);
   if (!m) return [];
   const fuentes = [];
   let enSources = false;
   for (const linea of m[1].split('\n')) {
     const kv = linea.match(/^([a-zA-Z_]+):\s*(.*)$/);
-    if (kv) { enSources = kv[1] === 'sources'; continue; }
+    if (kv) {
+      enSources = kv[1] === 'sources';
+      if (enSources) {
+        const v = kv[2].replace(/\s+#.*$/, '').trim();
+        const enLinea = v.match(/^\[(.*)\]$/);
+        if (enLinea) fuentes.push(...enLinea[1].split(',').map(limpiarItem));
+        else if (v) fuentes.push(limpiarItem(v));
+      }
+      continue;
+    }
     const li = linea.match(/^\s*-\s*(.+)$/);
-    if (enSources && li) fuentes.push(li[1].trim().replace(/^["']|["']$/g, '').replace(/\/+$/, ''));
+    if (enSources && li) fuentes.push(limpiarItem(li[1]));
   }
-  return fuentes;
+  return fuentes.filter(Boolean);
 }
+
+// Escape de anotaciones de GitHub Actions (igual que @actions/core). Un nombre de archivo o de doc
+// viene del PR: sin escapar, `%0A::add-mask::x` en la salida se decodifica y se ejecuta como comando.
+export const escaparDato = (v) => String(v).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+export const escaparPropiedad = (v) => escaparDato(v).replace(/:/g, '%3A').replace(/,/g, '%2C');
+export const anotacion = (nivel, props, mensaje) => `::${nivel} ${Object.entries(props).map(([k, v]) => `${k}=${escaparPropiedad(v)}`).join(',')}::${escaparDato(mensaje)}`;
+// Línea legible que lista un nombre: siempre empieza con "- ", sin saltos de línea ni `::`.
+export const lineaLista = (nombre, sangria = '') => `${sangria}- ${String(nombre).replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/::/g, ':\u200b:')}`;
 
 // docs: [{ doc: 'docs/x.md', sources: [...] }] -> los que declaran de 1 a MAX_FUENTES_POR_DOC rutas.
 export const leerMapaDocs = (raiz) => {
@@ -39,7 +60,8 @@ export const leerMapaDocs = (raiz) => {
       const p = path.join(dir, e.name);
       if (e.isDirectory()) { if (!['_generated', 'node_modules'].includes(e.name)) recorrer(p); }
       else if (e.name.endsWith('.md')) {
-        const sources = fuentesDeDoc(readFileSync(p, 'utf8'));
+        let sources;
+        try { sources = fuentesDeDoc(readFileSync(p, 'utf8')); } catch { continue; } // ilegible, symlink roto, carpeta *.md
         if (sources.length) docs.push({ doc: path.relative(raiz, p).split(path.sep).join('/'), sources });
       }
     }

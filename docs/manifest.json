@@ -928,13 +928,14 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "7e0a25f5da878c5015e5d4225f608789a49236663c1422673d17c11cf547e8c7",
-      "sourceHash": "3f38690a91de25783de1d52ddadd2e8e646f44f2552991c0ab583006c3f9b7ca",
+      "pageHash": "7e866214ea93ae80c16c6cef9ad9e0ac5d02a3f23775f50a419d9e21050673e4",
+      "sourceHash": "547699b42abda50d01ba8926637332fd3b1df727636a505db5fb55a1300e055f",
       "sourceAt": "af0142a09",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
         "scripts/docs-correspondencia.mjs",
+        "scripts/docs-correspondencia.test.mjs",
         "scripts/docs-check.mjs",
         "scripts/docs-drift.mjs",
         "scripts/docs-enlaces.mjs",

@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { archivosSinDocCorrespondiente, leerMapaDocs } from './docs-correspondencia.mjs';
+import { anotacion, archivosSinDocCorrespondiente, leerMapaDocs, lineaLista } from './docs-correspondencia.mjs';
 
 const run = (args) => spawnSync('git', args, { encoding: 'utf8' });
 const configuredBase = process.env.GITHUB_BASE_REF
@@ -33,25 +33,30 @@ const documented = changed.some((path) =>
 
 if (relevant.length > 0 && !documented) {
   console.error('Fallo de documentación: el cambio toca plataforma/tooling pero no actualiza specs/, docs/, .specify/bugs/, .specify/memory/, AGENTS.md, CLAUDE.md ni la constitución.');
-  console.error(relevant.map((path) => ` - ${path}`).join('\n'));
+  console.error(relevant.map((path) => lineaLista(path, ' ')).join('\n'));
   process.exit(1);
 }
 
 // Verificación adicional por correspondencia (MSF-869): el código que figura en el `sources:` de un
 // doc debería cambiar junto con ese doc. Modo aviso (exit 0) salvo DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1 o --estricto.
 const estricto = process.env.DOCUMENTACION_CORRESPONDENCIA_ESTRICTA === '1' || process.argv.includes('--estricto');
-const sinDoc = archivosSinDocCorrespondiente(changed, leerMapaDocs(process.cwd()));
-if (sinDoc.length > 0) {
-  const porDoc = new Map();
-  for (const { archivo, docs } of sinDoc) for (const doc of docs) porDoc.set(doc, [...(porDoc.get(doc) ?? []), archivo]);
-  const nivel = estricto ? 'error' : 'warning';
-  console.error(`Correspondencia código-doc: ${sinDoc.length} archivo(s) cambiado(s) sin que cambie ningún doc que los declara en sources:`);
-  for (const [doc, archivos] of [...porDoc].sort(([a], [b]) => a.localeCompare(b))) {
-    console.error(`::${nivel} file=${doc}::${archivos.length} archivo(s) de su sources: cambiaron y el doc no: ${archivos.slice(0, 5).join(', ')}${archivos.length > 5 ? ', …' : ''}`);
-    console.error(` - ${doc}\n${archivos.map((a) => `     ${a}`).join('\n')}`);
+const nivel = estricto ? 'error' : 'warning';
+try {
+  const sinDoc = archivosSinDocCorrespondiente(changed, leerMapaDocs(process.cwd()));
+  if (sinDoc.length > 0) {
+    const porDoc = new Map();
+    for (const { archivo, docs } of sinDoc) for (const doc of docs) porDoc.set(doc, [...(porDoc.get(doc) ?? []), archivo]);
+    console.error(`Correspondencia código-doc: ${sinDoc.length} archivo(s) cambiado(s) sin que cambie ningún doc que los declara en sources:`);
+    for (const [doc, archivos] of [...porDoc].sort(([a], [b]) => a.localeCompare(b))) {
+      console.error(anotacion(nivel, { file: doc }, `${archivos.length} archivo(s) de su sources: cambiaron y el doc no: ${archivos.slice(0, 5).join(', ')}${archivos.length > 5 ? ', …' : ''}`));
+      console.error(`${lineaLista(doc, ' ')}\n${archivos.map((a) => lineaLista(a, '     ')).join('\n')}`);
+    }
+    if (estricto) process.exit(1);
+    console.error('(modo aviso: no falla. Activar el error con DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1 o --estricto.)');
   }
+} catch (error) {
+  console.error(anotacion(nivel, {}, `no se pudo verificar la correspondencia: ${error?.message ?? error}`));
   if (estricto) process.exit(1);
-  console.error('(modo aviso: no falla. Activar el error con DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1 o --estricto.)');
 }
 
 console.log(`Documentación de cambios: OK (${changed.length} archivos comparados contra ${base}).`);

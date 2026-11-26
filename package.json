@@ -126,7 +126,7 @@
     "test:ui:empresas": "node --test scripts/verificar-ui-empresas.test.mjs",
     "prototipo:inventario": "node scripts/prototipo-inventario.mjs",
     "prototipo:check": "node scripts/verificar-inventario-prototipo.mjs",
-    "test:docs:check": "node --test scripts/docs-yaml.test.mjs scripts/docs-check.test.mjs scripts/verificar-documentacion-cambios.test.mjs scripts/verificar-trampas-conocidas.test.mjs scripts/banderas-sembradas.test.mjs scripts/verificar-medicion-tienda.test.mjs",
+    "test:docs:check": "node --test scripts/docs-yaml.test.mjs scripts/docs-check.test.mjs scripts/verificar-documentacion-cambios.test.mjs scripts/docs-correspondencia.test.mjs scripts/verificar-trampas-conocidas.test.mjs scripts/banderas-sembradas.test.mjs scripts/verificar-medicion-tienda.test.mjs",
     "test:docs:manifest": "node --test scripts/docs-manifest.test.mjs",
     "test:docs:importaciones": "node --test scripts/tests/documentacion-importaciones.test.mjs",
     "test:docs:pasos-manuales": "node --test scripts/tests/documentacion-pasos-manuales-vps2.test.mjs",
