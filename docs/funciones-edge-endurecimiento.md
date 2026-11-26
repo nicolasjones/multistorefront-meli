@@ -4,6 +4,7 @@ sources:
   - supabase/functions/chat-ia-responder/guardas.ts
   - supabase/functions/chat-ia-responder/handler.ts
   - supabase/functions/preguntar-documentos/index.ts
+  - supabase/functions/preguntar-documentos/handler.ts
   - supabase/functions/indexar-documento/handler.ts
   - supabase/functions/indexar-documento/consultas.ts
   - supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql
@@ -64,6 +65,18 @@ Qué se corrigió de los hallazgos MSF-727 a MSF-732 y MSF-711, qué ya estaba r
   autenticación, validación, funcionalidad, cuota, política, conversación, los dos ciclos del proveedor con texto,
   herramientas, propuestas, errores y timeouts) y un test de contrato de `index.ts` comprueba qué cliente se usa
   para qué.
+
+## `preguntar-documentos`: handler con dependencias inyectadas (MSF-893)
+
+Mismo patrón que `chat-ia-responder` e `iniciar-sesion-oauth`, sin cambios de comportamiento ni de contrato HTTP: la lógica
+vive en `handler.ts` (`manejar(req, deps)`) y `index.ts` solo cablea los clientes de Supabase (admin con service-role para
+validar el JWT y resolver política y credencial; usuario con anon + su JWT para la funcionalidad, la búsqueda y las
+versiones), `prepararInvocacion`, los embeddings, el `fetch` con tope de espera, el limitador por usuario (creado una vez por
+isolate, `PREGUNTAR_DOCUMENTOS_LIMITE_HORA`) y el reloj. `handler.ts` no lee entorno ni importa de `npm:`.
+`handler.test.ts` (`pnpm test:edge:preguntar-documentos`) cubre método y CORS, JWT, cuerpo y largo de la pregunta, funcionalidad
+(403/503), límite por usuario (429), política (503), credencial (500), proveedor no soportado (501), errores de embeddings y de
+búsqueda, ausencia de fragmentos o de texto (sin llamar al proveedor), citas sin duplicados, error y timeout del proveedor
+(502) y el cableado de `index.ts`.
 
 ## `indexar-documento` (MSF-728)
 

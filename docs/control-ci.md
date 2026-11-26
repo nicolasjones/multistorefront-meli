@@ -35,6 +35,7 @@ cantidad declarada.
 | **Draft** | Un PR en borrador no corre lo pesado | `if` de los jobs pesados |
 | **Timeouts** | Ningún job queda colgado para siempre | `timeout-minutes` en cada job |
 | **Límite de CPU** | Cada runner no se come la máquina | `RUNNER_CPU_LIMIT` (`infra/runner/compose.yaml`) |
+| **Límite de procesos** | Un fork-bomb o un chrome-headless que deja zombis no agota los PIDs del host | `RUNNER_PIDS_LIMIT` (`deploy.resources.limits.pids` en `infra/runner/compose.yaml`) |
 | **Integración protegida** | PR probado contra el `dokploy` actual | ruleset `dokploy-integracion-protegida` + `merge_group` |
 | **Estado del gate** | Lee el gate real de merge (rulesets) y da el veredicto | `scripts/gate-integracion.mjs` (`pnpm ci:gate`) |
 | **Janitor** | Limpia locks y stacks CI abandonados | `scripts/limpiar-ci.mjs` |
@@ -84,9 +85,15 @@ gh variable set CI_PAUSED --body true    # kill switch (borrar la variable para 
 ```
 
 Las del host van en el `.env` del deploy de runners: `RUNNER_REPLICAS`,
-`RUNNER_MEMORY_LIMIT`, `RUNNER_CPU_LIMIT` (ver `.env.example`). Subir
+`RUNNER_MEMORY_LIMIT`, `RUNNER_CPU_LIMIT`, `RUNNER_PIDS_LIMIT` (ver `.env.example`). Subir
 `RUNNER_REPLICAS` **sólo** después de tener CPU libre: con 12 vCPU y el load ya
 alto, más réplicas reparten el mismo CPU.
+
+`RUNNER_PIDS_LIMIT` (default `4096`, `-1` = sin tope) acota los procesos de cada réplica
+(`deploy.resources.limits.pids` en `infra/runner/compose.yaml`): `init: true` cosecha los zombis, pero no frena un fork-bomb ni un
+chrome-headless que no cierra sus hijos. **Acción de Nicolás en el VPS:** el cambio del repo no toca los runners en marcha; surte efecto
+al recrearlos (`docker compose up -d --force-recreate` en `infra/runner`). Verificar con
+`docker inspect --format '{{.HostConfig.PidsLimit}}' <contenedor>` (esperado `4096`).
 
 ### Semántica de la admisión
 
