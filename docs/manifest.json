@@ -962,9 +962,9 @@
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
-      "pageHash": "73c8d3fca64070e4f6be3ccc9ec8bc289f1acf9d96bedaa62fbf06b0855fd705",
-      "sourceHash": "7e4308e60c3e4678c840f48b9d12673db7d9b111d177722e070db10b39d63bc9",
-      "sourceAt": "2838b4734",
+      "pageHash": "9eb9dfb371c95cfe253ad014df085eafdf6b58b5811156e7315daa3e2da20142",
+      "sourceHash": "739c8d25a34647296fb5eb7bd7f97e1909a562138f327010350a73d0b8003d3e",
+      "sourceAt": "7e51760d0",
       "sources": [
         "specs/20261005-document-rag-mechanism",
         "apps/web/src/lib/documentosIa.ts",
@@ -973,12 +973,14 @@
         "supabase/migrations/20270507150000_activar_version_documento_valida_organizacion.sql",
         "supabase/migrations/20270507180400_documentos_escritura_excluye_consulta.sql",
         "supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql",
+        "supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql",
+        "supabase/functions/preguntar-documentos/handler.ts",
         "supabase/functions/indexar-documento/handler.ts",
         "supabase/functions/indexar-documento/fragmentos.ts",
         "supabase/functions/indexar-documento/consultas.ts"
       ],
       "owner": "tecnico",
-      "commit": "2838b4734"
+      "commit": "7e51760d0"
     },
     "docs/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)",
@@ -1152,9 +1154,9 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "16d9bca992f2186c4be9b11e1a2e0848824a54158fd5c47663cbb81e0ace29cd",
-      "sourceHash": "a1572a9456c44bdf58e43b29f6861ba92a273e7d1a719f9a6034c0d2d4465b1d",
-      "sourceAt": "da44f30b1",
+      "pageHash": "793adbb8d9822bdf6d2317598b8df29c5dc471b2b6022984e7f638ce70891911",
+      "sourceHash": "8dcaec67b6c55ec68911c47865f429ebad9104d30b609902185ebd71a0f442dc",
+      "sourceAt": "13f8f11b6",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/chat-ia-responder/handler.ts",
@@ -1168,6 +1170,9 @@
         "supabase/functions/_shared/embeddings.ts",
         "supabase/functions/_shared/fetch-ia.ts",
         "supabase/functions/_shared/limite-memoria.ts",
+        "supabase/functions/_shared/cupo-ia.ts",
+        "supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql",
+        "packages/ia/src/proveedores/index.ts",
         "supabase/functions/_shared/token.ts",
         "supabase/functions/crear-organizacion/handler.ts",
         "packages/mcp-server/src/herramientas.ts",
@@ -1176,7 +1181,7 @@
         "infra/kestra/flows/correo-masivo.yml"
       ],
       "owner": "plataforma",
-      "commit": "da44f30b1"
+      "commit": "13f8f11b6"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",

@@ -8,6 +8,8 @@ sources:
   - supabase/migrations/20270507150000_activar_version_documento_valida_organizacion.sql
   - supabase/migrations/20270507180400_documentos_escritura_excluye_consulta.sql
   - supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql
+  - supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql
+  - supabase/functions/preguntar-documentos/handler.ts
   - supabase/functions/indexar-documento/handler.ts
   - supabase/functions/indexar-documento/fragmentos.ts
   - supabase/functions/indexar-documento/consultas.ts
@@ -65,6 +67,20 @@ antes del intento (solo el que creó esta misma subida).
   se puede indexar.
 - «Actualizar» y «Subir documento» no se mezclan: si se cancela el selector de archivos, la
   siguiente subida por «Subir documento» crea un **documento nuevo**, no una versión del anterior.
+
+## Preguntas: límites antes de gastar crédito
+
+`preguntar-documentos` rechaza o limita la pregunta **antes** de llamar al proveedor de IA (detalle en
+`docs/funciones-edge-endurecimiento.md`, «Lote 90»):
+
+| Situación | Respuesta |
+|---|---|
+| La pregunta está vacía o pasa de 2000 caracteres | 400 |
+| La organización no tiene la funcionalidad `busqueda-documental` | 403 (503 si no se pudo verificar) |
+| El usuario ya hizo 30 preguntas en la hora (UTC) en curso (`PREGUNTAR_DOCUMENTOS_LIMITE_HORA`) | 429 con `Retry-After`; el contador está en la base (`private.ia_cupo_uso`) y no se reinicia al reciclarse la función |
+| El proveedor o los embeddings no responden dentro del tope de la política (máximo 90 s) | 504 |
+
+Una pregunta rechazada por los chequeos de arriba no consume cupo.
 
 ## Errores que se muestran
 
