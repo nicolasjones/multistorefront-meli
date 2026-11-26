@@ -70,6 +70,14 @@ function falloDeProveedor(error: unknown): { mensaje: string; status: number } {
 
 const CONSUMIDOR_CODIGO = 'chat-ia-leer'
 
+// Códigos de `prepararInvocacion` que indican una política o un perfil mal configurados (plataforma), no un error del cliente: solo
+// esos dejan log de servidor. Los demás (entrada fuera de esquema, organización no autorizada…) son del cliente y no se registran.
+const CODIGOS_DE_CONFIGURACION = new Set(['POLITICA_IA_INACTIVA', 'LIMITE_INTENTOS_IA_INVALIDO', 'LIMITE_TIEMPO_IA_INVALIDO', 'LIMITE_INTENTOS_IA'])
+
+// Log de servidor para los rechazos 400/500/501 de configuración (ya no dejan un mensaje `fallida`): prefijo estable y solo el motivo,
+// nunca la clave, el contenido del mensaje ni datos del usuario.
+const registrarConfiguracion = (motivo: string) => console.error(`[chat-ia-responder] configuración de la plataforma: ${motivo}`)
+
 const CONTRATO: ContratoConsumidor = {
   codigo: CONSUMIDOR_CODIGO,
   version: 1,
@@ -217,18 +225,24 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       new Date(deps.ahora()),
     )
   } catch (error) {
-    return rechazoDeConfiguracion(error instanceof Error ? error.message : 'ENTRADA_IA_INVALIDA', 400)
+    const codigo = error instanceof Error ? error.message : 'ENTRADA_IA_INVALIDA'
+    if (CODIGOS_DE_CONFIGURACION.has(codigo)) registrarConfiguracion(`politica_invalida:${codigo}`)
+    return rechazoDeConfiguracion(codigo, 400)
   }
 
   const { data: credencialFilas, error: credencialError } = await admin.rpc('obtener_clave_perfil_ia', { p_perfil_id: politica.perfil_principal_id })
   const credencial = credencialFilas?.[0]
-  if (credencialError || !credencial) return rechazoDeConfiguracion('No se pudo resolver la credencial del proveedor de IA.', 500)
+  if (credencialError || !credencial) {
+    registrarConfiguracion('credencial_no_disponible')
+    return rechazoDeConfiguracion('No se pudo resolver la credencial del proveedor de IA.', 500)
+  }
 
   // Anthropic y OpenAI implementados — el adaptador real a usar lo decide
   // la política que un superadmin apruebe; cualquier otro falla con un
   // error claro en vez de armar un cuerpo de request con el formato
   // equivocado (nunca asumir un formato no verificado).
   if (credencial.adaptador !== 'anthropic' && credencial.adaptador !== 'openai') {
+    registrarConfiguracion(`adaptador_no_soportado:${String(credencial.adaptador)}`)
     return rechazoDeConfiguracion(`El chat todavía no soporta el adaptador "${credencial.adaptador}" — solo Anthropic y OpenAI por ahora.`, 501)
   }
 

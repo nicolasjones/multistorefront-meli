@@ -283,6 +283,30 @@ describe('funcionalidad y límite por usuario (antes de gastar crédito)', () =>
     }
   })
 
+  it('un fallo del cupo deja log [cupo-ia] con la funcionalidad, sin el id del usuario ni el texto de la pregunta, y el cliente recibe el mismo 503', async () => {
+    const privado = 'pregunta-privada-xyz'
+    for (const modo of ['error', 'lanza', 'rechaza']) {
+      errores.length = 0
+      const { deps, r } = montar({ cupoRpc: { data: null, error: { message: 'fallo para u1 en db', code: 'XX000' } } })
+      if (modo !== 'error') {
+        const admin = deps.crearAdmin()
+        deps.crearAdmin = () => ({ ...admin, rpc: (n: string, a: Record<string, unknown>) => {
+          if (n !== 'consumir_cupo_ia') return admin.rpc(n, a)
+          if (modo === 'lanza') throw new Error('red caída u1')
+          return Promise.reject(new Error('red caída u1'))
+        } })
+      }
+      const res = await manejar(pedir({ pregunta: privado }), deps)
+      assert.equal(res.status, 503)
+      assert.deepEqual(await res.json(), { error: 'No se pudo verificar tu cuota de uso.' })
+      assert.equal(errores.length, 1)
+      assert.match(String(errores[0][0]), /^\[cupo-ia\]/)
+      assert.equal((errores[0][1] as { funcionalidad: string }).funcionalidad, 'busqueda-documental')
+      assert.doesNotMatch(JSON.stringify(errores), /u1|pregunta-privada-xyz/)
+      assert.equal(r.pedidos.length, 0)
+    }
+  })
+
   it('el usuario del cupo sale del JWT validado, aunque el cuerpo traiga otro usuario_id o user_id', async () => {
     const { r } = await llamar({ respuestas: [textoOpenAI('ok')] }, { pregunta: '¿plazo?', usuario_id: 'otro', user_id: 'otro', p_usuario: 'otro' })
     const llamadas = r.rpcAdmin.filter((c) => c[0] === 'consumir_cupo_ia')

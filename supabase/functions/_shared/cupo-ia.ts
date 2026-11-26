@@ -9,6 +9,14 @@ export const LIMITE_CUPO_MAXIMO = 1000
 export const FUNCIONALIDAD_CHAT = 'chat-ia'
 export const FUNCIONALIDAD_DOCUMENTOS = 'busqueda-documental'
 
+// Descripción segura de un error para el log del servidor: nombre, código y mensaje, sin el id del usuario (se tacha si aparece) ni nada más.
+function describirError(error: unknown, usuarioId: string): string {
+  const e = (error && typeof error === 'object' ? error : { message: String(error) }) as { name?: unknown; code?: unknown; message?: unknown }
+  const partes = [e.name, e.code, e.message].filter((p): p is string => typeof p === 'string' && p !== '')
+  const texto = partes.join(' ').slice(0, 300)
+  return usuarioId ? texto.split(usuarioId).join('[usuario]') : texto
+}
+
 export type RechazoCupo = { status: number; error: string; retryAfter?: number }
 type Rpc = (nombre: string, args: Record<string, unknown>) => PromiseLike<{ data: any; error: any }>
 
@@ -30,13 +38,17 @@ export async function rechazoPorCupo(
   let error: any
   try {
     ;({ data, error } = await admin.rpc('consumir_cupo_ia', { p_usuario: usuarioId, p_funcionalidad: funcionalidad, p_limite: limite }))
-  } catch {
-    // La RPC puede lanzar o rechazar la promesa (red, timeout, excepción del cliente): también falla cerrado, sin detalle.
+  } catch (excepcion) {
+    // La RPC puede lanzar o rechazar la promesa (red, timeout, excepción del cliente): también falla cerrado, sin detalle al cliente.
+    console.error('[cupo-ia] la RPC de cupo lanzó una excepción', { funcionalidad, error: describirError(excepcion, usuarioId) })
     return noVerificable
   }
   const fila = Array.isArray(data) ? data[0] : data
   // Sin respuesta interpretable no se gasta crédito: falla cerrado (503), igual que la verificación de funcionalidad.
-  if (error || !fila || typeof fila.se_consumio !== 'boolean') return noVerificable
+  if (error || !fila || typeof fila.se_consumio !== 'boolean') {
+    console.error('[cupo-ia] no se pudo consumir el cupo', { funcionalidad, error: error ? describirError(error, usuarioId) : 'respuesta no interpretable' })
+    return noVerificable
+  }
   if (fila.se_consumio) return null
   const segundos = Number(fila.segundos_hasta_reinicio)
   return { status: 429, error: textos.agotado, retryAfter: Number.isFinite(segundos) && segundos >= 1 ? Math.ceil(segundos) : 3600 }

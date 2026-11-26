@@ -275,6 +275,31 @@ describe('funcionalidad, cuota y política (antes de gastar crédito)', () => {
     assert.equal(r.pedidos.length, 0)
   })
 
+  it('un fallo del cupo deja log [cupo-ia] con la funcionalidad, sin el id del usuario ni el texto de la petición, y el cliente recibe el mismo 503', async () => {
+    const privado = 'mensaje-privado-xyz'
+    for (const modo of ['error', 'lanza', 'rechaza']) {
+      errores.length = 0
+      const { deps, r } = montar({ cupo: { data: null, error: { message: 'fallo para u1 en db', code: 'XX000' } } })
+      if (modo !== 'error') {
+        const admin = deps.crearAdmin()
+        deps.crearAdmin = () => ({ ...admin, rpc: (n: string, a: Record<string, unknown>) => {
+          if (n !== 'consumir_cupo_ia') return admin.rpc(n, a)
+          if (modo === 'lanza') throw new Error('red caída u1')
+          return Promise.reject(new Error('red caída u1'))
+        } })
+      }
+      const res = await manejar(pedir({ mensaje: privado }), deps)
+      assert.equal(res.status, 503)
+      assert.deepEqual(await res.json(), { error: 'No se pudo verificar tu cuota de uso.' })
+      assert.equal(errores.length, 1)
+      assert.match(String(errores[0][0]), /^\[cupo-ia\]/)
+      assert.equal((errores[0][1] as { funcionalidad: string }).funcionalidad, 'chat-ia')
+      assert.doesNotMatch(JSON.stringify(errores), /u1|mensaje-privado-xyz/)
+      assert.match(JSON.stringify(errores), /\[usuario\]/)
+      assert.equal(r.pedidos.length, 0)
+    }
+  })
+
   it('el usuario del cupo sale del JWT validado, aunque el cuerpo traiga otro usuario_id o user_id', async () => {
     const { r } = await llamar({ respuestas: [textoAnthropic('ok')] }, { mensaje: 'hola', usuario_id: 'otro', user_id: 'otro', p_usuario: 'otro' })
     const llamadas = r.rpcAdmin.filter(([n]) => n === 'consumir_cupo_ia')
@@ -442,6 +467,35 @@ describe('preparación de la invocación y credencial', () => {
       assert.deepEqual(r.rpcAdmin.map(([n]) => n), ['resolver_politica_ia', 'obtener_clave_perfil_ia'])
       assert.deepEqual(r.rpcAdmin[1], ['obtener_clave_perfil_ia', { p_perfil_id: 'perfil-1' }])
       assert.equal(r.inserts.length, 0)
+    }
+  })
+
+  it('los rechazos de configuración (500 y 501) dejan log de servidor con el motivo, sin clave ni contenido del mensaje', async () => {
+    const privado = 'mensaje-privado-xyz'
+    const a = await llamar({ credencial: { data: [{ clave: 'clave-proveedor-secreta' }], error: { message: 'detalle-secreto' } } }, { mensaje: privado })
+    assert.equal(a.res.status, 500)
+    assert.deepEqual(errores.map((e) => e[0]), ['[chat-ia-responder] configuración de la plataforma: credencial_no_disponible'])
+    errores.length = 0
+    const b = await llamar({ adaptador: 'gemini' }, { mensaje: privado })
+    assert.equal(b.res.status, 501)
+    assert.deepEqual(errores.map((e) => e[0]), ['[chat-ia-responder] configuración de la plataforma: adaptador_no_soportado:gemini'])
+    assert.doesNotMatch(JSON.stringify(errores), /clave-proveedor-secreta|detalle-secreto|mensaje-privado-xyz|u1/)
+  })
+
+  it('prepararInvocacion: solo los códigos de política/perfil mal configurados dejan log; los errores del cliente no', async () => {
+    for (const codigo of ['POLITICA_IA_INACTIVA', 'LIMITE_INTENTOS_IA_INVALIDO', 'LIMITE_TIEMPO_IA_INVALIDO', 'LIMITE_INTENTOS_IA']) {
+      errores.length = 0
+      const { res } = await llamar({ prepararError: new Error(codigo) }, { mensaje: 'mensaje-privado-xyz' })
+      assert.equal(res.status, 400)
+      assert.deepEqual(errores.map((e) => e[0]), [`[chat-ia-responder] configuración de la plataforma: politica_invalida:${codigo}`])
+      assert.doesNotMatch(JSON.stringify(errores), /mensaje-privado-xyz|u1/)
+    }
+    for (const codigo of ['ENTRADA_IA_FUERA_DE_ESQUEMA', 'ORGANIZACION_IA_NO_AUTORIZADA', 'ENTRADA_IA_INVALIDA']) {
+      errores.length = 0
+      const { res, json } = await llamar({ prepararError: new Error(codigo) })
+      assert.equal(res.status, 400)
+      assert.deepEqual(json, { error: codigo })
+      assert.deepEqual(errores, [])
     }
   })
 

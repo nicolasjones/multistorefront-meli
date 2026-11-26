@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict'
-import { describe, it } from 'node:test'
+import { afterEach, beforeEach, describe, it } from 'node:test'
 import { esTimeoutDeProveedor, limiteDeCupo, rechazoPorCupo } from './cupo-ia.ts'
 
 const textos = { agotado: 'agotado' }
+let logs: unknown[][]
+let original: typeof console.error
+beforeEach(() => { logs = []; original = console.error; console.error = (...a: unknown[]) => { logs.push(a) } })
+afterEach(() => { console.error = original })
 const admin = (resultado: { data: unknown; error: unknown }, llamadas: unknown[] = []) => ({
   rpc: (nombre: string, args: Record<string, unknown>) => { llamadas.push({ nombre, args }); return Promise.resolve(resultado) },
 })
@@ -45,6 +49,36 @@ describe('rechazoPorCupo', () => {
     for (const r of [{ data: null, error: { message: 'x' } }, { data: [{ se_consumio: true }], error: { message: 'x' } }, { data: [], error: null }, { data: null, error: null }, { data: [{ se_consumio: 'true' }], error: null }]) {
       assert.deepEqual(await rechazoPorCupo(admin(r), 'u', 'f', 1, textos), { status: 503, error: 'No se pudo verificar tu cuota de uso.' })
     }
+  })
+})
+
+describe('rechazoPorCupo: log de servidor', () => {
+  const usuario = 'c9000000-0000-0000-0000-000000000001'
+  it('registra [cupo-ia] con la funcionalidad y el error en las ramas de error, excepción y respuesta rara, sin el id del usuario', async () => {
+    const casos = [
+      admin({ data: null, error: { code: '23503', message: `no existe el usuario ${usuario}` } }),
+      { rpc: () => { throw new Error(`red ${usuario}`) } },
+      { rpc: () => Promise.reject(new Error(`red ${usuario}`)) },
+      admin({ data: [], error: null }),
+    ]
+    for (const a of casos) {
+      logs.length = 0
+      await rechazoPorCupo(a, usuario, 'chat-ia', 30, textos)
+      assert.equal(logs.length, 1)
+      assert.match(String(logs[0][0]), /^\[cupo-ia\]/)
+      assert.equal((logs[0][1] as { funcionalidad: string }).funcionalidad, 'chat-ia')
+      assert.doesNotMatch(JSON.stringify(logs), new RegExp(usuario))
+    }
+    logs.length = 0
+    await rechazoPorCupo(casos[0], usuario, 'chat-ia', 30, textos)
+    assert.match(JSON.stringify(logs), /23503/)
+    assert.match(JSON.stringify(logs), /\[usuario\]/)
+  })
+
+  it('no registra nada cuando se consume o se agota el cupo (no son fallos)', async () => {
+    await rechazoPorCupo(admin({ data: [{ se_consumio: true }], error: null }), usuario, 'f', 1, textos)
+    await rechazoPorCupo(admin({ data: [{ se_consumio: false, segundos_hasta_reinicio: 5 }], error: null }), usuario, 'f', 1, textos)
+    assert.deepEqual(logs, [])
   })
 })
 
