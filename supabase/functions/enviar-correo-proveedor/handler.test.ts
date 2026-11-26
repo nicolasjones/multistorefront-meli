@@ -228,7 +228,6 @@ describe('enviar-correo-proveedor', () => {
   })
 
 
-
   it('error al resolver permiso o proveedor: 502, y el log redacta URLs y credenciales de la base', async () => {
     const lineas = capturarErrores()
     try {

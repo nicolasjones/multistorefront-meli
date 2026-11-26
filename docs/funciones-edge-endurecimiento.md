@@ -12,12 +12,12 @@ sources:
   - supabase/functions/enviar-correo-proveedor/handler.ts
   - supabase/functions/_shared/embeddings.ts
   - supabase/functions/_shared/fetch-ia.ts
-  - supabase/functions/_shared/limite-memoria.ts
   - supabase/functions/_shared/cupo-ia.ts
   - supabase/functions/_shared/log-seguro.ts
   - supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql
   - supabase/migrations/20270508000000_registro_de_envios_de_correo_a_proveedores.sql
   - supabase/functions/enviar-correo-proveedor/index.ts
+  - supabase/functions/enviar-correo-proveedor/cupo.ts
   - supabase/functions/recuperar-clave-cliente/handler.ts
   - packages/ia/src/proveedores/index.ts
   - supabase/functions/_shared/token.ts
@@ -163,7 +163,7 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
   `correo-proveedor`; 429 con `Retry-After`, 503 si el cupo no se puede verificar, nunca envía sin cupo); cada envío queda en
   `private.correo_proveedor_envios` (usuario, proveedor, fecha y resultado; sin asunto, cuerpo ni dirección) por
   `public.registrar_envio_correo_proveedor`, de mejor esfuerzo. Los errores del SMTP y de la base se registran con
-  `textoDeError` / `registrarErrorDeBase` (sin mensaje, URL ni credenciales). Detalle en [Proveedores](proveedores.md).
+  `textoDeError` / `registrarErrorDeBase` (sin mensaje, URL ni credenciales). El cableado del cupo (`enviar-correo-proveedor/cupo.ts`: defecto 20, texto de agotado, 503 si falla el cliente admin) tiene prueba propia; `index.ts` queda solo con los clientes reales de Supabase. `_shared/limite-memoria.ts` (contador en memoria) se eliminó por quedar sin uso. Detalle en [Proveedores](proveedores.md).
 - Las funciones de aviso (`enviar-aviso-faltante`, `enviar-resumen-reposicion`, `enviar-resumen-semanal`,
   `recalcular-alertas-inicio`) rechazan con 503 «no configurada» un token de menos de 32 caracteres o que empiece con
   `change-me` (`_shared/token.ts`). La petición se compara con `tokenValido` (`_shared/token.ts`): SHA-256 de ambos valores y `timingSafeEqual`,
