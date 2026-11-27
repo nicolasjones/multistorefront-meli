@@ -206,7 +206,7 @@ las páginas del manual declaran `sources` salvo `glosario.md`, que es de térmi
 (`README`, `capacidades` y `ventas-cierre-caja` ahora enlazan sus fuentes); MSF-862 (wiki reconciliado) lo entregó
 c7860a7c y hoy `docs-check` pasa; MSF-570: el spec `40-catalogo-tiendas` suma la captura de «Rentabilidad · Comparativo» a 320,
 768 y 1440 px (`09-comparativo-<ancho>.png`), **pendiente de ejecutar** porque necesita el stack con el dataset demo y la
-revisión visual lado a lado con el sistema de diseño en STG. MSF-644 es del lote 98. Además, el comentario de
+revisión visual lado a lado con el sistema de diseño en STG. MSF-644 se trata en el PR #1226. Además, el comentario de
 `playwright.capturas.config.ts` remite a `docs/capturas-documentacion.md`, que ahora existe.
 
 ## Ramas `main` y `dokploy`: estado y reconciliación de la documentación (MSF-590)
@@ -240,13 +240,16 @@ queda para quien prepare el Release.
 **Medición vigente (2026-11-26, MSF-590, MSF-858, MSF-833).** `git rev-list --left-right --count origin/main...origin/dokploy`
 da `16 4774`: `main` sigue teniendo los mismos 16 commits (no los 444 ni los 408 que citan MSF-858 y MSF-833, medidos
 antes de que #929 integrara `main` en `dokploy`) y `dokploy` lleva 4774 que `main` no tiene. `git merge-tree --write-tree
---name-only origin/dokploy origin/main` marca conflicto en **20 archivos, todos de documentación o del workflow
-`e2e-nocturno.yml`** (no 35, y ninguno de código): `.github/workflows/e2e-nocturno.yml`, `docs/_generated/inventory.{json,md}`,
+--name-only origin/dokploy origin/main` marca conflicto en **19 archivos, todos de documentación o del workflow
+`e2e-nocturno.yml`** (no 35, y ninguno de código; `e2e-nocturno.yml` es un conflicto add/add): `.github/workflows/e2e-nocturno.yml`, `docs/_generated/inventory.{json,md}`,
 `docs/manifest.json`, `docs/actividad.md`, `docs/deployment.md`, `docs/e2e-app.md`, `docs/operar-superset.md`,
 `docs/roadmap-template.md`, `docs/system-design/roadmap.md`, `mkdocs.yml`, `docs/producto/{README,consultas,gastos,
 tableros-analiticos,ventas-avisos-de-faltantes}.md` y `docs/tecnico/{biblioteca,datos,rentabilidad}.md`.
 
-**Por qué no se integró `main` en este PR.** Se probó `git merge origin/main -X ours` (gana `dokploy` en los conflictos) y trae
+**Por qué no se integró `main` en este PR.** **Advertencia: en la integración real NO usar `-X ours` ni `-s ours`**
+(descartan en silencio contenido de `main`, o lo mezclan sin revisar); resolver archivo por archivo y sin force-push.
+`.github/workflows/e2e-nocturno.yml` es un conflicto add/add y se resuelve conservando el de `main`. La prueba que sigue
+usó `-X ours` solo para medir qué entraría, y se abortó. Se probó `git merge origin/main -X ours` (gana `dokploy` en los conflictos) y trae
 18 archivos nuevos que **duplican** páginas que `dokploy` ya tiene con otro nombre: `docs/tecnico/gastos.md` frente a
 `docs/gastos.md`, `docs/tecnico/analitica-avanzada.md` frente a `docs/analitica-avanzada.md`,
 `docs/tecnico/tienda-compra-y-cuentas.md` frente a `docs/tienda-compra-y-cuentas.md`,
@@ -257,12 +260,12 @@ documentación lo que no se verificó contra el código de `dokploy`. Qué hacer
 arriba, descartar las páginas duplicadas (conservar la de `dokploy`), conservar de `main` solo el manual de Inicio con sus
 capturas y el workflow `e2e-nocturno.yml`, y regenerar `docs/manifest.json` y `docs/_generated/`.
 
-**Estado de la deriva de documentación (MSF-991, 2026-11-26).** `node scripts/docs-drift.mjs` lista 29 páginas (eran 41):
-las de tienda (`tienda-busqueda`, `tienda-contacto` y 5 técnicas), ventas (`ventas-*` planas y técnicas), stock
-(`stock-*` técnicas), service (`service-cobro-y-avisos`, `service-listado-items-impresion`), `sandbox`,
-`runbooks/supabase-caido` y `usuarios-y-roles` (técnica). Se ven así porque sus fuentes (directorios de `supabase/migrations`
-y de `apps/web/src`) cambiaron después de la última revisión; no significa que el texto sea falso, significa que nadie lo
-volvió a contrastar. Se reconcilian al preparar el Release (paso 4 del procedimiento), contrastando cada una con el código.
+**Estado de la deriva de documentación (MSF-991, 2026-11-26).** `node scripts/docs-drift.mjs --json` lista **181 páginas** con la
+fuente cambiada desde su última revisión (25 de ellas en `docs/producto/`), tanto en esta rama como en `origin/dokploy`; el
+«41» de MSF-991 era de otra fecha. (Una versión anterior de este párrafo decía 29: era un error de lectura de una salida
+truncada.) Se ven así porque sus fuentes (directorios de `supabase/migrations` y de `apps/web/src`) cambiaron después de la
+última revisión; no significa que el texto sea falso, significa que nadie lo volvió a contrastar. No se reconcilian en este
+PR: se hace al preparar el Release (paso 4 del procedimiento), contrastando cada página con el código.
 `docs.yml` sigue limitado a PR hacia `main` por este motivo.
 
 **Páginas planas fuera del menú.** `mkdocs.yml` no lista todas las páginas planas de `docs/` (p. ej. `control-ci.md`,
