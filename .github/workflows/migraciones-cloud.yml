@@ -90,7 +90,8 @@ jobs:
         if: failure()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/abrir-issue-alerta.mjs --titulo "Falla: migraciones a staging (gate de promoción)" --detalle "job staging de Migraciones cloud"
+        run: |
+          node scripts/abrir-issue-alerta.mjs --titulo "Falla: migraciones a staging (gate de promoción)" --detalle "job staging de Migraciones cloud"
 
   production:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'

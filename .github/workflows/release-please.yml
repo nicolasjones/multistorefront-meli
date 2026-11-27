@@ -46,4 +46,5 @@ jobs:
         if: failure()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/abrir-issue-alerta.mjs --titulo "Falla: release-please en main" --detalle "job release-please"
+        run: |
+          node scripts/abrir-issue-alerta.mjs --titulo "Falla: release-please en main" --detalle "job release-please"
