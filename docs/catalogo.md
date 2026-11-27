@@ -10,6 +10,8 @@ sources:
   - apps/web/src/pages/productos/list.tsx
   - apps/web/src/pages/productos/create.tsx
   - apps/web/src/pages/productos/edit.tsx
+  - apps/web/src/components/productos/ProveedoresDelProducto.tsx
+  - supabase/migrations/20270512000100_productos_proveedores.sql
   - apps/web/src/components/productos/DialogoProducto.tsx
   - apps/web/src/lib/productosListado.ts
   - apps/web/src/lib/productos.ts
@@ -390,6 +392,12 @@ Cada producto tiene una **disponibilidad**: `stock`, `sin_stock` (se **derivan**
   y no se inventa: `leerEscalasPrecio` (`lib/escalasPrecio.ts`) es el único punto a completar y hoy devuelve `null`,
   por lo que la ficha muestra «No disponible». Cuando MSF-114 lo publique, solo se reemplaza el cuerpo de esa
   función (devolver `EscalaPrecio[]` con `clave`, `rango` y `precio`).
+
+## Proveedores del producto (MSF-530, lote 93)
+
+La edición del producto suma la sección **Proveedores del producto** (`ProveedoresDelProducto.tsx`): varios proveedores con código y costo por
+vínculo y uno principal. El campo «Proveedor» del formulario sigue siendo el principal (`productos.proveedor_id` es su espejo) y las firmas de
+`crear_producto` y `actualizar_producto` no cambian. Decisiones, tabla y RPC en [Proveedores](proveedores.md#varios-proveedores-por-producto-msf-530-seguimiento-de-msf-205).
 
 ## Filtro «Compatible con» y etiquetas (F-CAT-09, MSF-360, épica MSF-202; migraciones `20270206100101` y `20270206100102`)
 

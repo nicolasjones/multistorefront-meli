@@ -180,7 +180,7 @@ Como administrador, quiero indicar qué proveedor abastece cada producto y ver q
 2. **Qué roles ven CUIT y contacto.** Provisorio: **Administrador y Administración** (los que tienen la sección `proveedores`); el resto solo el nombre al ingresar mercadería, vía `proveedores_basico`. Se configura con la matriz de roles existente, sin lógica nueva. A confirmar con el cliente.
 3. **Condiciones de compra, «Compra para» y «Enviar correo a proveedor»** (prototipo; ningún requisito del documento los pide). Provisorio: **fuera de alcance**, sin columnas ni botones; seguimiento trazado (FR-020).
 4. **Dirección y Observaciones.** El documento pide «CUIT y contacto». Provisorio: se incluyen **Dirección** y **Observaciones** como datos de contacto/nota libre (el prototipo los muestra y no figuran entre los agregados señalados en «A revisar»); si el cliente los descarta, se quitan sin migración destructiva.
-5. **Un proveedor por producto.** Provisorio: un solo proveedor (principal) por producto, como dibuja `ProductoAlta`. Si hace falta más de uno, se agrega una tabla de relación en una épica posterior (aditivo); no se anticipa aquí.
+5. **Un proveedor por producto.** Provisorio: un solo proveedor (principal) por producto, como dibuja `ProductoAlta`. Si hace falta más de uno, se agrega una tabla de relación en una épica posterior (aditivo); no se anticipa aquí. *(Resuelto después en el lote 93, MSF-530: ver `docs/proveedores.md`.)*
 6. **Código de barras.** `docs/catalogo.md` lo asignaba a MSF-205, pero la épica no lo incluye. Provisorio: **fuera de alcance**; se corrige la doc y se traza seguimiento.
 
 ## Matriz pantalla↔criterios

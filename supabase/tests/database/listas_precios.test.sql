@@ -240,10 +240,14 @@ select is(
   (select array_agg(n.nspname || '.' || p.proname order by n.nspname, p.proname)
      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname in ('public', 'private', 'publico', 'dominio', 'analitica') and p.prosrc ilike '%dominio.listas_precios%'),
-  array['private.lista_precios_cliente', 'private.validar_lista_precio_cliente', 'public.archivar_lista_precios',
-        'public.asignar_lista_precios_cliente', 'public.guardar_lista_precios', 'public.obtener_comprobante',
-        'public.restaurar_lista_precios', 'public.vista_previa_fusion_clientes']::text[],
-  'solo la administración de listas, la asignación, la marca del comprobante y private.lista_precios_cliente leen dominio.listas_precios (ninguna otra función del motor ni de la tienda)');
+  -- Lote 93: la asignación masiva y por tipo, el conteo de clientes por lista (hereda por tipo), la lista para la exportación de clientes y
+  -- la analítica de ventas por lista leen la tabla (la coincidencia incluye `dominio.listas_precios_tipo_cliente`); ninguna es del motor de precio.
+  array['private.cantidad_clientes_lista', 'private.lista_precios_cliente', 'private.validar_lista_precio_cliente',
+        'public.archivar_lista_precios', 'public.asignar_lista_precios_cliente', 'public.asignar_lista_precios_masiva',
+        'public.asignar_lista_precios_tipo_cliente', 'public.guardar_lista_precios', 'public.listas_de_clientes_para_exportar',
+        'public.obtener_comprobante', 'public.restaurar_lista_precios', 'public.ventas_por_lista_precios',
+        'public.vista_previa_fusion_clientes']::text[],
+  'solo la administración de listas, la asignación (una, masiva y por tipo), la exportación y la analítica por lista, la marca del comprobante y private.lista_precios_cliente leen dominio.listas_precios (ninguna otra función del motor ni de la tienda)');
 
 select * from finish();
 rollback;

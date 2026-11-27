@@ -2,6 +2,8 @@
 owner: producto
 sources:
   - apps/web/src/pages/proveedores
+  - apps/web/src/components/proveedores/CondicionesDeCompra.tsx
+  - apps/web/src/components/productos/ProveedoresDelProducto.tsx
 ---
 
 # Proveedores
@@ -185,6 +187,14 @@ En la ficha del producto (**Catálogo → Productos**, al crear o editar) hay do
 
 Si un proveedor se desactiva, los productos ya asignados lo conservan. Ver [Productos](catalogo-productos.md).
 
+## Las condiciones de compra
+
+En la ficha, la sección **Condiciones de compra** guarda cómo le comprás a ese proveedor: el **plazo de pago** en días (0 es contado), el **mínimo de compra** con su **moneda** (pesos o dólares) y **notas** libres. Todo es opcional. Quien edita proveedores toca **Editar condiciones**; si otra persona las cambió mientras las editabas, el sistema te avisa y no pisa nada. No guarda historial: queda el valor vigente.
+
+## Varios proveedores para un mismo producto
+
+Un producto puede comprarse a más de un proveedor. En **Editar producto**, la sección **Proveedores del producto** lista todos con su **código** y su **costo** (el costo solo lo ve y lo carga quien tiene Rentabilidad). Podés **agregar** un proveedor, **editar** su código y costo, **quitarlo** o **marcarlo como principal**. El principal es el del campo «Proveedor» del formulario y su costo es el costo del producto; si lo cambiás desde el campo, el principal anterior se reemplaza, y si querés conservarlo usá «Marcar como principal» en la lista. Quitar el principal deja el producto sin principal. **Sin edición en Rentabilidad** no se puede marcar como principal (ni elegir por el campo «Proveedor») un proveedor cuyo costo sea distinto del costo del producto: el sistema lo avisa y no cambia nada, porque eso cambiaría el costo del producto. Tampoco se puede cambiar el proveedor principal y el costo en el mismo guardado si el proveedor ya tiene otro costo: guardá primero el proveedor y después el costo. Si quien cambia el principal desde el campo «Proveedor» no tiene Rentabilidad, el principal anterior no se borra: queda como proveedor secundario. Los cambios de esa sección se guardan al instante y recargan la ficha: guardá antes lo que estés editando. La ficha del proveedor lista los productos donde figura, sea principal o no.
+
 ## A qué empresas se asignan
 
 Los proveedores pertenecen al negocio, no a una empresa: los comparten todas las tiendas y no cambian al elegir otra empresa en la barra superior. El campo **Compra para** indica para qué tiendas se le compra a cada uno y permite filtrar el listado por **Tienda**.
@@ -199,7 +209,7 @@ Si tenés permiso, el botón **Importar** del listado te lleva a la carga masiva
 
 **No me aparece el proveedor al cargar un ingreso.** Probablemente está desactivado: reactivalo desde su ficha.
 
-**¿Puedo tener varios proveedores por producto?** Por ahora cada producto tiene un solo proveedor.
+**¿Puedo tener varios proveedores por producto?** Sí: un producto puede tener varios proveedores, uno de ellos principal, cada uno con su código y su costo (ver «Varios proveedores para un mismo producto»). Si cambiás el proveedor principal desde el campo «Proveedor» del formulario, el anterior se reemplaza y su vínculo se borra junto con su código y su costo; para conservarlo usá «Marcar como principal» en la sección «Proveedores del producto».
 
 **¿Puedo editar o borrar un contacto?** Por ahora no: se agregan y se marca cuál es el principal. Para cambiar el dato de contacto del proveedor, cambiá el contacto principal.
 

@@ -19,6 +19,7 @@ import {
 } from '../../lib/listasPrecios'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { FormularioListaPrecios } from '../../components/listasPrecios/FormularioListaPrecios'
+import { ListasPorTipoCliente } from '../../components/listasPrecios/ListasPorTipoCliente'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -137,7 +138,7 @@ export function ListasPreciosList() {
     <Box>
       <EncabezadoPagina
         titulo="Listas de precios"
-        descripcion="Cada lista es un porcentaje de ajuste sobre el precio central. Se asigna a un cliente desde su ficha."
+        descripcion="Cada lista es un porcentaje de ajuste sobre el precio central. Se asigna a un cliente desde su ficha, a varios desde Clientes o a todo un tipo de cliente."
         accion={botonNueva}
         contexto={<ContextoOrganizacionActiva />}
       />
@@ -152,6 +153,8 @@ export function ListasPreciosList() {
           ) : null}
           {aviso?.severidad === 'success' ? <EstadoExito titulo={aviso.texto} /> : null}
           {aviso?.severidad === 'error' ? <Alert severity="error" onClose={() => setAviso(null)}>{aviso.texto}</Alert> : null}
+
+          <ListasPorTipoCliente puedeEditar={puedeEditar} puedeAsignar={puedeGuardar} onCambiada={() => void recargarDesdeInicio()} />
 
           <BarraHerramientas contador={isLoading || isError ? undefined : `${total} ${total === 1 ? 'lista' : 'listas'}`}>
             <ToggleButtonGroup

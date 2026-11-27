@@ -19,6 +19,10 @@ sources:
   - supabase/migrations/20261018190500_proveedores_basico.sql
   - supabase/migrations/20261018190600_productos_proveedor_rpc.sql
   - supabase/migrations/20261018190700_productos_de_proveedor.sql
+  - supabase/migrations/20270512000000_proveedores_condiciones_compra.sql
+  - supabase/migrations/20270512000100_productos_proveedores.sql
+  - apps/web/src/lib/condicionesCompra.ts
+  - apps/web/src/lib/productosProveedores.ts
 ---
 
 # Proveedores: modelo, RPC y pantallas (MSF-205)
@@ -279,3 +283,17 @@ Cada archivo lleva los pasos exactos en su encabezado.
 - **[Datos y DER](datos.md)** — modelo completo, tablas y demás épicas.
 - **[Ingreso de mercadería](ingreso-de-mercaderia.md)** — consumo de `proveedores_basico`.
 - **[API y RPC](api.md)** — catálogo de funciones públicas.
+
+## Condiciones de compra y varios proveedores por producto (lote 93)
+
+Ampliación posterior a la épica, sin spec propia (seguimientos MSF-523 y MSF-530). La referencia completa (tablas, RPC, decisiones,
+compatibilidad del espejo `productos.proveedor_id` y costo efectivo) está en [Proveedores](../proveedores.md#condiciones-de-compra-msf-523-seguimiento-de-msf-205).
+
+| Migración | Qué hace |
+|---|---|
+| `20270512000000_proveedores_condiciones_compra.sql` | Tabla `dominio.proveedores_condiciones_compra` (una fila por proveedor) y las RPC de lectura y guardado con control de concurrencia. |
+| `20270512000100_productos_proveedores.sql` | Tabla `dominio.productos_proveedores` (varios proveedores, uno principal, código y costo por vínculo), disparadores de sincronización con `productos` y `producto_costos`, RPC para listar, asignar, quitar y marcar principal, y `productos_de_proveedor` leyendo los vínculos. |
+
+Pantallas: `CondicionesDeCompra.tsx` (ficha del proveedor) y `ProveedoresDelProducto.tsx` (edición del producto), con sus librerías
+`lib/condicionesCompra.ts` y `lib/productosProveedores.ts`. Pruebas: pgTAP `lote93_proveedores_condiciones_compra` y
+`lote93_productos_proveedores`; Vitest de las librerías y de las dos secciones, con axe a 320, 768 y 1440 px.
