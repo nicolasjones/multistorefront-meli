@@ -29,7 +29,7 @@
 --   drop trigger producto_costos_sincronizar_vinculo on dominio.producto_costos;
 --   drop trigger productos_sincronizar_vinculo on dominio.productos;
 --   drop function private.sincronizar_costo_a_vinculo_principal(); drop function private.sincronizar_vinculo_principal_producto();
---   drop function private.fijar_proveedor_principal(uuid, uuid, uuid); drop function private.alinear_costo_principal(uuid, uuid, uuid);
+--   drop function private.fijar_proveedor_principal(uuid, uuid, uuid); drop function private.alinear_costo_principal(uuid, uuid, uuid, boolean);
 --   drop function private.bloquear_costo_producto(uuid, uuid); drop function private.puede_editar_costo_producto();
 --   -- restaurar productos_de_proveedor de 20261019120001 (lee dominio.productos.proveedor_id)
 --   drop table dominio.productos_proveedores;
@@ -162,7 +162,7 @@ begin
 end;
 $$;
 
-revoke execute on function private.alinear_costo_principal(uuid, uuid, uuid) from public, anon, authenticated;
+revoke execute on function private.alinear_costo_principal(uuid, uuid, uuid, boolean) from public, anon, authenticated;
 
 create or replace function private.fijar_proveedor_principal(p_organizacion uuid, p_producto uuid, p_proveedor uuid)
 returns void
