@@ -184,6 +184,7 @@
         "infra/superset/Dockerfile",
         "supabase/functions/emitir-acceso-reporte/index.ts",
         "supabase/functions/emitir-acceso-reporte/handler.ts",
+        "supabase/functions/_shared/log-seguro.ts",
         "scripts/verificar-superset-embebido.mjs"
       ]
     },
