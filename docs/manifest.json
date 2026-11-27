@@ -895,9 +895,9 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "585228500c177a0e76f2b3f761a012f984ea27a33c4404c59c4df910b19bb6f9",
+      "pageHash": "3ff31c852176a8bbad91a18fddf617212ab50fde188517eb2fac2642aaa21d5d",
       "sourceHash": "10bedbf8e3dc7dc4cb9906685026b199064d01f94bcc8bda0aa9a7f3e7c38e15",
-      "sourceAt": "fa6faa1d3",
+      "sourceAt": "6f3f4dc53",
       "sources": [
         "scripts/preflight-deploy-vps.mjs",
         "scripts/deploy-vps.mjs",
@@ -914,7 +914,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "tecnico",
-      "commit": "fa6faa1d3"
+      "commit": "6f3f4dc53"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -1077,9 +1077,9 @@
     },
     "docs/endurecimiento-infra.md": {
       "title": "Endurecimiento de la infraestructura (lote 99)",
-      "pageHash": "c2a286df90e4b9f69af6befbccae693a785cb285336873f57b05970c9cbce8fb",
-      "sourceHash": "80bf8823e79adf5922bda07d9508dff805b629953508dc10e28fff7e7d572409",
-      "sourceAt": "fa6faa1d3",
+      "pageHash": "0ecaa062a8615bd283ae760acba3e3657e84f168972a618c441433ae3d8154cb",
+      "sourceHash": "36793219127fe8c4b2f0a1bbf4e5bb5320bcfb3d2bf5545e42cbe7fc4332af86",
+      "sourceAt": "6f3f4dc53",
       "sources": [
         "infra/vps/firewall-docker-user.sh",
         "infra/vps/obtener-clave-host.sh",
@@ -1108,7 +1108,7 @@
         ".github/workflows/worker-images.yml"
       ],
       "owner": "plataforma",
-      "commit": "fa6faa1d3"
+      "commit": "6f3f4dc53"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",

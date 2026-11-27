@@ -242,7 +242,7 @@ con default en `infra/runner/compose.yaml`; contrato en
   (10 min por descarga): el binario opcional `@supabase/cli-linux-x64` pesa
   57 MB y con el timeout de 60 s nunca terminaba de bajar en un Wi-Fi lento,
   así que cada install lo reintentaba sin llegar a guardarlo.
-- `RUNNER_LIMPIAR_STORE` (default `0`; el pool de deploy siempre `1`): vacía el store de pnpm en cada job.
+- `RUNNER_JOBS_NETWORK_PR` / `RUNNER_JOBS_SUBNET_PR` (y `_DEPLOY`): red dedicada de los jobs de cada pool (por defecto `platform-runner-jobs-pr` 172.29.250.0/24 y `platform-runner-jobs-deploy` 172.29.251.0/24); el supervisor la crea y el firewall la aísla (`docs/endurecimiento-infra.md`).
 
 **Store propio por contenedor.** El runner exporta `pnpm_config_store_dir=/home/runner/.pnpm-store` y `pnpm_config_cache_dir=/home/runner/.cache/pnpm`,
 dentro del contenedor: ya no hay volumen compartido entre réplicas, productos ni con el pool de deploy (MSF-704), así que el código de un PR no puede

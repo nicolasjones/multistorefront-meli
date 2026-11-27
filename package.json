@@ -202,7 +202,7 @@
     "secretos:verificar": "node scripts/verificar-secretos-por-defecto.mjs",
     "puertos:verificar-externos": "node scripts/verificar-puertos-externos.mjs",
     "db:reconciliar": "node scripts/reconciliar-base.mjs",
-    "test:infra:endurecimiento": "node --test scripts/secretos-entorno.test.mjs scripts/verificar-compose-credenciales.test.mjs scripts/verificar-compose-puertos.test.mjs scripts/firewall-vps.test.mjs scripts/verificar-puertos-externos.test.mjs scripts/instalar-binario-verificado.test.mjs scripts/comprobar-conexion-db.test.mjs scripts/abrir-issue-alerta.test.mjs scripts/obtener-clave-host.test.mjs scripts/reconciliar-base.test.mjs infra/runner/config-runner.test.mjs infra/runner/supervisor.test.mjs infra/runner/verificar-compose.test.mjs",
+    "test:infra:endurecimiento": "node --test scripts/secretos-entorno.test.mjs scripts/verificar-compose-credenciales.test.mjs scripts/verificar-compose-puertos.test.mjs scripts/firewall-vps.test.mjs scripts/verificar-puertos-externos.test.mjs scripts/instalar-binario-verificado.test.mjs scripts/comprobar-conexion-db.test.mjs scripts/abrir-issue-alerta.test.mjs scripts/obtener-clave-host.test.mjs scripts/reconciliar-base.test.mjs scripts/doc-endurecimiento.test.mjs infra/runner/config-runner.test.mjs infra/runner/supervisor.test.mjs infra/runner/verificar-compose.test.mjs",
     "infra:config:nango": "docker compose -f infra/nango/compose.yaml config --quiet",
     "infra:config:glitchtip": "GLITCHTIP_DB_PASSWORD=solo-validar-config GLITCHTIP_SECRET_KEY=solo-validar-config docker compose -f infra/glitchtip/compose.yaml config --quiet",
     "infra:config:mcp-server": "docker compose -f infra/mcp-server/compose.yaml config --quiet",

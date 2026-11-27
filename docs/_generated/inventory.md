@@ -4,7 +4,7 @@
 
 - Rutas del panel: **276**
 - Tablas en migraciones: **209**
-- Variables de entorno: **113**
+- Variables de entorno: **114**
 - Specs: **160**
 - Páginas de documentación: **348**
 
@@ -571,7 +571,8 @@
 - `RESPALDOS_STORAGE_SECRET_ACCESS_KEY`
 - `RESPALDOS_VERIFICAR_TABLAS`
 - `RUNNER_CPU_LIMIT`
-- `RUNNER_LIMPIAR_STORE`
+- `RUNNER_JOBS_SUBNET_DEPLOY`
+- `RUNNER_JOBS_SUBNET_PR`
 - `RUNNER_MEMORY_LIMIT`
 - `RUNNER_PIDS_LIMIT`
 - `RUNNER_PNPM_NETWORK_CONCURRENCY`
