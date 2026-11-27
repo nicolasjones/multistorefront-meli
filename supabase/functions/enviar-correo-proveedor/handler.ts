@@ -10,7 +10,7 @@ import type { EnviarCorreo } from '../_shared/correo.ts'
 import { registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 import { CARACTERES_NO_PERMITIDOS } from '../_shared/texto.ts'
 
-const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
+const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Expose-Headers': 'Retry-After' }
 const response = (body: unknown, status = 200, extra: Record<string, string> = {}) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, ...extra, 'Content-Type': 'application/json' } })
 
 export const ASUNTO_MAX = 200

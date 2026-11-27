@@ -601,6 +601,7 @@ describe('indexar-documento · cupo persistente por usuario y hora (lote 92)', (
     const res = await pedir(m.deps)
     assert.equal(res.status, 429)
     assert.equal(res.headers.get('Retry-After'), '1234')
+    assert.equal(res.headers.get('Access-Control-Expose-Headers'), 'Retry-After', 'el navegador puede leer el Retry-After del 429')
     assert.deepEqual(await res.json(), { error: 'Indexaste demasiados documentos en poco tiempo. Probá de nuevo más tarde.' })
     assert.deepEqual(m.orden, ['cupo'])
     assert.equal(m.insertados(), 0)

@@ -377,7 +377,7 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   propósito. `redactarCredenciales` acota su entrada a 4000 caracteres antes de cualquier regex (la salida no pasa de unas pocas veces ese
   tope) y los cuantificadores de los patrones (segmentos del JWT a 2000, esquema de URL a 30, sufijo del nombre de campo a 40, comillas a 4 y espacios a 16: todos con su borde fijado por tests de tabla n-1/n/n+1; el prefijo del nombre es solo un tope de rendimiento sin efecto observable); no se afirma que cada
   regex sea lineal (el JWT no lo es) sino que el tiempo está acotado por construcción, medido con 200k caracteres hostiles por variante
-  (decenas de milisegundos, aun en frío). La redacción **no es exhaustiva**: no cubre `AIza…`, `xoxb-…`, `ghp_…`, `Cookie:` sin nombre de campo ni base64 sin prefijo, tampoco nombres como `pwd=`, `pass=`, `passphrase:`, `private_key=`, `access_key=` o `session=`, una frase sin separador (`password is x`) ni un `)` entre el nombre y el `=` (`Key (token)=(x)`),
+  (decenas de milisegundos, aun en frío). **`registrarErrorDeBase` no tacha correos ni uuid** (eso lo hace solo `[cupo-ia]`): imprime el código y el mensaje de la base redactado. La base no suele poner datos de personas en `message`, pero si lo hiciera saldrían. La redacción **no es exhaustiva**: no cubre `AIza…`, `xoxb-…`, `ghp_…`, `Cookie:` sin nombre de campo ni base64 sin prefijo, tampoco nombres como `pwd=`, `pass=`, `passphrase:`, `private_key=`, `access_key=` o `session=`, una frase sin separador (`password is x`) ni un `)` entre el nombre y el `=` (`Key (token)=(x)`),
   y los errores de red o del proveedor no imprimen mensaje; (4) en `[cupo-ia]` se tachan,
   antes de acotar a 300, el uuid del usuario (sin distinguir mayúsculas), cualquier otro uuid, con o sin guiones (`[uuid]`), y los correos
   (`[correo]`). Como el tachado precede al recorte, un uuid completo nunca queda cortado por él y no se descarta nada al final (hacerlo
@@ -507,8 +507,10 @@ de `supabase/functions` fuera de IA.
 - **Orden.** El cupo se consume DESPUÉS de toda la validación (JWT, `version_id`, funcionalidad, permiso, versión, reclamo, descarga, texto,
   fragmentos, política, credencial, proveedor y entrada) y ANTES de pedir los embeddings. Un pedido inválido o una configuración que falta no gasta cupo.
 - **Cupo agotado:** 429 con `Retry-After` (hasta la próxima hora UTC) y «Indexaste demasiados documentos en poco tiempo. Probá de nuevo más tarde.».
-  **Falla cerrado:** si la base no responde, la RPC lanza o la respuesta no se entiende, o falta la clave de servicio, 503 «No se pudo verificar tu
-  cuota de uso.» sin gastar embeddings. En ambos rechazos se SUELTA el candado de la versión (queda `procesando`, sin `fallida`): es transitorio y se
+  **Falla cerrado:** si la base no responde, la RPC lanza o la respuesta no se entiende, 503 «No se pudo verificar tu
+  cuota de uso.» sin gastar embeddings. Sin `SUPABASE_SERVICE_ROLE_KEY` el cliente de servicio de `index.ts` no se puede crear y la función responde
+  500 (antes de llegar al cupo: la política y la credencial también lo usan); sigue siendo falla cerrada, solo que no es un 503. En
+  `enviar-correo-proveedor` el cliente se crea de forma perezosa dentro del cupo y ahí la falta de la clave sí da 503. En ambos rechazos se SUELTA el candado de la versión (queda `procesando`, sin `fallida`): es transitorio y se
   reintenta con «Reintentar» pasada la hora o el 503.
 - **Cableado:** `indexar-documento/cupo.ts` (`crearConsumirCupo(crearAdmin, leerEnv)`) con dependencias inyectables, igual que
   `enviar-correo-proveedor/cupo.ts`; `index.ts` solo le pasa el cliente de servicio y `Deno.env`. `handler.ts` recibe `consumirCupo` en `Deps`.
@@ -551,3 +553,7 @@ antes de agendarla; (3) para quitar un agendado: `select cron.unschedule('<nombr
 - Un segundo cupo por organización para `indexar-documento` (el cupo es por usuario, como el resto).
 - Cupo por tamaño del documento: lo acota `MAX_FRAGMENTOS`; un tope por caracteres o fragmentos por hora exigiría otra tabla.
 - `_shared/ia/purga.ts` (el `AggregateError` con el mensaje del primer fallo de Storage; no se imprime en ningún log de estas funciones).
+
+**Seguimiento del lote 92 (revisión):** los handlers con cupo (`chat-ia-responder`, `preguntar-documentos`, `enviar-correo-proveedor` e `indexar-documento`)
+envían `Access-Control-Expose-Headers: Retry-After` en todas sus respuestas (cada test del 429 lo verifica): sin esa cabecera el navegador del panel,
+que llama desde otro origen, no puede leer el `Retry-After`.

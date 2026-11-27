@@ -16,7 +16,7 @@ import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
 import type { RechazoCupo } from '../_shared/cupo-ia.ts'
 import { MAX_FRAGMENTOS, fragmentarTexto, nuevoReclamo, reclamoVigente } from './reglas.ts'
 
-const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
+const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Expose-Headers': 'Retry-After' }
 const respuesta = (body: unknown, status: number, extra: Record<string, string> = {}) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, ...extra, 'Content-Type': 'application/json' } })
 const SIN_PERMISO = 'No tenés permiso para indexar este documento.'
 const MOTIVO_ENTRADA_INVALIDA = 'La configuración de IA de tu organización no permite indexar este documento. Contactá a un administrador.'
