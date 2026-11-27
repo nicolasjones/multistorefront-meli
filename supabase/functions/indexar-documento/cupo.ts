@@ -21,7 +21,7 @@ export function crearConsumirCupo(crearAdmin: () => Admin, leerEnv: (clave: stri
       admin = crearAdmin()
     } catch {
       // Falla cerrado si `crearAdmin` lanza: no se puede contar y no se gasta crédito de embeddings. (En `index.ts` el cliente de servicio ya existe
-      // aquí: sin `SUPABASE_SERVICE_ROLE_KEY` la función falla antes, en la política o la credencial, con 500; es igualmente cerrado.)
+      // aquí: sin `SUPABASE_SERVICE_ROLE_KEY` el cliente se crea al inicio de cada pedido y lanza antes de autenticar, también en el preflight OPTIONS, con 500 y sin cabeceras CORS; es igualmente cerrado.)
       console.error('indexar-documento: no se pudo crear el cliente del cupo')
       return { status: 503, error: TEXTO_CUPO_NO_VERIFICABLE }
     }

@@ -19,7 +19,7 @@ const IP_FIJA = 'sin-ip'
 // por entorno con `SEGUIMIENTO_SALTOS_PROXY` sin tocar el código.
 export const SALTOS_PROXY_CONFIABLES = 1
 
-const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
+const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Expose-Headers': 'Retry-After' }
 const seguridadHeaders = { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Robots-Tag': 'noindex' }
 const response = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, ...seguridadHeaders, 'Content-Type': 'application/json', ...extra } })

@@ -84,6 +84,7 @@ describe('consultar-estado-reparacion', () => {
     const res = await pedir(deps)
     assert.equal(res.status, 429)
     assert.equal(res.headers.get('Retry-After'), '123')
+    assert.equal(res.headers.get('Access-Control-Expose-Headers'), 'Retry-After', 'el navegador puede leer el Retry-After del 429')
     cabecerasOk(res)
     assert.deepEqual(await res.json(), { error: 'demasiadas_consultas' })
     assert.deepEqual(estado.consultas, [])

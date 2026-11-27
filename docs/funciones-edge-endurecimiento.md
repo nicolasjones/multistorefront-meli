@@ -509,7 +509,7 @@ de `supabase/functions` fuera de IA.
 - **Cupo agotado:** 429 con `Retry-After` (hasta la próxima hora UTC) y «Indexaste demasiados documentos en poco tiempo. Probá de nuevo más tarde.».
   **Falla cerrado:** si la base no responde, la RPC lanza o la respuesta no se entiende, 503 «No se pudo verificar tu
   cuota de uso.» sin gastar embeddings. Sin `SUPABASE_SERVICE_ROLE_KEY` el cliente de servicio de `index.ts` no se puede crear y la función responde
-  500 (antes de llegar al cupo: la política y la credencial también lo usan); sigue siendo falla cerrada, solo que no es un 503. En
+  500 (se crea al inicio de cada pedido, antes de autenticar, y también en el preflight OPTIONS, que sale sin cabeceras CORS); sigue siendo falla cerrada, solo que no es un 503. En
   `enviar-correo-proveedor` el cliente se crea de forma perezosa dentro del cupo y ahí la falta de la clave sí da 503. En ambos rechazos se SUELTA el candado de la versión (queda `procesando`, sin `fallida`): es transitorio y se
   reintenta con «Reintentar» pasada la hora o el 503.
 - **Cableado:** `indexar-documento/cupo.ts` (`crearConsumirCupo(crearAdmin, leerEnv)`) con dependencias inyectables, igual que

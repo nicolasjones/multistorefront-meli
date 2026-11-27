@@ -130,7 +130,7 @@ Deno.serve((req) => {
         new Date(),
       )
     },
-    // Falla cerrado: sin la clave de servicio o con la RPC caída, la respuesta es 503 y no se gastan embeddings (ver cupo.ts).
+    // Falla cerrado: con la RPC caída o su respuesta ilegible la respuesta es 503 y no se gastan embeddings (ver cupo.ts). Sin `SUPABASE_SERVICE_ROLE_KEY` no hay cupo que consultar: el cliente de servicio se crea al inicio de cada pedido y lanza (500, sin cabeceras CORS ni en el preflight OPTIONS) antes de autenticar; también es falla cerrada.
     consumirCupo: crearConsumirCupo(() => admin, (clave) => Deno.env.get(clave)),
     embeddings: (textos, clave) => generarEmbeddings(textos.map((t) => (sanitizarDato({ texto: t }, CONTRATO.datosPermitidos) as { texto: string }).texto), clave),
     // Los fragmentos se escriben y borran con el cliente de SERVICIO (así la indexación no depende del rol del usuario), pero
