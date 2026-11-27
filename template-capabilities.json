@@ -4,7 +4,7 @@
   "capabilities": [
     {
       "id": "cloud-migrations-gate",
-      "version": "1.3.1",
+      "version": "1.3.2",
       "title": "CI de migraciones de Supabase cloud con gate staging-producción",
       "paths": [
         "scripts/migrar-supabase-cloud.mjs",
@@ -27,7 +27,7 @@
     },
     {
       "id": "vps-deploy-gate",
-      "version": "1.2.2",
+      "version": "1.2.3",
       "title": "CI de deploy de infraestructura del VPS con gate staging-producción",
       "paths": [
         ".github/workflows/deploy-infraestructura-vps.yml",
@@ -73,7 +73,7 @@
     },
     {
       "id": "worker-image-security",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "title": "Construcción y runtime seguro de workers",
       "paths": [
         "workers/Dockerfile",
@@ -134,7 +134,7 @@
     },
     {
       "id": "portable-typescript-tooling",
-      "version": "1.2.5",
+      "version": "1.2.6",
       "title": "Tooling operativo portable en Node ESM",
       "paths": [
         "infra/kestra/renderizar-flow.mjs",
@@ -147,7 +147,7 @@
     },
     {
       "id": "safe-kestra-flow-publication",
-      "version": "1.3.0",
+      "version": "1.3.1",
       "title": "Publicación segura de flows de Kestra",
       "paths": [
         "infra/kestra/desplegar-flow.mjs",
