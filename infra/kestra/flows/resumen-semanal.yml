@@ -3,7 +3,7 @@
 # `{"barrer": true}`; la función arma, por organización, el resumen de la semana que terminó (ventas, margen, stock en
 # alerta y faltantes pendientes; las secciones sin fuente se omiten) y lo manda por el SMTP del proyecto. Cada 15 minutos
 # se repite la llamada solo para REINTENTAR lo que falló: la base registra un resumen por organización y semana
-# (`public.resumen_semanal_envios`, único por semana), reserva cada uno 2 minutos y no reenvía uno `enviado`, así que
+# (`dominio.resumen_semanal_envios`, único por semana), reserva cada uno 2 minutos y no reenvía uno `enviado`, así que
 # repetir la llamada no duplica. Es el "disparo" porque el repo prohíbe disparar HTTP desde SQL
 # (docs/adoptar-ciclo-ejecuciones.md §3.1): la base solo calcula y registra. Cada organización puede pausarlo en Mi
 # organización (la base no genera nada si está pausado).

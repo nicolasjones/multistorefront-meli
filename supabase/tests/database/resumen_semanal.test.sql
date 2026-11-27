@@ -99,23 +99,23 @@ end $$;
 
 select ok(
   (select count(*) = 2 from pg_class c join pg_namespace n on n.oid = c.relnamespace
-    where n.nspname = 'public' and c.relname in ('resumen_semanal_config', 'resumen_semanal_envios') and c.relrowsecurity),
-  'las dos tablas viven en «public» (plataforma) y tienen RLS activada'
+    where n.nspname = 'dominio' and c.relname in ('resumen_semanal_config', 'resumen_semanal_envios') and c.relrowsecurity),
+  'las dos tablas viven en «dominio» (datos del negocio, Principio VII; MSF-921) y tienen RLS activada'
 );
 select is(
-  (select count(*)::int from unnest(array['public.resumen_semanal_config', 'public.resumen_semanal_envios']) t
+  (select count(*)::int from unnest(array['dominio.resumen_semanal_config', 'dominio.resumen_semanal_envios']) t
     where has_table_privilege('anon', t, 'select') or has_table_privilege('anon', t, 'insert')
        or has_table_privilege('anon', t, 'update') or has_table_privilege('anon', t, 'delete')),
   0, 'anon no tiene ningún privilegio sobre las tablas'
 );
 select is(
-  (select count(*)::int from unnest(array['public.resumen_semanal_config', 'public.resumen_semanal_envios']) t
+  (select count(*)::int from unnest(array['dominio.resumen_semanal_config', 'dominio.resumen_semanal_envios']) t
     where has_table_privilege('authenticated', t, 'select') or has_table_privilege('authenticated', t, 'insert')
        or has_table_privilege('authenticated', t, 'update') or has_table_privilege('authenticated', t, 'delete')),
   0, 'authenticated tampoco lee ni escribe las tablas directo (solo por las RPC)'
 );
 select is(
-  (select count(*)::int from pg_policies where schemaname = 'public' and tablename in ('resumen_semanal_config', 'resumen_semanal_envios') and policyname not like '%\_denegar\_todo'),
+  (select count(*)::int from pg_policies where schemaname = 'dominio' and tablename in ('resumen_semanal_config', 'resumen_semanal_envios') and policyname not like '%\_denegar\_todo'),
   0, 'sin políticas de acceso (solo la que deniega todo): nadie llega a las filas fuera del código security definer'
 );
 select is(
@@ -236,7 +236,7 @@ select is(
   (select count(*)::int from private.generar_resumen_semanal_en('11111111-1111-1111-1111-111111111111', 5, timestamptz '2027-03-22 07:59:00-03')),
   0, 'el lunes antes de las 08:00 (Buenos Aires) tampoco'
 );
-select is((select count(*)::int from public.resumen_semanal_envios), 0, 'fuera de la ventana no queda ningún registro');
+select is((select count(*)::int from dominio.resumen_semanal_envios), 0, 'fuera de la ventana no queda ningún registro');
 select is(
   private.organizaciones_con_resumen_semanal_pendiente_en(timestamptz '2027-03-22 07:59:00-03', 5),
   '{}'::uuid[], 'fuera de la ventana el barrido no tiene organizaciones para procesar'
@@ -257,8 +257,8 @@ select is(
   (select destinatarios from gen1), array['admin-uno@example.com']::text[],
   'destinatarios: solo el administrador activo (sin la baja personal, el suspendido ni el rol que no es administrador)'
 );
-select is((select estado from public.resumen_semanal_envios where id = (select resumen_id from gen1)), 'pendiente', 'queda pendiente y reservado');
-select is((select intentos from public.resumen_semanal_envios where id = (select resumen_id from gen1)), 1, 'primer intento');
+select is((select estado from dominio.resumen_semanal_envios where id = (select resumen_id from gen1)), 'pendiente', 'queda pendiente y reservado');
+select is((select intentos from dominio.resumen_semanal_envios where id = (select resumen_id from gen1)), 1, 'primer intento');
 select is(
   (select count(*)::int from private.generar_resumen_semanal_en('11111111-1111-1111-1111-111111111111', 5, timestamptz '2027-03-22 08:00:30-03')),
   0, 'un segundo barrido simultáneo no lo toma (reserva de 2 minutos): no se duplica'
@@ -271,7 +271,7 @@ select is(
   (select count(*)::int from private.generar_resumen_semanal_en('11111111-1111-1111-1111-111111111111', 5, timestamptz '2027-03-23 10:00:00-03')),
   0, 'el martes no se vuelve a generar el de la semana ya enviada (idempotente por semana)'
 );
-select is((select count(*)::int from public.resumen_semanal_envios where organizacion_id = '11111111-1111-1111-1111-111111111111'), 1, 'un único registro por organización y semana');
+select is((select count(*)::int from dominio.resumen_semanal_envios where organizacion_id = '11111111-1111-1111-1111-111111111111'), 1, 'un único registro por organización y semana');
 
 -- ============================================================================
 -- Fallo y reintento (RF-REP-08-5)
@@ -282,7 +282,7 @@ create temp table gen2 as
 grant select on gen2 to public;
 select is(public.cerrar_resumen_semanal((select resumen_id from gen2), false, E'fallo con  ana@example.com\n en 10.0.0.1'), 'fallido', 'un envío fallido se registra como fallido');
 select ok(
-  (select ultimo_error is not null and length(ultimo_error) <= 500 and ultimo_error !~ E'\n' from public.resumen_semanal_envios where id = (select resumen_id from gen2)),
+  (select ultimo_error is not null and length(ultimo_error) <= 500 and ultimo_error !~ E'\n' from dominio.resumen_semanal_envios where id = (select resumen_id from gen2)),
   'el error útil queda en una línea y acotado'
 );
 -- El reintento (otro barrido del lunes) reutiliza el MISMO registro y el mismo contenido: no crea otro resumen.
@@ -291,14 +291,14 @@ create temp table gen2b as
 grant select on gen2b to public;
 select is((select resumen_id from gen2b), (select resumen_id from gen2), 'el reintento reutiliza el mismo resumen');
 select is((select contenido from gen2b), (select contenido from gen2), 'con el mismo contenido congelado');
-select is((select intentos from public.resumen_semanal_envios where id = (select resumen_id from gen2)), 2, 'suma un intento');
-select is((select count(*)::int from public.resumen_semanal_envios where organizacion_id = '22222222-2222-2222-2222-222222222222'), 1, 'sigue habiendo un solo registro de la semana');
+select is((select intentos from dominio.resumen_semanal_envios where id = (select resumen_id from gen2)), 2, 'suma un intento');
+select is((select count(*)::int from dominio.resumen_semanal_envios where organizacion_id = '22222222-2222-2222-2222-222222222222'), 1, 'sigue habiendo un solo registro de la semana');
 -- Tope de 3 intentos: después de agotarlos no se retoma.
 select public.cerrar_resumen_semanal((select resumen_id from gen2), false, 'otra vez');
 select is((select count(*)::int from private.generar_resumen_semanal_en('22222222-2222-2222-2222-222222222222', 3, timestamptz '2027-03-22 08:30:00-03')), 1, 'el tercer intento todavía sale');
 select public.cerrar_resumen_semanal((select resumen_id from gen2), false, 'agotado');
 select is((select count(*)::int from private.generar_resumen_semanal_en('22222222-2222-2222-2222-222222222222', 3, timestamptz '2027-03-22 08:45:00-03')), 0, 'agotado el tope no se reintenta más');
-select is((select estado from public.resumen_semanal_envios where id = (select resumen_id from gen2)), 'fallido', 'queda fallido con su error');
+select is((select estado from dominio.resumen_semanal_envios where id = (select resumen_id from gen2)), 'fallido', 'queda fallido con su error');
 
 -- ============================================================================
 -- Sin destinatarios y pausa (RF-REP-08-6)
@@ -309,7 +309,7 @@ create temp table gen3 as
   select * from private.generar_resumen_semanal_en('33333333-3333-3333-3333-333333333333', 5, timestamptz '2027-03-22 08:00:00-03');
 grant select on gen3 to public;
 select is((select destinatarios from gen3), '{}'::text[], 'sin administradores activos: nada para enviar');
-select is((select estado from public.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), 'sin_destinatario', 'queda registrado como sin destinatario');
+select is((select estado from dominio.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), 'sin_destinatario', 'queda registrado como sin destinatario');
 update public.usuarios_organizacion set estado = 'activo' where user_id = 'f3000000-0000-0000-0000-000000000001';
 select is(
   (select destinatarios from private.generar_resumen_semanal_en('33333333-3333-3333-3333-333333333333', 5, timestamptz '2027-03-22 09:00:00-03')),
@@ -317,17 +317,17 @@ select is(
 );
 
 -- Pausa: lo pendiente deja de salir y no nace un resumen nuevo.
-insert into public.resumen_semanal_config (organizacion_id, activo) values ('33333333-3333-3333-3333-333333333333', false);
+insert into dominio.resumen_semanal_config (organizacion_id, activo) values ('33333333-3333-3333-3333-333333333333', false);
 -- Primero en vuelo (reservado hace menos de 2 minutos): la pausa lo deja terminar; recién con la reserva vencida queda pausado.
 select is((select count(*)::int from private.generar_resumen_semanal_en('33333333-3333-3333-3333-333333333333', 5, timestamptz '2027-03-22 09:30:00-03')), 0, 'pausado: no sale');
-select is((select estado from public.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), 'pendiente', 'uno en vuelo (reservado hace menos de 2 minutos) no se pausa: se deja terminar');
-update public.resumen_semanal_envios set updated_at = now() - interval '3 minutes' where organizacion_id = '33333333-3333-3333-3333-333333333333';
+select is((select estado from dominio.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), 'pendiente', 'uno en vuelo (reservado hace menos de 2 minutos) no se pausa: se deja terminar');
+update dominio.resumen_semanal_envios set updated_at = now() - interval '3 minutes' where organizacion_id = '33333333-3333-3333-3333-333333333333';
 select is((select count(*)::int from private.generar_resumen_semanal_en('33333333-3333-3333-3333-333333333333', 5, timestamptz '2027-03-22 09:31:00-03')), 0, 'pausado con la reserva vencida: no sale');
-select is((select estado from public.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), 'pausado', 'y lo que estaba pendiente queda pausado');
+select is((select estado from dominio.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), 'pausado', 'y lo que estaba pendiente queda pausado');
 -- Si el correo ya había salido cuando llegó la pausa, el cierre exitoso lo registra como enviado; un fallo no lo toca.
-select is(public.cerrar_resumen_semanal((select id from public.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), false, 'x'), null, 'un fallo no pisa un resumen pausado');
-select is(public.cerrar_resumen_semanal((select id from public.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), true), 'enviado', 'si el correo salió igual, el cierre exitoso de un resumen pausado lo registra como enviado');
-select ok((select enviado_en is not null from public.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), 'con su fecha de envío');
+select is(public.cerrar_resumen_semanal((select id from dominio.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), false, 'x'), null, 'un fallo no pisa un resumen pausado');
+select is(public.cerrar_resumen_semanal((select id from dominio.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), true), 'enviado', 'si el correo salió igual, el cierre exitoso de un resumen pausado lo registra como enviado');
+select ok((select enviado_en is not null from dominio.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), 'con su fecha de envío');
 
 -- ============================================================================
 -- Configuración por administradores, con evento en Actividad (RF-REP-08-6)
@@ -364,8 +364,8 @@ select ok(
 select throws_ok($$select public.configurar_resumen_semanal(null)$$, '22023', null, 'sin valor, error claro');
 reset role;
 
-select is((select activo from public.resumen_semanal_config where organizacion_id = '11111111-1111-1111-1111-111111111111'), true, 'la configuración de Uno quedó activa');
-select is((select activo from public.resumen_semanal_config where organizacion_id = '22222222-2222-2222-2222-222222222222'), null, 'el administrador de Uno no tocó la configuración de Dos (sigue sin fila = activo)');
+select is((select activo from dominio.resumen_semanal_config where organizacion_id = '11111111-1111-1111-1111-111111111111'), true, 'la configuración de Uno quedó activa');
+select is((select activo from dominio.resumen_semanal_config where organizacion_id = '22222222-2222-2222-2222-222222222222'), null, 'el administrador de Uno no tocó la configuración de Dos (sigue sin fila = activo)');
 
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select throws_ok($$select public.configurar_resumen_semanal(false)$$, '42501', null, 'un rol que no es administrador no puede pausarlo');
@@ -390,7 +390,7 @@ select is(
   (select count(*)::int from private.generar_resumen_semanal_en('44444444-4444-4444-4444-444444444444', 5, timestamptz '2027-03-24 00:00:00-03')),
   0, 'el miércoles a las 00:00 (Buenos Aires) ya no nace un resumen'
 );
-select is((select count(*)::int from public.resumen_semanal_envios where organizacion_id = '44444444-4444-4444-4444-444444444444'), 0, 'y no queda ningún registro');
+select is((select count(*)::int from dominio.resumen_semanal_envios where organizacion_id = '44444444-4444-4444-4444-444444444444'), 0, 'y no queda ningún registro');
 select is(
   private.organizaciones_con_resumen_semanal_pendiente_en(timestamptz '2027-03-24 00:00:00-03', 5) @> array['44444444-4444-4444-4444-444444444444']::uuid[],
   false, 'el miércoles a las 00:00 el barrido tampoco la incluye'
@@ -400,12 +400,12 @@ select is(
   1, 'el martes a las 23:59:59 todavía nace'
 );
 select is(
-  (select semana_desde from public.resumen_semanal_envios where organizacion_id = '44444444-4444-4444-4444-444444444444'),
+  (select semana_desde from dominio.resumen_semanal_envios where organizacion_id = '44444444-4444-4444-4444-444444444444'),
   date '2027-03-15', 'y cubre la misma semana que terminó el domingo anterior'
 );
 
 -- Un resumen sin enviar de una semana anterior queda vencido en el próximo barrido de esa organización.
-insert into public.resumen_semanal_envios (organizacion_id, semana_desde, semana_hasta, estado, intentos, ultimo_error, updated_at) values
+insert into dominio.resumen_semanal_envios (organizacion_id, semana_desde, semana_hasta, estado, intentos, ultimo_error, updated_at) values
   ('55555555-5555-5555-5555-555555555555', date '2027-03-01', date '2027-03-07', 'fallido', 2, 'x', now() - interval '1 day'),
   ('55555555-5555-5555-5555-555555555555', date '2027-03-08', date '2027-03-14', 'pendiente', 1, null, now() - interval '1 day');
 select is(
@@ -413,11 +413,11 @@ select is(
   1, 'el barrido genera el resumen de la semana vigente'
 );
 select is(
-  (select count(*)::int from public.resumen_semanal_envios where organizacion_id = '55555555-5555-5555-5555-555555555555' and estado = 'vencido'),
+  (select count(*)::int from dominio.resumen_semanal_envios where organizacion_id = '55555555-5555-5555-5555-555555555555' and estado = 'vencido'),
   2, 'y las semanas anteriores sin enviar quedan vencidas (nunca se mandan atrasadas)'
 );
 select is(
-  (select count(*)::int from public.resumen_semanal_envios where organizacion_id = '55555555-5555-5555-5555-555555555555' and estado = 'pendiente' and semana_desde = date '2027-03-15'),
+  (select count(*)::int from dominio.resumen_semanal_envios where organizacion_id = '55555555-5555-5555-5555-555555555555' and estado = 'pendiente' and semana_desde = date '2027-03-15'),
   1, 'el de la semana vigente es el único pendiente'
 );
 select is(

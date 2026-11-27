@@ -33,8 +33,8 @@ Al terminar, el administrador **elige entre tableros ya armados** con filtros y 
 | `analitica.ventas_empresa_categoria` (vista) | `analitica` | F-REP-07 | Contrato de lectura para Superset; no almacena datos; cada fila lleva `organizacion_id`, `empresa_id` y `empresa_nombre` | Sin acceso para `anon`/`authenticated`; `select` solo para `superset_analitica` |
 | `analitica.margen_real_categoria` (vista) | `analitica` | F-REP-07 | Ídem; reutiliza `analitica.rentabilidad_ventas_real` (un único cálculo del margen) y le suma la categoría; expone costo y margen | Ídem; el tablero se registra con la sección `rentabilidad` |
 | Filas en `public.reportes` (+ `reportes_roles_default`, `reportes_organizaciones`, `reportes_organizaciones_roles`) | `public` (plataforma, spec 007) | F-REP-07 | Solo DATO (2 reportes) y 3 funciones de disparador en `private`; sin tablas ni columnas nuevas | RLS vigente de la spec 007 |
-| `public.resumen_semanal_config` (tabla) | `public` (**plataforma**) | F-REP-08 | Configuración por organización (activo/pausado), como `organizaciones_features`: no es una entidad del negocio | RLS activada **sin políticas**; sin privilegios para `anon` ni `authenticated`; solo RPC `security definer` |
-| `public.resumen_semanal_envios` (tabla) | `public` (**plataforma**) | F-REP-08 | Registro/outbox de un aviso de plataforma, como `avisos_pendientes`: estado, intentos y error de cada resumen | Ídem |
+| `dominio.resumen_semanal_config` (tabla) | `dominio` (nacieron en `public`; movidas en MSF-921, `20270516000400`) | F-REP-08 | Configuración por organización (activo/pausado), como `organizaciones_features`: no es una entidad del negocio | RLS activada **sin políticas**; sin privilegios para `anon` ni `authenticated`; solo RPC `security definer` |
+| `dominio.resumen_semanal_envios` (tabla) | `dominio` (nacieron en `public`; movidas en MSF-921, `20270516000400`) | F-REP-08 | Registro/outbox de un aviso de plataforma, como `avisos_pendientes`: estado, intentos y error de cada resumen | Ídem |
 | Fila `resumen_semanal` en `public.tipos_aviso` | `public` (plataforma) | F-REP-08 | Reutiliza el catálogo de MSF-189 solo para la **baja personal** desde `/cuenta/avisos`; no usa la cola `avisos_pendientes` | RLS vigente de `tipos_aviso` |
 
 `analitica` no tiene tablas: `rls_en_toda_tabla` (recorre `public` + `dominio`) sigue verde. Toda migración es aditiva e idempotente; la reversión de cada una está documentada en su encabezado.
@@ -45,8 +45,8 @@ Las dos tablas nuevas están en `public` (plataforma, Principio VII, justificado
 
 | Tabla | Estado | Cambio |
 |---|---|---|
-| `public.resumen_semanal_config` | nueva | Una fila por organización: `activo` (sin fila = activo), quién y cuándo lo cambió |
-| `public.resumen_semanal_envios` | nueva | Un resumen por organización y semana (`unique`): estado, intentos, error útil, contenido congelado y cantidad de destinatarios |
+| `dominio.resumen_semanal_config` | nueva | Una fila por organización: `activo` (sin fila = activo), quién y cuándo lo cambió |
+| `dominio.resumen_semanal_envios` | nueva | Un resumen por organización y semana (`unique`): estado, intentos, error útil, contenido congelado y cantidad de destinatarios |
 | `public.tipos_aviso` | alterada | Fila nueva `resumen_semanal` (sección `usuarios_permisos`) para la baja personal; sin cambio de estructura |
 | `public.preferencias_aviso` | existente | Preferencia por persona y tipo; la baja personal del resumen |
 | `public.organizaciones` | existente | Organización dueña de la configuración y de los envíos |

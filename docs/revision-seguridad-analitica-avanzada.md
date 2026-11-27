@@ -28,8 +28,8 @@ Sin hallazgos críticos ni altos abiertos. Dos observaciones de bajo riesgo docu
 
 | Objeto | Esquema | Control | Evidencia |
 |---|---|---|---|
-| `public.resumen_semanal_config` | `public` (plataforma) | RLS activada, **sin políticas** ni privilegios para `anon`/`authenticated`/`public`; solo funciones `security definer` | pgTAP `resumen_semanal.test.sql` (tests 1–4) |
-| `public.resumen_semanal_envios` | `public` (plataforma) | Ídem | Ídem |
+| `dominio.resumen_semanal_config` | `dominio` (desde `20270516000400`, MSF-921; nacieron en `public`) | RLS activada, **sin políticas** ni privilegios para `anon`/`authenticated`/`public`; solo funciones `security definer` | pgTAP `resumen_semanal.test.sql` (tests 1–4) |
+| `dominio.resumen_semanal_envios` | `dominio` (ídem) | Ídem | Ídem |
 | Vistas `analitica.ventas_empresa_categoria`, `analitica.margen_real_categoria` | `analitica` | `revoke all` de `public`/`anon`/`authenticated`; `select` solo a `superset_analitica`; no `security_invoker` (el aislamiento lo fuerza el token) | pgTAP `analitica_tableros_avanzados.test.sql` (tests 13–15) |
 | Las dos tablas nuevas en la exportación total | — | Excluidas en `private.exclusiones_exportacion_total()` (no son dato de negocio) | pgTAP `exportacion_total` verde con las migraciones |
 

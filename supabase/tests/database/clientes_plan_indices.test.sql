@@ -46,7 +46,7 @@ set local enable_indexscan = off;
 -- En CI el planner a veces elegía el bitmap del btree de organización (la org entera es el seed) en lugar
 -- del GIN. Se descarta ese btree dentro de la transacción (rollback al final) para que la prueba no
 -- dependa del empate de costos; la paginación usa clientes_org_nombre_idx, que no se toca.
-drop index dominio.clientes_organizacion_id_idx;
+drop index if exists dominio.clientes_organizacion_id_idx;
 
 create temp table pg_temp.busqueda_plan as
 select pg_temp.plan_de($q$

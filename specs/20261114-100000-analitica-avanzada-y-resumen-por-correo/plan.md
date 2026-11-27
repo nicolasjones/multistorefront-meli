@@ -13,7 +13,7 @@
 |---|---|---|
 | Vistas `analitica.ventas_empresa_categoria` y `analitica.margen_real_categoria` | `analitica` (solo vistas) | Contrato de lectura para Superset; no almacenan datos |
 | Filas de catálogo en `public.reportes` y tablas hermanas; fila `resumen_semanal` en `public.tipos_aviso` | `public` (plataforma) | Catálogo transversal de reportes y de avisos: dato, no estructura |
-| `public.resumen_semanal_config`, `public.resumen_semanal_envios` | `public` (plataforma) | Configuración por organización y outbox de un aviso de plataforma (como `organizaciones_features` y `avisos_pendientes`); **no** son entidades del negocio, así que no van en `dominio` |
+| `dominio.resumen_semanal_config`, `dominio.resumen_semanal_envios` | `dominio` (nacieron en `public`; movidas en MSF-921, `20270516000400`) | Configuración por organización y outbox de un aviso de plataforma (como `organizaciones_features` y `avisos_pendientes`); **no** son entidades del negocio, así que no van en `dominio` |
 
 Las dos tablas nuevas quedan fuera de la exportación total (`private.exclusiones_exportacion_total()`, migración `20270324100300`), con RLS activada y sin políticas ni privilegios para `anon`/`authenticated` (solo `security definer`).
 
