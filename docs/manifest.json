@@ -1092,9 +1092,9 @@
     },
     "docs/errores-negocio-postgrest.md": {
       "title": "Errores de negocio de las RPC y su respuesta HTTP",
-      "pageHash": "9c2e225b71569f115ce7f62259e8acbd094493f6f12c2c70c7c54c0a27d3cdc2",
-      "sourceHash": "c3a16785fc180f37fb04642c55895f73dcafd9b61d8df386753f59d22f2a5b71",
-      "sourceAt": "f9747ff05",
+      "pageHash": "f695afe2ed57fc099e67d628e5cb7d994c5ee4e61fc28fe48f23290ae51a735a",
+      "sourceHash": "2a2c2d87b9c19fabaa7efd511bfe64a2654ff551519d0c68b22978cf87ce25b2",
+      "sourceAt": "f7d69de3c",
       "sources": [
         "apps/web/src/lib/mensajeErrorBase.ts",
         "apps/web/src/lib/ventasPresupuestos.ts",
@@ -1151,7 +1151,7 @@
         "apps/web/src/lib/opiniones.ts"
       ],
       "owner": "tecnico",
-      "commit": "f9747ff05"
+      "commit": "f7d69de3c"
     },
     "docs/exportacion-total.md": {
       "title": "Exportar todos los datos (F-OPS-06, MSF-396)",
@@ -1663,9 +1663,9 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "8e196da31fcf6d895e404321c229989af1ea62efa50a0d9d86d31d720bc8a69c",
-      "sourceHash": "d4b5eb0c35148feadea3b5e0a1c79ee6289ae2e0ceb1e5bca8e8459ab2106667",
-      "sourceAt": "f9747ff05",
+      "pageHash": "c1ca65bd750ad1849df70269c0a50e29af4745ed7b80967c8dd2be4b4908b125",
+      "sourceHash": "caeac61552ca68909686cf6c485fbafb3aa44453949c55cd7cfa0e1e8ab0c9a2",
+      "sourceAt": "f7d69de3c",
       "sources": [
         "specs/20261013-120000-usuarios-y-roles",
         "specs/20261016-140000-permisos-por-empresa",
@@ -1700,7 +1700,7 @@
         "apps/web/src/lib/rolActual.ts"
       ],
       "owner": "producto",
-      "commit": "f9747ff05"
+      "commit": "f7d69de3c"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
@@ -2238,16 +2238,16 @@
     },
     "docs/producto/proveedores.md": {
       "title": "Proveedores",
-      "pageHash": "fab83d1238d062d7a2cef9a33fe9e6dd5bc7a5ae43e88aae816a4d456abf4a02",
+      "pageHash": "154886a4d52cea812cfbdc600e3690a1e62edcb590244ee013c0673c25b19506",
       "sourceHash": "7b7140267cfe6cebcb75c94c9087b2e59dcf459bc3543e3677f7eba41d6da778",
-      "sourceAt": "fc0bd38ac",
+      "sourceAt": "f7d69de3c",
       "sources": [
         "apps/web/src/pages/proveedores",
         "apps/web/src/components/proveedores/CondicionesDeCompra.tsx",
         "apps/web/src/components/productos/ProveedoresDelProducto.tsx"
       ],
       "owner": "producto",
-      "commit": "fc0bd38ac"
+      "commit": "f7d69de3c"
     },
     "docs/producto/ranking-avanzado-de-clientes.md": {
       "title": "Clientes · ranking avanzado de clientes (MSF-171)",
@@ -2808,9 +2808,9 @@
     },
     "docs/proveedores.md": {
       "title": "Proveedores",
-      "pageHash": "8afd41dfd2169e3ef1918cf9aac8df9522d3dfa08f37ac15f7e5761b60d07e6c",
-      "sourceHash": "6eaa74e00946f9becc6423a0bb3b2b23e094cd6cd4e442fc4f7cb760a753bd90",
-      "sourceAt": "f9747ff05",
+      "pageHash": "bd4731600c57c6779932618595200747d608d5626bfce1ac9b45d411af79c583",
+      "sourceHash": "03e0bdefc5d4a96ebe8e58725ed5fa3ae8b0b44e62f8536ae4705518f498b803",
+      "sourceAt": "f7d69de3c",
       "sources": [
         "specs/20261018-170000-empresas-accesibles-y-filtro",
         "specs/20261018-190000-proveedores-y-productos",
@@ -2831,7 +2831,7 @@
         "supabase/functions/enviar-correo-proveedor/index.ts"
       ],
       "owner": "tecnico",
-      "commit": "f9747ff05"
+      "commit": "f7d69de3c"
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",

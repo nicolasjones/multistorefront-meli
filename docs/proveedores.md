@@ -269,7 +269,10 @@ decisiones que el análisis dejaba abiertas (detalle en `.specify/bugs/msf-530/f
   directa: sin ese permiso, marcar como principal (o elegir por el campo «Proveedor») un proveedor cuyo costo difiere del del producto se
   rechaza con un error de estado (`PT409`) y no cambia nada. Orden de bloqueo fijo: producto, su costo y sus vínculos.
 - **Camino viejo**: elegir otro proveedor por el campo «Proveedor» **reemplaza al principal anterior borrando su vínculo, con su código y
-  su costo**; quitar el proveedor quita el principal.
+  su costo**; quitar el proveedor quita el principal. **Sin edición en Rentabilidad no se borra**: el principal anterior queda como
+  secundario (no se pierde su costo). Si la misma llamada de `actualizar_producto` trae un costo nuevo y un proveedor cuyo vínculo tiene
+  otro costo, se rechaza (`22023`, `details = 'costo_y_proveedor'`) en vez de elegir uno en silencio. Los bloqueos de las RPC son
+  `for no key update` (no chocan con el `key share` de las claves foráneas).
 - **RPC**: `listar_proveedores_de_producto`, `asignar_proveedor_producto` (agrega o actualiza código y costo; `p_principal` lo marca),
   `quitar_proveedor_producto`, `marcar_proveedor_principal`. Exigen edición en Productos (el costo, edición en Rentabilidad). Un proveedor
   desactivado no se asigna nuevo ni se marca principal. `productos_de_proveedor` lista ahora todos los productos donde el proveedor figura

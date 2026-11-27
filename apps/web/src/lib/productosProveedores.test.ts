@@ -91,8 +91,11 @@ describe('formulario y mensajes', () => {
   })
   it('mensajes en castellano, sin el texto crudo de la base', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    expect(mensajeErrorProveedoresProducto({ code: 'PT409', message: 'detalle interno' }, 'x'))
+    expect(mensajeErrorProveedoresProducto({ code: 'PT409', message: 'detalle interno', details: 'proveedor_inactivo' }, 'x'))
       .toBe('El proveedor está desactivado: reactivalo antes de asignarlo o marcarlo como principal.')
+    // PT409 también significa «falta Rentabilidad»: se distingue por `details`, no por el texto.
+    expect(mensajeErrorProveedoresProducto({ code: 'PT409', message: 'detalle interno', details: 'rentabilidad' }, 'x'))
+      .toBe('Ese proveedor tiene otro costo: cambiar el proveedor principal modifica el costo del producto y necesitás edición en Rentabilidad.')
     expect(mensajeErrorProveedoresProducto({ code: 'PT404' }, 'x')).toBe('El producto o el proveedor ya no existe, o el proveedor ya no está en el producto. Recargá la página.')
     expect(mensajeErrorProveedoresProducto({ code: '22023' }, 'x')).toBe('Algún dato no es válido. Revisá el código y el costo e intentá de nuevo.')
     expect(mensajeErrorProveedoresProducto({ code: '42501' }, 'x')).toContain('No tenés permiso')

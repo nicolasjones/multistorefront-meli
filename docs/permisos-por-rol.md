@@ -157,6 +157,10 @@ relaciones por empresa) usan este contrato:
   `proveedores` (lectura o edición leen; solo edición guarda). Los proveedores de un producto siguen la sección `productos` (lectura o
   edición leen; solo edición agrega, quita y marca principal) y el **costo** del vínculo se ve con `rentabilidad` en lectura/edición y se
   carga solo con edición en `rentabilidad`. Detalle en `docs/proveedores.md`.
+  El **costo efectivo** del producto (`producto_costos`) también cambia al promover un proveedor con otro costo: exige edición en
+  `rentabilidad` (`PT409` con `details = 'rentabilidad'` si no); sin ella, el camino viejo conserva al principal anterior como secundario.
+  Los procesos sin sesión de persona (la importación de productos que corre en el worker con `auth.uid()` nulo, `service_role`,
+  mantenimiento) **no se restringen** por este permiso: hoy la importación solo la solicita el Administrador, que tiene Rentabilidad.
 - **Listas de precios (lote 93, MSF-973, MSF-974, MSF-975 y MSF-976):** asignar una lista en masa o a un tipo de cliente es solo del
   Administrador (como asignarla a un cliente). La lista de cada cliente en la exportación de clientes exige la acción `exportar` de
   `clientes`; las ventas por lista de precios, `ventas` en lectura o edición (y por tienda, el nivel de ventas de cada una). Detalle en

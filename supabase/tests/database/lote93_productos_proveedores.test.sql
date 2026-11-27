@@ -4,7 +4,7 @@
 -- PT404/PT409/22023, aislamiento por organización y `anon` sin acceso.
 begin;
 
-select plan(87);
+select plan(97);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -244,11 +244,37 @@ select lives_ok($f$select public.asignar_proveedor_producto('e1000000-0000-0000-
 select is(pg_temp.costo_producto('e1000000-0000-0000-0000-000000000005'), null::numeric, 'el producto queda sin costo (el espejo no diverge)');
 select is(pg_temp.costo_vinculo('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000001'), null::numeric, 'y el vínculo principal también');
 
+-- Costo y proveedor en la misma llamada de actualizar_producto: si el proveedor ya tiene otro costo no se elige uno en silencio.
+select lives_ok($f$select public.asignar_proveedor_producto('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000002', 'B-5', 40)$f$, 'la administración agrega B con costo 40 a Producto Cinco');
+create function pg_temp.actualizar_cinco(p_costo numeric, p_proveedor uuid, p_codigo text) returns void language sql as $$
+  select public.actualizar_producto(p.id, p.updated_at, p.nombre, p.descripcion, p.sku, p.compatible_con, p.moneda, p.precio_lista, p_costo, p_proveedor, p_codigo, true)
+    from dominio.productos p where p.id = 'e1000000-0000-0000-0000-000000000005'
+$$;
+grant execute on function pg_temp.actualizar_cinco(numeric, uuid, text) to authenticated;
+select throws_ok($f$select pg_temp.actualizar_cinco(55, 'f1000000-0000-0000-0000-000000000002', 'B-5')$f$,
+  '22023', 'No se puede cambiar el proveedor principal y el costo a la vez si el proveedor ya tiene otro costo: guardá primero el proveedor y después el costo',
+  'costo nuevo (55) y proveedor con otro costo (40) en la misma llamada: se rechaza');
+select is(pg_temp.principal('e1000000-0000-0000-0000-000000000005'), 'f1000000-0000-0000-0000-000000000001', 'y no cambia el principal');
+select is(pg_temp.costo_producto('e1000000-0000-0000-0000-000000000005'), null::numeric, 'ni deja el costo 55 guardado');
+select lives_ok($f$select pg_temp.actualizar_cinco(40, 'f1000000-0000-0000-0000-000000000002', 'B-5')$f$, 'si el costo enviado coincide con el del proveedor (40), se guarda');
+select is(pg_temp.principal('e1000000-0000-0000-0000-000000000005') || '|' || pg_temp.costo_producto('e1000000-0000-0000-0000-000000000005')::text,
+  'f1000000-0000-0000-0000-000000000002|40.00', 'B es el principal y el costo es 40');
+
+-- Camino viejo sin Rentabilidad: el principal anterior no se borra, queda como secundario (con permiso se borra, ver arriba).
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+update dominio.productos set proveedor_id = 'f1000000-0000-0000-0000-000000000001', codigo_proveedor = 'Q-1' where id = 'e1000000-0000-0000-0000-000000000005';
+select is(pg_temp.principal('e1000000-0000-0000-0000-000000000005'), 'f1000000-0000-0000-0000-000000000001', 'el Operador cambia el principal a A');
+select is(pg_temp.vinculos('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000002'), 1, 'y B (con su costo) se conserva como secundario');
+select is(pg_temp.costo_vinculo('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000002'), 40.00::numeric, 'con su costo intacto');
+update dominio.productos set proveedor_id = null where id = 'e1000000-0000-0000-0000-000000000005';
+select is(pg_temp.vinculos('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000001'), 1, 'quitar el proveedor sin Rentabilidad deja el vínculo como secundario');
+update dominio.productos set proveedor_id = 'f1000000-0000-0000-0000-000000000001', codigo_proveedor = 'Q-1' where id = 'e1000000-0000-0000-0000-000000000005';
+
 -- Un solo principal por producto: el índice único parcial lo garantiza aunque se escriba la tabla directo.
 reset role;
 select throws_ok(
-  $f$insert into dominio.productos_proveedores (organizacion_id, producto_id, proveedor_id, principal)
-     values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000002', true)$f$,
+  $f$update dominio.productos_proveedores set principal = true
+      where producto_id = 'e1000000-0000-0000-0000-000000000005' and proveedor_id = 'f1000000-0000-0000-0000-000000000002'$f$,
   '23505', 'duplicate key value violates unique constraint "productos_proveedores_un_principal_idx"', 'un segundo principal choca con el índice único parcial');
 
 -- Un proveedor usado por un producto no se borra: la clave diferida se traduce a un error de negocio (como productos.proveedor_id)

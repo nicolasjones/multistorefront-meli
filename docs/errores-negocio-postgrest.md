@@ -369,7 +369,7 @@ opiniones y detalle de campañas aceptan el código viejo y el nuevo (`P0002` o 
 Las RPC que se agregan en el lote 93 (condiciones de compra del proveedor, proveedores por producto, asignación masiva y por tipo de
 las listas de precios, ventas por lista de precios) **no usan los códigos históricos para los casos que ya tienen uno nuevo**: «no existe o
 no es de tu organización» responde `PT404`, «el estado no admite la acción» (proveedor desactivado) `PT409` y el conflicto de edición
-`PT412`. Los permisos siguen en `42501`, los datos inválidos en `22023`, la bandera apagada de las listas en `55000` (como las demás
+`PT412`. `PT409` tiene en estas funciones **dos causas** que el cliente distingue por `details` (estable, nunca por el texto): `proveedor_inactivo` (proveedor desactivado) y `rentabilidad` (el cambio modifica el costo efectivo del producto y falta edición en Rentabilidad); además `22023` con `details = 'costo_y_proveedor'` (costo nuevo y proveedor con otro costo en la misma llamada de `actualizar_producto`). Los permisos siguen en `42501`, los datos inválidos en `22023`, la bandera apagada de las listas en `55000` (como las demás
 funciones de listas, ver la duodécima ola) y los topes de lote en `54000`. Las pantallas nuevas (`lib/condicionesCompra.ts`,
 `lib/productosProveedores.ts`, `lib/ventasPorLista.ts` y `lib/listasPrecios.ts`) traducen cada código con el catálogo común
 (`mensajeDeErrorBase`) y nunca muestran el `message` del servidor. Cada función tiene su pgTAP con código y mensaje (`lote93_*.test.sql`).

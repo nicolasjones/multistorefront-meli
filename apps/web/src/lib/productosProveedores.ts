@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { mensajeDeErrorBase } from './mensajeErrorBase'
-import { parsearImporte } from './productos'
+import { MENSAJE_COSTO_POR_RENTABILIDAD, esRechazoPorRentabilidad, parsearImporte } from './productos'
 
 // Varios proveedores por producto, con uno principal (MSF-530, migración 20270512000100). El proveedor principal sigue
 // siendo el selector «Proveedor» del formulario del producto (espejo en `productos.proveedor_id`); acá se administran
@@ -93,7 +93,10 @@ export function mensajeErrorProveedoresProducto(error: unknown, porDefecto: stri
   return mensajeDeErrorBase(error, porDefecto, {
     PT404: 'El producto o el proveedor ya no existe, o el proveedor ya no está en el producto. Recargá la página.',
     P0002: 'El producto o el proveedor ya no existe, o el proveedor ya no está en el producto. Recargá la página.',
-    PT409: 'El proveedor está desactivado: reactivalo antes de asignarlo o marcarlo como principal.',
+    // PT409 tiene dos causas: el costo (detail `rentabilidad`) o el proveedor desactivado (detail `proveedor_inactivo`).
+    PT409: esRechazoPorRentabilidad(error)
+      ? MENSAJE_COSTO_POR_RENTABILIDAD
+      : 'El proveedor está desactivado: reactivalo antes de asignarlo o marcarlo como principal.',
     '22023': 'Algún dato no es válido. Revisá el código y el costo e intentá de nuevo.',
   })
 }

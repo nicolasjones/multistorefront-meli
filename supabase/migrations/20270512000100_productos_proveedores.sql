@@ -18,7 +18,8 @@
 -- directo; `anon` sin acceso; FK compuestas por organización.
 --
 -- Errores (docs/errores-negocio-postgrest.md): `42501` sin permiso, `PT404` producto, proveedor o vínculo inexistente, `PT409`
--- proveedor desactivado, `22023` dato inválido.
+-- (`detail` = `proveedor_inactivo`: proveedor desactivado; `rentabilidad`: el cambio modifica el costo y falta edición en Rentabilidad),
+-- `22023` dato inválido (`detail` = `costo_y_proveedor`: costo nuevo y proveedor con otro costo en la misma llamada).
 --
 -- Migración aditiva (no se borran las columnas viejas). Reversión (migración posterior; exportar antes los datos):
 --   drop function public.marcar_proveedor_principal(uuid, uuid);
@@ -101,6 +102,8 @@ $$;
 
 revoke execute on function private.puede_editar_costo_producto() from public, anon, authenticated;
 
+-- Los bloqueos son `for no key update`: no chocan con el `key share` que toman las claves foráneas (p. ej. el historial de costos sobre
+-- `productos`), así que una sesión que actualiza `producto_costos` sin haber tocado antes `productos` no se cruza con estas RPC.
 -- Orden de bloqueo (evita deadlocks entre las RPC y los disparadores): siempre la fila del producto, luego su costo (`producto_costos`),
 -- luego los vínculos. El disparador de `producto_costos` ya llega con su fila bloqueada y sigue con los vínculos, el mismo orden.
 create or replace function private.bloquear_costo_producto(p_organizacion uuid, p_producto uuid)
@@ -109,7 +112,7 @@ language sql
 security definer
 set search_path = ''
 as $$
-  select 1 from dominio.producto_costos c where c.producto_id = p_producto and c.organizacion_id = p_organizacion for update;
+  select 1 from dominio.producto_costos c where c.producto_id = p_producto and c.organizacion_id = p_organizacion for no key update;
 $$;
 
 revoke execute on function private.bloquear_costo_producto(uuid, uuid) from public, anon, authenticated;
@@ -117,8 +120,8 @@ revoke execute on function private.bloquear_costo_producto(uuid, uuid) from publ
 -- Alinea el costo efectivo con el vínculo principal. Quien llama ya fijó la marca `catalogo.sincronizando_proveedores`.
 --   * Vínculo sin costo: hereda el costo vigente del producto (no se pierde nada).
 --   * Vínculo con costo distinto del del producto: el producto pasa a ese costo, solo si quien llama puede editar el costo; si no,
---     el cambio se rechaza (PT409) en lugar de dejar el espejo divergente o cambiar el costo a escondidas.
-create or replace function private.alinear_costo_principal(p_organizacion uuid, p_producto uuid, p_proveedor uuid)
+--     el cambio se rechaza (PT409, detail 'rentabilidad') en lugar de dejar el espejo divergente o cambiar el costo a escondidas.
+create or replace function private.alinear_costo_principal(p_organizacion uuid, p_producto uuid, p_proveedor uuid, p_costo_enviado boolean default false)
 returns void
 language plpgsql
 security definer
@@ -142,9 +145,14 @@ begin
        where v.producto_id = p_producto and v.organizacion_id = p_organizacion and v.proveedor_id = p_proveedor;
     end if;
   elsif v_vinculo is distinct from v_producto then
+    -- La misma llamada trae un costo nuevo y un proveedor con otro costo: no se elige uno en silencio.
+    if p_costo_enviado then
+      raise exception 'No se puede cambiar el proveedor principal y el costo a la vez si el proveedor ya tiene otro costo: guardá primero el proveedor y después el costo'
+        using errcode = '22023', detail = 'costo_y_proveedor';
+    end if;
     if not (select private.puede_editar_costo_producto()) then
       raise exception 'Este proveedor tiene otro costo: cambiar el principal modifica el costo del producto y necesitás edición en Rentabilidad'
-        using errcode = 'PT409';
+        using errcode = 'PT409', detail = 'rentabilidad';
     end if;
     insert into dominio.producto_costos as c (producto_id, organizacion_id, costo)
     values (p_producto, p_organizacion, v_vinculo)
@@ -198,7 +206,7 @@ revoke execute on function private.fijar_proveedor_principal(uuid, uuid, uuid) f
 
 -- Camino viejo: lo que entra por productos.proveedor_id / codigo_proveedor (crear_producto, actualizar_producto, importaciones)
 -- se refleja en la tabla CON LA SEMÁNTICA DE SIEMPRE: elegir otro proveedor REEMPLAZA al principal anterior (su vínculo SE BORRA, con su
--- código y su costo) y dejarlo vacío quita el principal. Quien quiera conservar al anterior como secundario usa «Marcar como principal»
+-- código y su costo; si quien opera NO tiene edición en Rentabilidad se conserva como secundario) y dejarlo vacío quita el principal. Quien quiera conservar al anterior como secundario usa «Marcar como principal»
 -- (RPC nuevas). El vínculo nuevo hereda el costo vigente del producto; si ya tenía otro costo, ver `alinear_costo_principal`.
 create or replace function private.sincronizar_vinculo_principal_producto()
 returns trigger
@@ -206,6 +214,8 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_puede boolean;
 begin
   if coalesce(current_setting('catalogo.sincronizando_proveedores', true), 'off') = 'on' then
     return null;
@@ -216,17 +226,30 @@ begin
 
   perform private.bloquear_costo_producto(new.organizacion_id, new.id);
   perform set_config('catalogo.sincronizando_proveedores', 'on', true);
+  v_puede := (select private.puede_editar_costo_producto());
   if new.proveedor_id is null then
-    delete from dominio.productos_proveedores v where v.producto_id = new.id and v.principal;
+    -- Con permiso de costos el principal anterior se quita; sin él se conserva como secundario (no se pierden su código ni su costo).
+    if v_puede then
+      delete from dominio.productos_proveedores v where v.producto_id = new.id and v.principal;
+    else
+      update dominio.productos_proveedores v set principal = false, updated_at = clock_timestamp() where v.producto_id = new.id and v.principal;
+    end if;
   else
-    delete from dominio.productos_proveedores v
-     where v.producto_id = new.id and v.principal and v.proveedor_id <> new.proveedor_id;
+    if v_puede then
+      delete from dominio.productos_proveedores v
+       where v.producto_id = new.id and v.principal and v.proveedor_id <> new.proveedor_id;
+    else
+      update dominio.productos_proveedores v set principal = false, updated_at = clock_timestamp()
+       where v.producto_id = new.id and v.principal and v.proveedor_id <> new.proveedor_id;
+    end if;
     insert into dominio.productos_proveedores as v (organizacion_id, producto_id, proveedor_id, codigo_proveedor, principal)
     values (new.organizacion_id, new.id, new.proveedor_id, new.codigo_proveedor, true)
     on conflict (producto_id, proveedor_id) do update
       set principal = true, codigo_proveedor = excluded.codigo_proveedor, updated_at = clock_timestamp()
       where (v.principal, v.codigo_proveedor) is distinct from (true, excluded.codigo_proveedor);
-    perform private.alinear_costo_principal(new.organizacion_id, new.id, new.proveedor_id);
+    -- `catalogo.costo_cambio` = on cuando actualizar_producto acaba de guardar un costo distinto en esta misma llamada.
+    perform private.alinear_costo_principal(new.organizacion_id, new.id, new.proveedor_id,
+      coalesce(current_setting('catalogo.costo_cambio', true), 'off') = 'on');
   end if;
   perform set_config('catalogo.sincronizando_proveedores', 'off', true);
   return null;
@@ -363,7 +386,7 @@ begin
     raise exception 'El costo no puede ser negativo y admite hasta 2 decimales' using errcode = '22023';
   end if;
 
-  perform 1 from dominio.productos p where p.id = p_producto_id and p.organizacion_id = v_organizacion for update;
+  perform 1 from dominio.productos p where p.id = p_producto_id and p.organizacion_id = v_organizacion for no key update;
   if not found then
     raise exception 'El producto no existe' using errcode = 'PT404';
   end if;
@@ -378,7 +401,7 @@ begin
    where v.producto_id = p_producto_id and v.proveedor_id = p_proveedor_id and v.organizacion_id = v_organizacion;
   if not found then
     if not v_activo then
-      raise exception 'El proveedor está desactivado: reactivalo antes de asignarlo' using errcode = 'PT409';
+      raise exception 'El proveedor está desactivado: reactivalo antes de asignarlo' using errcode = 'PT409', detail = 'proveedor_inactivo';
     end if;
     insert into dominio.productos_proveedores (organizacion_id, producto_id, proveedor_id, codigo_proveedor, costo)
     values (v_organizacion, p_producto_id, p_proveedor_id, v_codigo, p_costo);
@@ -392,7 +415,7 @@ begin
   end if;
 
   if coalesce(p_principal, false) and not v_activo then
-    raise exception 'El proveedor está desactivado: reactivalo antes de marcarlo como principal' using errcode = 'PT409';
+    raise exception 'El proveedor está desactivado: reactivalo antes de marcarlo como principal' using errcode = 'PT409', detail = 'proveedor_inactivo';
   end if;
   -- Vaciar el costo del principal vacía el costo efectivo del producto (la sincronía es simétrica). Solo con permiso de costos y solo
   -- si ya era el principal: promover un vínculo sin costo hereda el costo vigente (no borra nada).
@@ -428,7 +451,7 @@ begin
      or (select private.nivel_seccion('productos')) <> 'edicion' then
     raise exception 'Tu rol no puede cambiar los proveedores del producto' using errcode = '42501';
   end if;
-  perform 1 from dominio.productos p where p.id = p_producto_id and p.organizacion_id = v_organizacion for update;
+  perform 1 from dominio.productos p where p.id = p_producto_id and p.organizacion_id = v_organizacion for no key update;
   if not found then
     raise exception 'El producto no existe' using errcode = 'PT404';
   end if;
@@ -467,7 +490,7 @@ begin
      or (select private.nivel_seccion('productos')) <> 'edicion' then
     raise exception 'Tu rol no puede cambiar los proveedores del producto' using errcode = '42501';
   end if;
-  perform 1 from dominio.productos p where p.id = p_producto_id and p.organizacion_id = v_organizacion for update;
+  perform 1 from dominio.productos p where p.id = p_producto_id and p.organizacion_id = v_organizacion for no key update;
   if not found then
     raise exception 'El producto no existe' using errcode = 'PT404';
   end if;
@@ -480,7 +503,7 @@ begin
     raise exception 'El producto no tiene ese proveedor' using errcode = 'PT404';
   end if;
   if not v_activo then
-    raise exception 'El proveedor está desactivado: reactivalo antes de marcarlo como principal' using errcode = 'PT409';
+    raise exception 'El proveedor está desactivado: reactivalo antes de marcarlo como principal' using errcode = 'PT409', detail = 'proveedor_inactivo';
   end if;
   perform private.fijar_proveedor_principal(v_organizacion, p_producto_id, p_proveedor_id);
 end;

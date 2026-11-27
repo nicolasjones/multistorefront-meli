@@ -89,11 +89,34 @@ describe('ProveedoresDelProducto', () => {
   })
 
   it('un error al marcar se muestra sin el texto crudo', async () => {
-    responder([A, B], { error: { code: 'PT409', message: 'texto interno' } })
+    responder([A, B], { error: { code: 'PT409', message: 'texto interno', details: 'proveedor_inactivo' } })
     abrir()
     fireEvent.click(await screen.findByRole('button', { name: 'Marcar a Proveedor B como principal' }))
     expect(await screen.findByText('El proveedor está desactivado: reactivalo antes de asignarlo o marcarlo como principal.')).toBeInTheDocument()
     expect(screen.queryByText('texto interno')).not.toBeInTheDocument()
+  })
+
+  it('sin Rentabilidad, marcar como principal a un proveedor con otro costo explica el motivo real (no «desactivado»)', async () => {
+    responder([A, B], { error: { code: 'PT409', message: 'texto interno', details: 'rentabilidad' } })
+    abrir({ veCosto: false, editaCosto: false })
+    fireEvent.click(await screen.findByRole('button', { name: 'Marcar a Proveedor B como principal' }))
+    expect(await screen.findByText('Ese proveedor tiene otro costo: cambiar el proveedor principal modifica el costo del producto y necesitás edición en Rentabilidad.')).toBeInTheDocument()
+    expect(screen.queryByText(/desactivado/)).not.toBeInTheDocument()
+    expect(screen.queryByText('texto interno')).not.toBeInTheDocument()
+  })
+
+  it('el mismo rechazo al agregar un proveedor como principal se muestra en el diálogo', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) =>
+      nombre === 'listar_proveedores_de_producto'
+        ? { data: [A, B], error: null }
+        : { data: null, error: { code: 'PT409', message: 'texto interno', details: 'rentabilidad' } })
+    abrir({ editaCosto: false, veCosto: false })
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar Proveedor B' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Editar Proveedor B' })
+    fireEvent.click(within(dialogo).getByRole('checkbox', { name: 'Proveedor principal' }))
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar cambios' }))
+    expect(await within(dialogo).findByText(/necesitás edición en Rentabilidad/)).toBeInTheDocument()
+    expect(within(dialogo).queryByText(/desactivado/)).not.toBeInTheDocument()
   })
 
   it('«Quitar» pide confirmación: avisa si es el principal y recién al confirmar llama a la función', async () => {

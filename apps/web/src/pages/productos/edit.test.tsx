@@ -358,6 +358,20 @@ describe('ProductoEdit', () => {
     await waitFor(() => expect(screen.getByLabelText(/^Nombre/)).toHaveValue('Del otro'))
   })
 
+  it.each([
+    ['PT409', 'rentabilidad', /necesitás edición en Rentabilidad/],
+    ['22023', 'costo_y_proveedor', /guardá primero el proveedor y después el costo/],
+  ])('al guardar, el rechazo %s (%s) del costo y el proveedor se explica y conserva lo escrito', async (code, details, texto) => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code, details, message: 'texto interno' } })
+    abrir()
+    const nombre = await screen.findByLabelText(/^Nombre/)
+    fireEvent.change(nombre, { target: { value: 'Mi cambio' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect((await screen.findAllByText(texto)).length).toBeGreaterThan(0)
+    expect(screen.queryByText('texto interno')).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/^Nombre/)).toHaveValue('Mi cambio')
+  })
+
   it('sin acceso a Rentabilidad oculta el costo y no lo consulta ni lo envía', async () => {
     niveles('edicion', 'ninguno')
     abrir()
