@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/components/navegacion/destinosPanel.ts
+  - template-capabilities.json
 ---
 
 # Qué podés hacer con el sistema

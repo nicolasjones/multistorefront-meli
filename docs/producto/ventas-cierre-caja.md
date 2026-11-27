@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - specs/20261027-100000-ventas-mejoras
+  - docs/tecnico/ventas-cierre-caja.md
 ---
 
 # Cierre de caja
