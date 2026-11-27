@@ -249,8 +249,12 @@ select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000
 -- Archivo borrado del bucket: tampoco se usa la URL.
 reset role;
 select is(private.url_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000003'), null, 'un producto sin copia: url nula');
-delete from storage.objects where bucket_id = 'newsletter-imagenes';
-select is(private.url_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001'), null, 'sin el archivo en el bucket la URL no se usa');
+-- (Storage no admite borrar filas de storage.objects por SQL: se prueba con un registro cuya copia nunca se subió.)
+insert into private.newsletter_imagenes (empresa_id, producto_id, organizacion_id, imagen_id, ruta, url) values
+  ('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'b1000000-0000-0000-0000-000000000003',
+   '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000003.webp', 'https://p.supabase.co/x.webp');
+select is(private.url_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000003'), null, 'sin el archivo en el bucket la URL no se usa');
+delete from private.newsletter_imagenes where producto_id = 'a1000000-0000-0000-0000-000000000003';
 
 -- ===== Limpieza =====
 insert into private.newsletter_imagenes (empresa_id, producto_id, organizacion_id, imagen_id, ruta, url, actualizada_en) values
