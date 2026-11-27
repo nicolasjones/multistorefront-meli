@@ -23,6 +23,14 @@ vi.mock('../../hooks/useListarListasPrecios', () => ({ useListarListasPrecios: m
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
+// La sección por tipo de cliente se prueba aparte (ListasPorTipoCliente.test.tsx): acá solo se verifica cómo se monta.
+vi.mock('../../components/listasPrecios/ListasPorTipoCliente', () => ({
+  ListasPorTipoCliente: (props: { puedeEditar: boolean; puedeAsignar: boolean; onCambiada: () => void }) => (
+    <section aria-label="Lista por tipo de cliente" data-puede-editar={String(props.puedeEditar)} data-puede-asignar={String(props.puedeAsignar)}>
+      <button type="button" onClick={props.onCambiada}>Simular cambio por tipo</button>
+    </section>
+  ),
+}))
 vi.mock('../../lib/listasPrecios', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/listasPrecios')>()),
   guardarLista: mocks.guardarLista,
@@ -57,6 +65,25 @@ describe('ListasPreciosList (F-PRE-14, RF-PRE-14-5)', () => {
     mocks.useBanderaListasPrecios.mockReturnValue({ activa: true, cargando: false, hayError: false })
     mocks.useListarListasPrecios.mockReturnValue(respuesta([lista(1, { descripcion: 'Para revendedores' }), lista(2)]))
     mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: 'e1', isLoading: false, isError: false, refetch: vi.fn() })
+  })
+
+  it.each([
+    [true, true, 'true', 'true'],
+    [true, false, 'true', 'false'],
+    [false, true, 'false', 'false'],
+  ])('monta «Lista por tipo de cliente» (administrador %s, bandera %s): edita %s y asigna %s', (esAdministrador, activa, edita, asigna) => {
+    mocks.useEsAdministrador.mockReturnValue({ esAdministrador, isLoading: false })
+    mocks.useBanderaListasPrecios.mockReturnValue({ activa, cargando: false, hayError: false })
+    abrir()
+    const seccion = screen.getByRole('region', { name: 'Lista por tipo de cliente' })
+    expect(seccion).toHaveAttribute('data-puede-editar', edita)
+    expect(seccion).toHaveAttribute('data-puede-asignar', asigna)
+  })
+
+  it('un cambio de la lista de un tipo recarga el listado desde el principio', async () => {
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Simular cambio por tipo' }))
+    await waitFor(() => expect(mocks.refetch).toHaveBeenCalledTimes(1))
   })
 
   it('lista nombre, ajuste con signo, clientes y estado, con el contador', () => {
