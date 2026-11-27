@@ -8,7 +8,8 @@
 --  * `public.guardar_regla_comision` y `public.listar_reglas_comision`: reglas de comisión (`edicion` + `ver_comisiones`).
 --  * `public.obtener_reparto_comision` y `public.guardar_reparto_comision`: reparto entre N técnicos con porcentajes que
 --    suman 100 (validado acá y por un disparador diferido). Antes de la entrega alcanza `edicion`; después de la entrega
---    exige `ver_comisiones` + motivo y el cambio queda en la actividad (antes y después).
+--    exige `ver_comisiones` + motivo. Cada cambio queda en `reparacion_comision_historial` (antes y después; solo con
+--    `ver_comisiones`) y la Actividad recibe un evento neutro, sin nombres ni porcentajes.
 --  * Un solo cálculo: `private.comisiones_calculadas` alimenta resumen y detalle (resumen = suma del detalle).
 --
 -- Los errores de negocio siguen docs/errores-negocio-postgrest.md: validaciones `22023` con `hint` del campo, permisos
@@ -298,8 +299,9 @@ begin
   if round(p_porcentaje, 2) <> p_porcentaje then
     raise exception 'El porcentaje admite hasta dos decimales' using errcode = '22023', hint = 'porcentaje';
   end if;
-  if p_vigente_desde is null or p_vigente_desde < v_hoy - 31 or p_vigente_desde > v_hoy + 90 then
-    raise exception 'La vigencia tiene que estar entre 31 días atrás y 90 días adelante' using errcode = '22023', hint = 'vigente_desde';
+  -- Desde mañana como pronto: una entrega nunca es futura, así que una regla nueva no puede cambiar lo ya entregado.
+  if p_vigente_desde is null or p_vigente_desde < v_hoy + 1 or p_vigente_desde > v_hoy + 90 then
+    raise exception 'La vigencia tiene que estar entre mañana y 90 días adelante' using errcode = '22023', hint = 'vigente_desde';
   end if;
   if p_tecnico is not null and not exists (
     select 1 from public.usuarios_organizacion u where u.user_id = p_tecnico and u.organizacion_id = v_org
@@ -315,20 +317,15 @@ begin
     raise exception 'Ya hay una regla para ese alcance y esa fecha. Elegí otra fecha.' using errcode = '23505', hint = 'vigente_desde';
   end;
 
-  perform private.registrar_actividad(
-    'comision.regla_guardada',
-    format('Cargó una regla de comisión del %s %% para %s desde el %s',
-      p_porcentaje, case when p_tecnico is null then 'todos los técnicos' else private.nombre_de_tecnico(p_tecnico) end,
-      to_char(p_vigente_desde, 'DD/MM/YYYY')),
-    null
-  );
+  -- La Actividad se lee con otro permiso: el evento no lleva porcentaje ni técnico (la regla se ve con ver_comisiones).
+  perform private.registrar_actividad('comision.regla_guardada', 'Cargó una regla de comisión', null);
 
   return jsonb_build_object('id', v_id, 'tecnico_id', p_tecnico, 'porcentaje', p_porcentaje, 'vigente_desde', p_vigente_desde);
 end;
 $$;
 
 comment on function public.guardar_regla_comision(uuid, numeric, date) is
-  'MSF-187: agrega una regla de comisión (porcentaje sobre la mano de obra; técnico nulo = general) con vigencia por fecha de entrega. Solo se agregan. Exige edición y ver_comisiones.';
+  'MSF-187: agrega una regla de comisión (porcentaje sobre la mano de obra; técnico nulo = general) que rige desde mañana como pronto, por fecha de entrega. Solo se agregan. Exige edición y ver_comisiones.';
 
 revoke execute on function public.guardar_regla_comision(uuid, numeric, date) from public, anon;
 grant execute on function public.guardar_regla_comision(uuid, numeric, date) to authenticated;
@@ -526,18 +523,21 @@ begin
       into v_despues from jsonb_array_elements(p_reparto) e;
   end if;
 
-  perform private.insertar_cambio_actividad(
-    v_org, v_uid, 'comision.reparto_cambiado',
-    format('Cambió el reparto de comisión de %s%s', private.codigo_reparacion(v_rep.numero),
-      case when v_entregada then ' (entregada): ' || v_motivo else '' end),
-    jsonb_build_object('reparto', v_antes), jsonb_build_object('reparto', v_despues), v_rep.empresa_id);
+  -- Antes y después (nombres y porcentajes) y motivo van al historial propio, que solo lee quien tiene ver_comisiones; la
+  -- Actividad, que se lee con otro permiso, recibe un evento neutro.
+  insert into dominio.reparacion_comision_historial (organizacion_id, reparacion_id, usuario_id, entregada, motivo, antes, despues)
+  values (v_org, v_rep.id, v_uid, v_entregada, case when v_entregada then v_motivo else null end, v_antes, v_despues);
+  perform private.registrar_actividad(
+    'comision.reparto_cambiado',
+    format('Cambió el reparto de comisión de %s', private.codigo_reparacion(v_rep.numero)),
+    v_rep.empresa_id);
 
   return public.obtener_reparto_comision(v_rep.id);
 end;
 $$;
 
 comment on function public.guardar_reparto_comision(uuid, jsonb, text) is
-  'MSF-953: reemplaza el reparto de la comisión de una reparación entre N técnicos (porcentajes que suman 100). Antes de la entrega exige edición; después, ver_comisiones y motivo. Registra antes y después en la actividad.';
+  'MSF-953: reemplaza el reparto de la comisión de una reparación entre N técnicos (porcentajes que suman 100). Antes de la entrega exige edición; después, ver_comisiones y motivo. Registra antes y después en el historial de reparto (solo con ver_comisiones).';
 
 revoke execute on function public.guardar_reparto_comision(uuid, jsonb, text) from public, anon;
 grant execute on function public.guardar_reparto_comision(uuid, jsonb, text) to authenticated;

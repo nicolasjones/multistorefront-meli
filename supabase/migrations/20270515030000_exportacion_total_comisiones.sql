@@ -1,12 +1,12 @@
--- MSF-187 / MSF-953: `dominio.comision_reglas` y `dominio.reparacion_comision_reparto` (20270515010000) tienen `organizacion_id`: son
+-- MSF-187 / MSF-953: `dominio.comision_reglas`, `dominio.reparacion_comision_reparto` y `dominio.reparacion_comision_historial` (20270515010000) tienen `organizacion_id`: son
 -- datos de negocio de la organización y SE EXPORTAN (la prueba de completitud de `exportacion_total` lo exige).
 -- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente
--- (20270507180700_exportacion_total_identificadores_externos.sql), copiándola COMPLETA y sumando solo esas dos filas. Si otra
+-- (20270507180700_exportacion_total_identificadores_externos.sql), copiándola COMPLETA y sumando solo esas tres filas. Si otra
 -- migración posterior a 20270507180700 la redefine, esta debe rebasarse sobre ella (la última en aplicarse gana).
 --
 -- Esquemas (Principio VII): sin tablas nuevas; solo una función de plataforma en `private`. Migración aditiva.
 -- Reversión (migración posterior): volver a la definición de 20270507180700_exportacion_total_identificadores_externos.sql
--- (la misma lista sin las dos filas nuevas).
+-- (la misma lista sin las tres filas nuevas).
 
 CREATE OR REPLACE FUNCTION private.conjuntos_exportacion_total()
  RETURNS TABLE(esquema text, tabla text, columnas text[])
@@ -95,6 +95,7 @@ AS $function$
     ('dominio', 'proveedores_empresas'),
     ('dominio', 'rentabilidad_config'),
     ('dominio', 'reparacion_adjuntos'),
+    ('dominio', 'reparacion_comision_historial'),
     ('dominio', 'reparacion_comision_reparto'),
     ('dominio', 'reparacion_historial'),
     ('dominio', 'reparacion_items'),

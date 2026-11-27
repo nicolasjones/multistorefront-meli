@@ -7,7 +7,7 @@ vi.setConfig({ testTimeout: 20000 })
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 
-import { mesActual, rangoDelMes } from '../../lib/comisiones'
+import { mananaEnArgentina, mesActual, rangoDelMes } from '../../lib/comisiones'
 import type { Tecnico } from '../../lib/reparaciones'
 import { ComisionesEquipo } from './ComisionesEquipo'
 import { MisComisiones } from './MisComisiones'
@@ -252,13 +252,30 @@ describe('ReglasComision', () => {
     }
     expect(llamadas('guardar_regla_comision')).toHaveLength(0)
     fireEvent.change(porcentaje, { target: { value: '12,5' } })
-    fireEvent.change(screen.getByLabelText('Rige desde'), { target: { value: '2026-11-26' } })
+    fireEvent.change(screen.getByLabelText('Rige desde'), { target: { value: '2099-01-15' } })
     fireEvent.click(screen.getByRole('button', { name: 'Agregar regla' }))
     await waitFor(() => expect(llamadas('guardar_regla_comision')).toHaveLength(1))
-    expect(llamadas('guardar_regla_comision')[0][1]).toEqual({ p_tecnico: null, p_porcentaje: 12.5, p_vigente_desde: '2026-11-26' })
+    expect(llamadas('guardar_regla_comision')[0][1]).toEqual({ p_tecnico: null, p_porcentaje: 12.5, p_vigente_desde: '2099-01-15' })
     expect(await screen.findByText('Regla guardada.')).toBeInTheDocument()
     await waitFor(() => expect(llamadas('listar_reglas_comision')).toHaveLength(2))
     expect((porcentaje as HTMLInputElement).value).toBe('')
+  })
+
+  it('la vigencia arranca en mañana y una fecha anterior se rechaza sin llamar a la base', async () => {
+    rpcReglas()
+    render(<ReglasComision tecnicos={TECNICOS} puedeCargar />)
+    await screen.findByRole('table', { name: 'Reglas de comisión' })
+    const vigencia = screen.getByLabelText('Rige desde') as HTMLInputElement
+    expect(vigencia.value).toBe(mananaEnArgentina())
+    expect(vigencia.min).toBe(mananaEnArgentina())
+    fireEvent.change(screen.getByLabelText('Porcentaje'), { target: { value: '5' } })
+    fireEvent.change(vigencia, { target: { value: '2020-01-01' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar regla' }))
+    expect(await screen.findByText('La regla rige desde mañana como pronto: no cambia lo ya entregado')).toBeInTheDocument()
+    expect(llamadas('guardar_regla_comision')).toHaveLength(0)
+    fireEvent.change(vigencia, { target: { value: mananaEnArgentina() } })
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar regla' }))
+    await waitFor(() => expect(llamadas('guardar_regla_comision')).toHaveLength(1))
   })
 
   it('100 y 0 son válidos (fronteras) y la regla de un técnico lleva su id', async () => {

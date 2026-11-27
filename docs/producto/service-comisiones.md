@@ -25,7 +25,7 @@ La regla que rige es la que estaba vigente el día de la **entrega**.
 
 En **Servicio técnico → Comisiones** todas las personas con acceso a Servicio técnico ven **Mis comisiones**:
 
-1. Elegí el mes.
+1. Elegí el mes (la pantalla muestra un mes calendario por vez).
 2. Mirá tu comisión del mes y la cantidad de reparaciones entregadas.
 3. Abajo está el detalle por reparación: mano de obra, tu parte, la regla y tu comisión.
 
@@ -38,7 +38,7 @@ Con el permiso **Ver comisiones** aparecen las pestañas **Equipo** (todos los t
 Ese permiso es independiente de **Ver costos**: tener uno no da el otro. Se configura en **Usuarios y permisos → Roles → Acciones
 sensibles → Ver comisiones**.
 
-En **Reglas** se carga un porcentaje por técnico o para todos, desde una fecha. Las reglas **solo se agregan**: para dejar de
+En **Reglas** se carga un porcentaje por técnico o para todos, **desde mañana como pronto** (no cambia lo ya entregado). Las reglas **solo se agregan**: para dejar de
 pagar comisión se carga una regla de 0 %. La regla del técnico gana a la general. Cargar reglas además exige permiso de edición en Servicio técnico.
 
 ## Repartir la comisión entre varios técnicos
@@ -50,4 +50,4 @@ En el detalle de una reparación, la sección **Comisión de técnicos** muestra
 3. Guardá. «Volver al reparto por defecto» vuelve al 100 % del técnico asignado (solo antes de la entrega).
 
 Al **entregar** la reparación el reparto queda **congelado**: cambiar después el técnico asignado no mueve la comisión. Cambiar el
-reparto de una reparación ya entregada exige el permiso **Ver comisiones** y un **motivo**, y queda registrado en la Actividad.
+reparto de una reparación ya entregada exige el permiso **Ver comisiones** y un **motivo**, y queda registrado (el historial lo ve quien tiene ese permiso).

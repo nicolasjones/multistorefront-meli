@@ -6,7 +6,7 @@ vi.mock('./supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 import {
   MAX_TECNICOS_REPARTO, aCentesimas, aDetalleComisiones, aEnvioDeReparto, aReparto, aResumenComisiones, comisionesDeTecnico,
   comisionesResumen, errorDeReparto, esMesValido, formatearPorcentaje, guardarReglaComision, guardarRepartoComision,
-  listarReglasComision, mensajeDeErrorComisiones, mesActual, misComisiones, obtenerRepartoComision, rangoDelMes, sumaDeReparto,
+  listarReglasComision, mensajeDeErrorComisiones, mananaEnArgentina, mesActual, misComisiones, obtenerRepartoComision, rangoDelMes, sumaDeReparto,
 } from './comisiones'
 
 beforeEach(() => {
@@ -40,6 +40,20 @@ describe('período del mes', () => {
     // 2026-12-01 02:30 UTC = 2026-11-30 23:30 en Buenos Aires.
     expect(mesActual(new Date('2026-12-01T02:30:00Z'))).toBe('2026-11')
     expect(mesActual(new Date('2026-12-01T03:00:00Z'))).toBe('2026-12')
+  })
+})
+
+describe('mañana en Buenos Aires', () => {
+  it.each([
+    ['2026-11-26T12:00:00Z', '2026-11-27'],
+    ['2026-11-30T12:00:00Z', '2026-12-01'],
+    ['2026-12-31T12:00:00Z', '2027-01-01'],
+    ['2028-02-28T12:00:00Z', '2028-02-29'],
+    // 02:30 UTC todavía es el día anterior en Buenos Aires (UTC-3): mañana es el día UTC actual.
+    ['2026-12-01T02:30:00Z', '2026-12-01'],
+    ['2026-12-01T03:00:00Z', '2026-12-02'],
+  ])('mananaEnArgentina(%s) = %s', (ahora, esperado) => {
+    expect(mananaEnArgentina(new Date(ahora))).toBe(esperado)
   })
 })
 

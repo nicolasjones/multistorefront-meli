@@ -5,13 +5,15 @@
 --  * La comisión de una reparación = base × porcentaje de la regla del técnico × porcentaje de reparto de ese técnico.
 --    La base es la mano de obra al cliente (suma de `subtotal` de los ítems `mano_obra`, sin IVA); nunca costos internos.
 --  * Reglas: porcentaje (0 a 100) por técnico o general (`tecnico_id` nulo), con vigencia por fecha de ENTREGA; solo se
---    agregan (sin update ni delete): cambiar una regla no altera lo calculado para una entrega anterior. Precedencia:
---    regla del técnico > regla general; entre reglas del mismo alcance, la de mayor `vigente_desde` <= entrega.
+--    agregan (sin update ni delete) y `vigente_desde` es como pronto MAÑANA (Buenos Aires): como una entrega nunca es futura,
+--    cargar o cambiar una regla no altera lo calculado para ninguna entrega ya hecha (la comisión se calcula al consultar, no
+--    se guarda). Precedencia: regla del técnico > regla general; entre reglas del mismo alcance, la de mayor `vigente_desde` <= entrega.
 --  * Reparto: la comisión se reparte entre N técnicos con porcentajes que suman 100. Por defecto, 100 % al técnico asignado
 --    (sin filas = reparto por defecto). Al ENTREGAR la reparación el reparto se congela: un disparador materializa el reparto
 --    por defecto, de modo que cambiar después el técnico asignado no mueve comisiones. Cambiarlo después de la entrega
---    exige `ver_comisiones` + motivo y queda registrado (ver 20270515020000).
---  * Una reparación anulada o sin entrega no genera comisión.
+--    exige `ver_comisiones` + motivo y queda registrado con el antes y el después en `reparacion_comision_historial`
+--    (solo lo lee quien tiene `ver_comisiones`; la Actividad recibe un evento neutro, sin nombres ni porcentajes).
+--  * Una reparación anulada o sin entrega no genera comisión: una entregada que se anula después deja de generarla.
 --
 -- Esquemas (Principio VII): `dominio.comision_reglas` y `dominio.reparacion_comision_reparto` son entidades de negocio del
 -- taller → `dominio`. Las funciones de cálculo, en `private`.
@@ -22,6 +24,7 @@
 -- Migración aditiva e idempotente. Reversión (migración posterior; exportar antes los datos):
 --   drop trigger if exists reparaciones_congelar_reparto on dominio.reparaciones;
 --   drop function private.congelar_reparto_comision();
+--   drop table dominio.reparacion_comision_historial;
 --   drop table dominio.reparacion_comision_reparto;  -- arrastra su disparador y su función
 --   drop function private.validar_reparto_comision();
 --   drop table dominio.comision_reglas;
@@ -67,6 +70,30 @@ comment on table dominio.reparacion_comision_reparto is
 create index if not exists reparacion_comision_reparto_reparacion_org_idx on dominio.reparacion_comision_reparto (reparacion_id, organizacion_id);
 create index if not exists reparacion_comision_reparto_org_idx on dominio.reparacion_comision_reparto (organizacion_id);
 create index if not exists reparacion_comision_reparto_tecnico_idx on dominio.reparacion_comision_reparto (tecnico_id);
+
+-- Registro de cada cambio de reparto (antes, después, quién, cuándo y motivo). Solo lo lee quien tiene `ver_comisiones`: no va a la
+-- Actividad porque ésta se lee con otro permiso y mostraría remuneraciones.
+create table if not exists dominio.reparacion_comision_historial (
+  id uuid primary key default gen_random_uuid(),
+  organizacion_id uuid not null default private.organizacion_id()
+    references public.organizaciones (id) on delete cascade,
+  reparacion_id uuid not null,
+  usuario_id uuid references auth.users (id) on delete set null,
+  creado_en timestamptz not null default now(),
+  entregada boolean not null,
+  motivo text check (motivo is null or length(motivo) <= 500),
+  antes jsonb not null,
+  despues jsonb not null,
+  constraint reparacion_comision_historial_reparacion_fk foreign key (reparacion_id, organizacion_id)
+    references dominio.reparaciones (id, organizacion_id) on delete cascade
+);
+
+comment on table dominio.reparacion_comision_historial is
+  'Historial de cambios del reparto de comisión (MSF-953): antes y después con nombres y porcentajes. Solo con ver_comisiones. Escritura solo por RPC.';
+
+create index if not exists reparacion_comision_historial_reparacion_org_idx on dominio.reparacion_comision_historial (reparacion_id, organizacion_id);
+create index if not exists reparacion_comision_historial_org_idx on dominio.reparacion_comision_historial (organizacion_id);
+create index if not exists reparacion_comision_historial_usuario_idx on dominio.reparacion_comision_historial (usuario_id);
 
 -- La suma del reparto de una reparación tiene que ser 100: se comprueba al final de la transacción (el reparto se reemplaza
 -- borrando e insertando filas). Los 100 % se comparan con `numeric(5,2)`, exactos.
@@ -122,16 +149,10 @@ create trigger reparaciones_congelar_reparto
   after update of entrega_real on dominio.reparaciones
   for each row execute function private.congelar_reparto_comision();
 
--- Reparaciones ya entregadas: se congela el reparto por defecto con su técnico actual (idempotente).
-insert into dominio.reparacion_comision_reparto (organizacion_id, reparacion_id, tecnico_id, porcentaje)
-select r.organizacion_id, r.id, r.tecnico_id, 100
-  from dominio.reparaciones r
- where r.entrega_real is not null and r.tecnico_id is not null
-on conflict (reparacion_id, tecnico_id) do nothing;
-
 -- RLS por organización; sin insert/update/delete.
 alter table dominio.comision_reglas enable row level security;
 alter table dominio.reparacion_comision_reparto enable row level security;
+alter table dominio.reparacion_comision_historial enable row level security;
 
 drop policy if exists comision_reglas_select on dominio.comision_reglas;
 create policy comision_reglas_select on dominio.comision_reglas
@@ -155,7 +176,23 @@ create policy reparacion_comision_reparto_select on dominio.reparacion_comision_
     )
   );
 
+drop policy if exists reparacion_comision_historial_select on dominio.reparacion_comision_historial;
+create policy reparacion_comision_historial_select on dominio.reparacion_comision_historial
+  for select to authenticated
+  using (
+    organizacion_id = (select private.organizacion_id())
+    and (select private.nivel_seccion('service_tecnico')) in ('lectura', 'edicion')
+    and (select private.puede_accion('service_tecnico', 'ver_comisiones'))
+    and exists (
+      select 1 from dominio.reparaciones r
+       where r.id = reparacion_comision_historial.reparacion_id
+         and r.empresa_id in (select private.empresas_accesibles())
+    )
+  );
+
 revoke all on dominio.comision_reglas from public, anon, authenticated;
+revoke all on dominio.reparacion_comision_historial from public, anon, authenticated;
+grant select on dominio.reparacion_comision_historial to authenticated;
 revoke all on dominio.reparacion_comision_reparto from public, anon, authenticated;
 grant select on dominio.comision_reglas to authenticated;
 grant select on dominio.reparacion_comision_reparto to authenticated;
@@ -163,3 +200,14 @@ grant select on dominio.reparacion_comision_reparto to authenticated;
 -- service_role (workers y exportaciones; salta la RLS): mismos privilegios que el resto de `dominio`.
 grant select, insert, update, delete on dominio.comision_reglas to service_role;
 grant select, insert, update, delete on dominio.reparacion_comision_reparto to service_role;
+grant select, insert, update, delete on dominio.reparacion_comision_historial to service_role;
+
+-- Relleno de las reparaciones ya entregadas (idempotente). Va AL FINAL a propósito: el disparador de suma 100 es diferido y, si
+-- hubiera eventos pendientes, un `alter table` posterior de la misma transacción (`supabase db push` aplica todo en una) fallaría con
+-- «pending trigger events». Con el ALTER de RLS y los grants ya hechos, no queda ninguna sentencia de DDL después.
+insert into dominio.reparacion_comision_reparto (organizacion_id, reparacion_id, tecnico_id, porcentaje)
+select r.organizacion_id, r.id, r.tecnico_id, 100
+  from dominio.reparaciones r
+ where r.entrega_real is not null and r.tecnico_id is not null
+on conflict (reparacion_id, tecnico_id) do nothing;
+

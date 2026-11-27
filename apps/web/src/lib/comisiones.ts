@@ -3,7 +3,7 @@ import { mensajeDeErrorBase } from './mensajeErrorBase'
 
 // Comisiones de técnicos de Service (reglas, reparto entre técnicos, «Mis comisiones»). Todo pasa por RPC: las tablas no
 // admiten escritura directa. La base manda: acá solo se arma el período, se valida el reparto para avisar antes de enviar y
-// se traducen los errores. Decisiones y fórmulas: docs/service-comisiones.md.
+// se traducen los errores. Decisiones y fórmulas: docs/tecnico/service-comisiones.md.
 
 export type FilaComision = {
   reparacion_id: string
@@ -157,6 +157,14 @@ export function mesActual(ahora: Date = new Date()): string {
   const anio = partes.find((p) => p.type === 'year')?.value
   const mes = partes.find((p) => p.type === 'month')?.value
   return `${anio}-${mes}`
+}
+
+// Mañana en Buenos Aires, «AAAA-MM-DD»: la regla de comisión rige desde mañana como pronto (la base lo exige: así una regla
+// nueva no cambia lo ya entregado).
+export function mananaEnArgentina(ahora: Date = new Date()): string {
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' }).format(ahora)
+  const [anio, mes, dia] = hoy.split('-').map(Number)
+  return new Date(Date.UTC(anio, mes - 1, dia + 1)).toISOString().slice(0, 10)
 }
 
 // --- Reparto: validación en centésimas (sin errores de coma flotante) --------------------------------------------

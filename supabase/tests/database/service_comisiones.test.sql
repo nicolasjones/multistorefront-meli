@@ -119,22 +119,22 @@ select is(
       and (not p.prosecdef or p.proconfig is null or not ('search_path=""' = any (p.proconfig))))::int,
   0, 'todas son security definer con search_path vacío');
 select is(
-  (select count(*) from pg_class c where c.oid in ('dominio.comision_reglas'::regclass, 'dominio.reparacion_comision_reparto'::regclass)
-     and c.relrowsecurity)::int,
-  2, 'las dos tablas nuevas tienen RLS activada');
+  (select count(*) from pg_class c where c.oid in ('dominio.comision_reglas'::regclass, 'dominio.reparacion_comision_reparto'::regclass,
+     'dominio.reparacion_comision_historial'::regclass) and c.relrowsecurity)::int,
+  3, 'las tres tablas nuevas tienen RLS activada');
 select is(
   (select count(*) from information_schema.role_table_grants
-    where table_schema = 'dominio' and table_name in ('comision_reglas', 'reparacion_comision_reparto')
+    where table_schema = 'dominio' and table_name in ('comision_reglas', 'reparacion_comision_reparto', 'reparacion_comision_historial')
       and grantee in ('anon', 'authenticated', 'PUBLIC') and privilege_type <> 'SELECT')::int,
   0, 'las tablas nuevas no admiten escritura directa');
 select is(
   (select count(*) from information_schema.role_table_grants
-    where table_schema = 'dominio' and table_name in ('comision_reglas', 'reparacion_comision_reparto') and grantee = 'anon')::int,
+    where table_schema = 'dominio' and table_name in ('comision_reglas', 'reparacion_comision_reparto', 'reparacion_comision_historial') and grantee = 'anon')::int,
   0, 'anon no tiene ningún privilegio sobre las tablas nuevas');
 select is(
   (select count(*) from private.conjuntos_exportacion_total() where esquema = 'dominio'
-     and tabla in ('comision_reglas', 'reparacion_comision_reparto'))::int,
-  2, 'las dos tablas entran en la exportación total');
+     and tabla in ('comision_reglas', 'reparacion_comision_reparto', 'reparacion_comision_historial'))::int,
+  3, 'las tres tablas entran en la exportación total');
 select ok(
   (select prosrc like '%for update%' from pg_proc where oid = 'public.guardar_reparto_comision(uuid,jsonb,text)'::regprocedure),
   'guardar_reparto_comision bloquea la reparación (for update): dos cambios simultáneos se serializan');
@@ -192,86 +192,84 @@ update permisos_rol_accion set permitido = false
 -- Reglas de comisión
 -- ============================================================================
 
+-- Las reglas con vigencia pasada no se pueden cargar por la RPC (una regla no reescribe lo entregado): el escenario las
+-- siembra como fixture. Precedencia: la regla del técnico gana aunque la general sea MÁS NUEVA (general 5 % desde -29,
+-- técnico Uno 15 % desde -30, técnico Dos 10 % desde -31, general vieja 10 % desde -31).
+reset role;
+insert into dominio.comision_reglas (organizacion_id, tecnico_id, porcentaje, vigente_desde) values
+  ('11111111-1111-1111-1111-111111111111', null, 10, (select hoy - 31 from datos)),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000008', 15, (select hoy - 30 from datos)),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000009', 10, (select hoy - 31 from datos)),
+  ('11111111-1111-1111-1111-111111111111', null, 5, (select hoy - 29 from datos));
+
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 
 select is(
-  (select public.guardar_regla_comision(null, 10, (select hoy - 31 from datos))->>'porcentaje'),
-  '10', 'alta de una regla general (10 %) con vigencia 31 días atrás');
-select is(
-  (select public.guardar_regla_comision('e1000000-0000-0000-0000-000000000008', 15, (select hoy - 30 from datos))->>'vigente_desde'),
-  (select (hoy - 30)::text from datos), 'alta de una regla del técnico Uno (15 %) desde hace 30 días');
+  (select public.guardar_regla_comision('e1000000-0000-0000-0000-000000000008', 20, (select hoy + 5 from datos))->>'vigente_desde'),
+  (select (hoy + 5)::text from datos), 'alta de una regla del técnico Uno (20 %) desde dentro de 5 días');
 select lives_ok(
-  $$select public.guardar_regla_comision('e1000000-0000-0000-0000-000000000008', 20, (select hoy + 5 from datos))$$,
-  'una regla futura (+5 días) es válida');
-select lives_ok(
-  $$select public.guardar_regla_comision(null, 0, (select hoy from datos))$$,
-  'una regla de 0 % «apaga» la comisión (frontera 0 válida)');
+  $$select public.guardar_regla_comision(null, 0, (select hoy + 1 from datos))$$,
+  'frontera: 0 % y mañana (hoy + 1) son válidos; una regla de 0 % «apaga» la comisión');
 select lives_ok(
   $$select public.guardar_regla_comision('e1000000-0000-0000-0000-000000000009', 100, (select hoy + 90 from datos))$$,
   'frontera: 100 % y hoy + 90 días son válidos');
 
 select throws_ok(
-  $$select public.guardar_regla_comision(null, 100.01, (select hoy from datos))$$,
+  $$select public.guardar_regla_comision(null, 100.01, (select hoy + 3 from datos))$$,
   '22023', 'El porcentaje tiene que estar entre 0 y 100', 'porcentaje 100,01 rechazado');
 select throws_ok(
-  $$select public.guardar_regla_comision(null, -0.01, (select hoy from datos))$$,
+  $$select public.guardar_regla_comision(null, -0.01, (select hoy + 3 from datos))$$,
   '22023', 'El porcentaje tiene que estar entre 0 y 100', 'porcentaje negativo rechazado');
 select throws_ok(
-  $$select public.guardar_regla_comision(null, null, (select hoy from datos))$$,
+  $$select public.guardar_regla_comision(null, null, (select hoy + 3 from datos))$$,
   '22023', 'El porcentaje tiene que estar entre 0 y 100', 'porcentaje nulo rechazado');
 select throws_ok(
-  $$select public.guardar_regla_comision(null, 12.345, (select hoy from datos))$$,
+  $$select public.guardar_regla_comision(null, 12.345, (select hoy + 3 from datos))$$,
   '22023', 'El porcentaje admite hasta dos decimales', 'más de dos decimales rechazado');
 select throws_ok(
-  $$select public.guardar_regla_comision(null, 5, (select hoy - 32 from datos))$$,
-  '22023', 'La vigencia tiene que estar entre 31 días atrás y 90 días adelante', 'hoy - 32 días rechazado');
+  $$select public.guardar_regla_comision(null, 5, (select hoy from datos))$$,
+  '22023', 'La vigencia tiene que estar entre mañana y 90 días adelante', 'hoy rechazado: reescribiría las entregas de hoy');
+select throws_ok(
+  $$select public.guardar_regla_comision(null, 5, (select hoy - 1 from datos))$$,
+  '22023', 'La vigencia tiene que estar entre mañana y 90 días adelante', 'ayer rechazado');
 select throws_ok(
   $$select public.guardar_regla_comision(null, 5, (select hoy + 91 from datos))$$,
-  '22023', 'La vigencia tiene que estar entre 31 días atrás y 90 días adelante', 'hoy + 91 días rechazado');
+  '22023', 'La vigencia tiene que estar entre mañana y 90 días adelante', 'hoy + 91 días rechazado');
 select throws_ok(
   $$select public.guardar_regla_comision(null, 5, null)$$,
-  '22023', 'La vigencia tiene que estar entre 31 días atrás y 90 días adelante', 'vigencia nula rechazada');
+  '22023', 'La vigencia tiene que estar entre mañana y 90 días adelante', 'vigencia nula rechazada');
 select throws_ok(
-  $$select public.guardar_regla_comision('e2000000-0000-0000-0000-000000000008', 5, (select hoy from datos))$$,
+  $$select public.guardar_regla_comision('e2000000-0000-0000-0000-000000000008', 5, (select hoy + 3 from datos))$$,
   '22023', 'El técnico no pertenece a la organización', 'un técnico de otra organización se rechaza');
 select throws_ok(
-  $$select public.guardar_regla_comision(null, 7, (select hoy - 31 from datos))$$,
+  $$select public.guardar_regla_comision(null, 7, (select hoy + 1 from datos))$$,
   '23505', 'Ya hay una regla para ese alcance y esa fecha. Elegí otra fecha.', 'misma regla general y misma fecha: duplicado');
 select throws_ok(
-  $$select public.guardar_regla_comision('e1000000-0000-0000-0000-000000000008', 7, (select hoy - 30 from datos))$$,
+  $$select public.guardar_regla_comision('e1000000-0000-0000-0000-000000000008', 7, (select hoy + 5 from datos))$$,
   '23505', 'Ya hay una regla para ese alcance y esa fecha. Elegí otra fecha.', 'misma regla del técnico y misma fecha: duplicado');
 
 select is(
   (select count(*)::int from jsonb_array_elements(public.listar_reglas_comision()) r where r->>'estado' = 'vigente'),
-  2, 'listar: vigentes = general (0 % desde hoy) y técnico Uno (15 %); las futuras y la reemplazada no cuentan');
+  3, 'listar: vigentes = general (5 %), técnico Uno (15 %) y técnico Dos (10 %); las futuras y la reemplazada no cuentan');
 select is(
-  (select string_agg(r->>'porcentaje' || ':' || (r->>'estado'), ',' order by r->>'porcentaje')
+  (select string_agg(r->>'porcentaje' || ':' || (r->>'estado'), ',' order by r->>'porcentaje', r->>'estado')
      from jsonb_array_elements(public.listar_reglas_comision()) r),
-  '0.00:vigente,10.00:reemplazada,100.00:futura,15.00:vigente,20.00:futura', 'listar: estados vigente, reemplazada (10 %) y futura');
+  '0.00:futura,10.00:reemplazada,10.00:vigente,100.00:futura,15.00:vigente,20.00:futura,5.00:vigente',
+  'listar: estados vigente, reemplazada (general 10 %) y futura');
 select is(
   (select r->>'tecnico' from jsonb_array_elements(public.listar_reglas_comision()) r where r->>'porcentaje' = '15.00'),
   'Tomás Uno', 'listar: nombre del técnico del perfil');
 select is(
-  (select r->'tecnico' from jsonb_array_elements(public.listar_reglas_comision()) r where r->>'porcentaje' = '10.00'),
+  (select r->'tecnico' from jsonb_array_elements(public.listar_reglas_comision()) r where r->>'porcentaje' = '5.00'),
   'null'::jsonb, 'listar: la regla general no lleva técnico');
 
--- La regla de 0 % desde hoy se borra del escenario: las entregas del test van del día -31 a hoy y la regla de hoy las
--- pisaría. Se reemplaza por una regla general posterior a todo (hoy + 1): sigue «futura».
-reset role;
-delete from dominio.comision_reglas where porcentaje = 0 and tecnico_id is null;
-select pg_temp.como('e1000000-0000-0000-0000-000000000001');
-select lives_ok(
-  $$select public.guardar_regla_comision(null, 0, (select hoy + 1 from datos))$$,
-  'regla general de 0 % desde mañana (futura)');
--- Precedencia: la regla del técnico gana aunque la general sea MÁS NUEVA. El técnico Dos tiene la suya (10 %, igual que la
--- general vieja, para no mover los importes) y la general nueva del 5 % (desde hace 29 días) no pisa la del técnico Uno
--- (15 %, desde hace 30 días).
-select lives_ok(
-  $$select public.guardar_regla_comision('e1000000-0000-0000-0000-000000000009', 10, (select hoy - 31 from datos))$$,
-  'regla del técnico Dos (10 %) desde hace 31 días');
-select lives_ok(
-  $$select public.guardar_regla_comision(null, 5, (select hoy - 29 from datos))$$,
-  'regla general más nueva (5 % desde hace 29 días): no pisa a las de técnico');
+-- La Actividad no recibe el porcentaje ni el técnico de la regla (se lee con otro permiso).
+select is(
+  (select count(*)::int from registro_actividad where tipo = 'comision.regla_guardada' and detalle = 'Cargó una regla de comisión'),
+  3, 'la actividad de las reglas es un evento neutro, sin porcentaje ni técnico');
+select is(
+  (select count(*)::int from registro_actividad where tipo = 'comision.regla_guardada' and detalle ~ '[0-9%]|Tom'),
+  0, 'ningún evento de regla lleva números ni nombres');
 
 -- Permisos de las reglas
 select pg_temp.como('e1000000-0000-0000-0000-000000000008');
@@ -445,7 +443,7 @@ select is(
     '[{"tecnico_id":"e1000000-0000-0000-0000-000000000009","porcentaje":100}]')->'reparto'->0->>'nombre',
   'Tamara Dos', 'se reparte el 100 % a otro técnico antes de entregar');
 select is(
-  public.guardar_reparto_comision((select id from reps where clave = 'r5'), '[]')->>'por_defecto',
+  public.guardar_reparto_comision((select id from reps where clave = 'r5'), '[]', 'Motivo que antes de entregar no se guarda')->>'por_defecto',
   'true', 'lista vacía antes de entregar: vuelve al reparto por defecto');
 
 -- Permisos del reparto
@@ -739,18 +737,51 @@ select lives_ok(
   $$select public.guardar_reparto_comision((select id from reps where clave = 'r3'),
     '[{"tecnico_id":"e1000000-0000-0000-0000-000000000008","porcentaje":70},{"tecnico_id":"e1000000-0000-0000-0000-000000000009","porcentaje":30}]', 'Corrección acordada con el taller')$$,
   'entregada: con ver_comisiones, motivo y suma 100 se permite');
+-- Antes/después, nombres, porcentajes y motivo van al historial propio (solo con ver_comisiones); la Actividad, que se lee con otro
+-- permiso, recibe un evento neutro sin nombres, porcentajes ni motivo.
 select is(
-  (select detalle from registro_actividad where tipo = 'comision.reparto_cambiado' and detalle like '%(entregada)%' limit 1),
-  'Cambió el reparto de comisión de R-' || lpad((select numero::text from dominio.reparaciones where id = (select id from reps where clave = 'r3')), 4, '0')
-    || ' (entregada): Corrección acordada con el taller', 'el cambio queda en la actividad con el motivo');
+  (select detalle from registro_actividad where tipo = 'comision.reparto_cambiado' and detalle not like '%Corrección%'
+     and detalle like '%R-' || lpad((select numero::text from dominio.reparaciones where id = (select id from reps where clave = 'r3')), 4, '0') limit 1),
+  'Cambió el reparto de comisión de R-' || lpad((select numero::text from dominio.reparaciones where id = (select id from reps where clave = 'r3')), 4, '0'),
+  'la actividad solo dice qué reparación cambió');
 select is(
-  (select valor_anterior from registro_actividad where tipo = 'comision.reparto_cambiado' and detalle like '%(entregada)%' limit 1),
-  '{"reparto": [{"tecnico": "Tomás Uno", "porcentaje": 60.00}, {"tecnico": "Tamara Dos", "porcentaje": 40.00}]}'::jsonb,
-  'la actividad guarda el reparto anterior');
+  (select count(*)::int from registro_actividad where tipo = 'comision.reparto_cambiado'
+     and (detalle ~ '[%]|Tom|Tam|Corrección' or valor_anterior is not null or valor_nuevo is not null)),
+  0, 'ningún evento de reparto lleva nombres, porcentajes, motivo ni valores anterior y nuevo');
 select is(
-  (select valor_nuevo from registro_actividad where tipo = 'comision.reparto_cambiado' and detalle like '%(entregada)%' limit 1),
-  '{"reparto": [{"tecnico": "Tomás Uno", "porcentaje": 70}, {"tecnico": "Tamara Dos", "porcentaje": 30}]}'::jsonb,
-  'la actividad guarda el reparto nuevo');
+  (select motivo from dominio.reparacion_comision_historial where entregada),
+  'Corrección acordada con el taller', 'el historial guarda el motivo');
+select is(
+  (select antes from dominio.reparacion_comision_historial where entregada),
+  '[{"tecnico": "Tomás Uno", "porcentaje": 60.00}, {"tecnico": "Tamara Dos", "porcentaje": 40.00}]'::jsonb,
+  'el historial guarda el reparto anterior');
+select is(
+  (select despues from dominio.reparacion_comision_historial where entregada),
+  '[{"tecnico": "Tomás Uno", "porcentaje": 70}, {"tecnico": "Tamara Dos", "porcentaje": 30}]'::jsonb,
+  'el historial guarda el reparto nuevo');
+select is(
+  (select usuario_id from dominio.reparacion_comision_historial where entregada),
+  'e1000000-0000-0000-0000-000000000001'::uuid, 'el historial guarda quién lo cambió');
+select is(
+  (select count(*)::int from dominio.reparacion_comision_historial where not entregada and motivo is not null),
+  0, 'antes de entregar el motivo no se guarda');
+select is(
+  (select count(*)::int from dominio.reparacion_comision_historial where not entregada),
+  4, 'los 4 cambios anteriores a la entrega también quedan en el historial (sin motivo)');
+select is(
+  (select count(*)::int from dominio.reparacion_comision_historial), 5, 'RLS: el Administrador (ver_comisiones) ve el historial');
+select pg_temp.como('e1000000-0000-0000-0000-000000000008');
+select is((select count(*)::int from dominio.reparacion_comision_historial), 0, 'RLS: el Técnico no lee el historial');
+select pg_temp.como('e1000000-0000-0000-0000-000000000002');
+select is((select count(*)::int from dominio.reparacion_comision_historial), 0, 'RLS: ver_costos sin ver_comisiones no lee el historial');
+select pg_temp.como('e1000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from dominio.reparacion_comision_historial), 5, 'RLS: Consulta con ver_comisiones lo lee');
+select pg_temp.como('e2000000-0000-0000-0000-000000000001');
+select is((select count(*)::int from dominio.reparacion_comision_historial), 0, 'RLS: otra organización no lo lee');
+select throws_ok(
+  $$insert into dominio.reparacion_comision_historial (reparacion_id, entregada, antes, despues) values (gen_random_uuid(), false, '[]', '[]')$$,
+  '42501', null, 'sin escritura directa en el historial');
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 select is(
   (select (public.comisiones_de_tecnico('e1000000-0000-0000-0000-000000000008', (select hoy - 30 from datos), (select hoy from datos))->>'total')::numeric),
   3450::numeric + 150::numeric, 'el cambio posterior recalcula: R3 del técnico Uno pasa de 900 a 1.050 (70 %)');
@@ -795,6 +826,44 @@ select is(
   (select t->>'nombre' from jsonb_array_elements(
      public.comisiones_resumen((select hoy - 30 from datos), (select hoy from datos))->'tecnicos') t where t->>'tecnico_id' is null),
   'Técnico dado de baja', 'el resumen muestra «Técnico dado de baja» en vez de perder la comisión');
+reset role;
+
+-- ============================================================================
+-- Tope de 1.000 filas del detalle (`truncado`): fronteras 1.000 / 1.001 con reparaciones reales del técnico Uno
+-- ============================================================================
+
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+create temp table previas as
+  select (public.comisiones_de_tecnico('e1000000-0000-0000-0000-000000000008', (select hoy - 30 from datos), (select hoy from datos))->>'reparaciones')::int as n;
+grant select on previas to public;
+reset role;
+insert into dominio.reparaciones (organizacion_id, empresa_id, numero, cliente_id, modelo_id, estado_id, tecnico_id, ingreso_en, entrega_real)
+select '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 1000 + g,
+       'c5000000-0000-0000-0000-000000000001', (select modelo_uno from datos), (select cierra_uno from datos),
+       'e1000000-0000-0000-0000-000000000008', (select hoy from datos), (select hoy from datos)
+  from generate_series(1, 1000 - (select n from previas)) g;
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select is(
+  (public.comisiones_de_tecnico('e1000000-0000-0000-0000-000000000008', (select hoy - 30 from datos), (select hoy from datos))->>'reparaciones')::int,
+  1000, 'frontera: el técnico Uno tiene exactamente 1.000 reparaciones en el período');
+select is(
+  public.comisiones_de_tecnico('e1000000-0000-0000-0000-000000000008', (select hoy - 30 from datos), (select hoy from datos))->>'truncado',
+  'false', 'con 1.000 filas el detalle no está truncado');
+reset role;
+insert into dominio.reparaciones (organizacion_id, empresa_id, numero, cliente_id, modelo_id, estado_id, tecnico_id, ingreso_en, entrega_real)
+values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 5000,
+        'c5000000-0000-0000-0000-000000000001', (select modelo_uno from datos), (select cierra_uno from datos),
+        'e1000000-0000-0000-0000-000000000008', (select hoy from datos), (select hoy from datos));
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select is(
+  public.comisiones_de_tecnico('e1000000-0000-0000-0000-000000000008', (select hoy - 30 from datos), (select hoy from datos))->>'truncado',
+  'true', 'con 1.001 filas el detalle está truncado');
+select is(
+  jsonb_array_length(public.comisiones_de_tecnico('e1000000-0000-0000-0000-000000000008', (select hoy - 30 from datos), (select hoy from datos))->'filas'),
+  1000, 'y devuelve las 1.000 más recientes');
+select is(
+  (public.comisiones_de_tecnico('e1000000-0000-0000-0000-000000000008', (select hoy - 30 from datos), (select hoy from datos))->>'reparaciones')::int,
+  1001, 'mientras el conteo y el total incluyen todas');
 reset role;
 
 select * from finish();

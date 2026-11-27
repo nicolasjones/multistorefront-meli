@@ -3,9 +3,9 @@ import { Alert, Box, Button, MenuItem, Stack, Table, TableBody, TableCell, Table
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { EtiquetaEstado } from '../base/EtiquetaEstado'
 import { useCargaComisiones } from '../../hooks/useCargaComisiones'
-import { formatearPorcentaje, guardarReglaComision, listarReglasComision, mensajeDeErrorComisiones, type EstadoRegla } from '../../lib/comisiones'
+import { formatearPorcentaje, guardarReglaComision, listarReglasComision, mananaEnArgentina, mensajeDeErrorComisiones, type EstadoRegla } from '../../lib/comisiones'
 import { formatearFechaDocumento } from '../../lib/documentosReparacion'
-import { hoyEnArgentina, type Tecnico } from '../../lib/reparaciones'
+import type { Tecnico } from '../../lib/reparaciones'
 
 const ETIQUETA: Record<EstadoRegla, { texto: string; variante: 'exito' | 'aviso' | 'neutral' }> = {
   vigente: { texto: 'Vigente', variante: 'exito' },
@@ -22,7 +22,7 @@ export function ReglasComision({ tecnicos, puedeCargar }: Props) {
   const { datos, cargando, error, recargar } = useCargaComisiones('reglas', listarReglasComision, 'No pudimos cargar las reglas de comisión.')
   const [tecnicoId, setTecnicoId] = useState('')
   const [porcentaje, setPorcentaje] = useState('')
-  const [vigencia, setVigencia] = useState(() => hoyEnArgentina())
+  const [vigencia, setVigencia] = useState(() => mananaEnArgentina())
   const [errorForm, setErrorForm] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
@@ -36,8 +36,8 @@ export function ReglasComision({ tecnicos, puedeCargar }: Props) {
       setErrorForm('El porcentaje tiene que estar entre 0 y 100, con hasta dos decimales')
       return
     }
-    if (!vigencia) {
-      setErrorForm('Indicá desde qué fecha rige')
+    if (!vigencia || vigencia < mananaEnArgentina()) {
+      setErrorForm('La regla rige desde mañana como pronto: no cambia lo ya entregado')
       return
     }
     enVuelo.current = true
@@ -81,8 +81,8 @@ export function ReglasComision({ tecnicos, puedeCargar }: Props) {
               label="Rige desde"
               value={vigencia}
               onChange={(e) => setVigencia(e.target.value)}
-              helperText="Según la fecha de entrega"
-              slotProps={{ inputLabel: { shrink: true } }}
+              helperText="Desde mañana; rige según la fecha de entrega"
+              slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: mananaEnArgentina() } }}
             />
             <Button type="submit" variant="contained" disabled={guardando}>Agregar regla</Button>
           </Stack>
@@ -123,7 +123,7 @@ export function ReglasComision({ tecnicos, puedeCargar }: Props) {
         )
       ) : null}
       <Typography variant="caption" color="text.secondary">
-        La regla del técnico gana a la general; entre reglas del mismo alcance rige la de fecha más reciente que no supere la entrega. Las reglas solo se agregan.
+        La regla del técnico gana a la general; entre reglas del mismo alcance rige la de fecha más reciente que no supere la entrega. Las reglas solo se agregan y rigen desde mañana como pronto: no cambian lo ya entregado.
       </Typography>
     </Stack>
   )
