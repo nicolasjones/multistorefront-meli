@@ -45,10 +45,12 @@ create table if not exists dominio.productos_proveedores (
   creado_en timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint productos_proveedores_unico_uq unique (producto_id, proveedor_id),
+  -- Diferibles y sin acción (RESTRICT no se difiere) como `productos.proveedor_id` (productos_proveedor_fk): la baja de una organización y el borrado de un proveedor usado
+  -- se traducen a un error de negocio al confirmar (`private.confirmar_claves_diferidas`), no a un 23503 inmediato.
   foreign key (producto_id, organizacion_id)
-    references dominio.productos (id, organizacion_id) on delete cascade,
+    references dominio.productos (id, organizacion_id) on delete cascade deferrable initially deferred,
   foreign key (proveedor_id, organizacion_id)
-    references dominio.proveedores (id, organizacion_id) on delete restrict
+    references dominio.proveedores (id, organizacion_id) on delete no action deferrable initially deferred
 );
 
 comment on table dominio.productos_proveedores is

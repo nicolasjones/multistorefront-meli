@@ -31,8 +31,9 @@ create table if not exists dominio.listas_precios_tipo_cliente (
   lista_precio_id uuid not null,
   updated_at timestamptz not null default now(),
   primary key (organizacion_id, tipo),
+  -- Diferible: la baja de una organización borra las listas y sus asignaciones en la misma transacción.
   foreign key (lista_precio_id, organizacion_id)
-    references dominio.listas_precios (id, organizacion_id) on delete restrict
+    references dominio.listas_precios (id, organizacion_id) on delete no action deferrable initially deferred
 );
 
 comment on table dominio.listas_precios_tipo_cliente is

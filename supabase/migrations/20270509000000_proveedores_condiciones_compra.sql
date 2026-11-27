@@ -31,8 +31,10 @@ create table if not exists dominio.proveedores_condiciones_compra (
   updated_at timestamptz not null default now(),
   -- Un mínimo sin moneda no se puede interpretar.
   constraint proveedores_condiciones_minimo_moneda_ck check (minimo_compra is null or moneda is not null),
+  -- Diferible y sin acción (RESTRICT no se difiere) como `productos.proveedor_id`: la baja de una organización y el borrado de un proveedor usado se traducen a un error de
+  -- negocio al confirmar (`private.confirmar_claves_diferidas`), no a un 23503 inmediato.
   foreign key (proveedor_id, organizacion_id)
-    references dominio.proveedores (id, organizacion_id) on delete restrict
+    references dominio.proveedores (id, organizacion_id) on delete no action deferrable initially deferred
 );
 
 comment on table dominio.proveedores_condiciones_compra is

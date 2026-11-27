@@ -4,7 +4,7 @@
 -- PT404/PT409/22023, aislamiento por organización y `anon` sin acceso.
 begin;
 
-select plan(55);
+select plan(56);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -168,6 +168,16 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000003');
 select is((select count(*)::int from public.listar_proveedores_de_producto('e1000000-0000-0000-0000-000000000001')), 1, 'Consulta lee los proveedores del producto');
 select throws_ok($f$select public.quitar_proveedor_producto('e1000000-0000-0000-0000-000000000001', 'f1000000-0000-0000-0000-000000000001')$f$,
   '42501', 'Tu rol no puede cambiar los proveedores del producto', 'Consulta no escribe');
+
+-- Un proveedor usado por un producto no se borra: la clave diferida se traduce a un error de negocio (como productos.proveedor_id)
+reset role;
+select throws_ok(
+  $t$do $b$ begin
+      delete from dominio.proveedores where id = 'f1000000-0000-0000-0000-000000000003';
+      perform private.confirmar_claves_diferidas();
+    end $b$$t$,
+  'P0001', 'No se puede borrar: el registro está en uso por otros datos.',
+  'un proveedor con productos no se borra: el 23503 diferido es un error de negocio');
 
 -- Aislamiento y anon
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
