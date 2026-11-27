@@ -3,6 +3,7 @@ owner: tecnico
 sources:
   - scripts/verificar-documentacion-cambios.mjs
   - scripts/verificar-documentacion-cambios.test.mjs
+  - scripts/capturas-manual.mjs
   - scripts/docs-correspondencia.mjs
   - scripts/docs-correspondencia.test.mjs
   - scripts/docs-lineas.mjs
@@ -189,6 +190,12 @@ ilustra. El comando es `pnpm docs:capturas` (raíz; delega en `pnpm --filter @pl
 `30-stock`, `40-catalogo-tiendas`, `50-service-consultas`, `pantallas`) y escriben en `docs/producto/img/<página>/`
 (variable `CAPTURAS_DESTINO` para cambiar el destino). Si el PR no puede rehacerlas (p. ej. no hay stack), lo declara en
 su descripción y la página queda anotada como pendiente de recaptura.
+
+**Aviso automático (MSF-644).** `verificar-documentacion-cambios.mjs` (`scripts/capturas-manual.mjs`) avisa en el CI cuando el
+diff cambia un `.tsx` de `apps/web/src/pages/` (sin contar tests, `e2e/` ni `__tests__/`) y no cambia ninguna imagen de
+`docs/producto/img/`. Es solo un aviso (`::warning`): el script no ve la descripción del PR, que es donde se declara que no
+corresponde rehacer las capturas. Pasa a error con `CAPTURAS_MANUAL_ESTRICTO=1` o `--capturas-estricto`. No decide qué captura
+corresponde a qué pantalla (eso lo sabe quien cambia la pantalla); solo detecta que no se rehízo ninguna.
 
 **Requisitos.** Stack local de Supabase con el dataset demo (`pnpm demo:dataset -- --reset`, ver `dataset-demo.md`) y la
 web servida (`E2E_BASE_URL`) o el build para `vite preview`; variables `SUPABASE_URL` y `SUPABASE_ANON_KEY`. Las

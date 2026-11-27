@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { pantallasSinCaptura } from './capturas-manual.mjs';
 import { anotacion, archivosSinDocCorrespondiente, leerMapaDocs, lineaLista } from './docs-correspondencia.mjs';
 
 const run = (args) => spawnSync('git', args, { encoding: 'utf8' });
@@ -58,6 +59,16 @@ try {
 } catch (error) {
   console.error(anotacion(nivel, {}, `no se pudo verificar la correspondencia: ${error?.message ?? error}`));
   if (estricto) process.exit(1);
+}
+
+// Capturas del manual (MSF-644): una pantalla del panel que cambia debería rehacer sus capturas. Aviso salvo
+// CAPTURAS_MANUAL_ESTRICTO=1 o --capturas-estricto (la excepción se declara en la descripción del PR, que no se ve acá).
+const capturasEstricto = process.env.CAPTURAS_MANUAL_ESTRICTO === '1' || process.argv.includes('--capturas-estricto');
+const sinCaptura = pantallasSinCaptura(changed);
+if (sinCaptura.length > 0) {
+  console.error(anotacion(capturasEstricto ? 'error' : 'warning', {}, `${sinCaptura.length} pantalla(s) del panel cambiaron y ninguna captura de docs/producto/img/ se rehízo: corré pnpm docs:capturas o declará en el PR por qué no corresponde (MSF-644).`));
+  console.error(sinCaptura.slice(0, 10).map((p) => lineaLista(p, ' ')).join('\n'));
+  if (capturasEstricto) process.exit(1);
 }
 
 console.log(`Documentación de cambios: OK (${changed.length} archivos comparados contra ${base}).`);

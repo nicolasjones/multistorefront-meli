@@ -3,6 +3,7 @@ owner: operacion
 sources:
   - supabase/seed.sql
   - scripts/demo-sandbox.mjs
+  - scripts/demo-sandbox.test.mjs
   - apps/web/vite.config.ts
   - infra/refine/compose.yaml
   - .github/workflows/validate.yml
@@ -74,3 +75,12 @@ Solo corre contra un Supabase **local**; si la URL no es `localhost/127.0.0.1/ho
 > **CI (2026-11-12):** el paso «avisar el link del visor en el PR» de `validate.yml` ya no falla si el runner no trae `gh` (la imagen de `infra/runner/Dockerfile` no lo instala): avisa en el log y sigue. Antes salía con 127 y dejaba rojo el job `application` aunque sus tests pasaran.
 
 > **CI (2026-11-16, actualizado 2026-11-18):** el job `chequeos` de Validate (antes `application`) corre `pnpm test:correo:verificar-salida` (MSF-532): la suite del guion de verificación de salida del correo. Es Node puro (sin base ni red): vigila que el contrato `{resultado, nuevo, enviado}` de la Edge Function `solicitar-acceso` y el guion sigan de acuerdo, para que el guion no pueda dar un verde falso.
+
+## 6. Pruebas del guion (MSF-587)
+
+`pnpm demo:seed` aborta si `SUPABASE_URL` no es un Supabase local (`localhost`, `127.0.0.1` o `host.docker.internal`) y dice
+cuál era: URL y host. Un error de tipeo hacía imprimir el constructor global `URL` en vez de la dirección; lo vigila
+`scripts/demo-sandbox.test.mjs` (`pnpm test:docs:check`), que corre el guion como proceso hijo sin red (host no local, URL
+inválida y `--dry-run`). La siembra de `dominio.*` con la service-role key funciona porque la migración
+`20270302105000` le concede uso del esquema `dominio`; no se ejecutó en este cambio (sin stack local). El dataset completo
+está en `pnpm demo:dataset` ([`dataset-demo.md`](../dataset-demo.md)).
