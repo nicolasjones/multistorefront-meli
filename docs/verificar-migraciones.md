@@ -41,6 +41,12 @@ merge). La colisión real (duplicada o modificada) sigue siendo error.
 El riesgo original sigue cubierto: el aplicador no ejecuta versiones por debajo de la cola ya aplicada (incidente
 2026-10-23), por eso el orden es **error en el PR hacia `dokploy`/`main`**. Renumerar una sola vez, al integrar la épica.
 
+**Criterio de versiones (MSF-589, fijado):** toda migración NUEVA tiene una versión posterior a la última de `origin/dokploy`; la
+fecha del calendario no importa (hoy hay muchas con versión futura porque cada lote reserva una ventana por delante) y las existentes
+no se renombran (cambiaría su registro en los entornos). El guard lo exige en todo PR a `dokploy`/`main` (regla «REUSADA» de arriba,
+con prueba «en un PR hacia dokploy (GITHUB_BASE_REF) es error»), de modo que una versión con fecha real, menor que la máxima, falla
+el job `chequeos` antes de que `supabase migration up` la trate como «insertada antes de la última».
+
 Pruebas: `node --test scripts/verificar-migraciones.test.mjs` (parte de `pnpm test:tooling`).
 
 ## Reversión obligatoria en las migraciones nuevas (MSF-900)

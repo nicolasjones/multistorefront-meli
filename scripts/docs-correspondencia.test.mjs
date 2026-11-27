@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
-import { anotacion, archivosSinDocCorrespondiente, escaparDato, escaparPropiedad, leerMapaDocs, lineaLista } from './docs-correspondencia.mjs';
+import { anotacion, archivosSinDocCorrespondiente, escaparDato, escaparPropiedad, leerMapaDocs, lineaLista, motivoValido, motivosSinDoc } from './docs-correspondencia.mjs';
 
 let dir;
 before(async () => { dir = await mkdtemp(path.join(tmpdir(), 'docs-corr-')); });
@@ -71,13 +71,27 @@ describe('archivosSinDocCorrespondiente', () => {
   });
 
   it('una carpeta de sources: no cubre carpetas con el mismo prefijo', () => {
-    const docs = [doc('docs/a.md', ['infra/kestra'])];
-    sinAviso(['infra/kestra-otro/x.yml'], docs);
-    assert.equal(archivosSinDocCorrespondiente(['infra/kestra/x.yml'], docs).length, 1);
+    const docs = [doc('docs/a.md', ['infra/superset'])];
+    sinAviso(['infra/superset-otro/x.yml'], docs);
+    assert.equal(archivosSinDocCorrespondiente(['infra/superset/x.yml'], docs).length, 1);
   });
 
   it('ignora fuentes que abarcan un área entera', () => {
     sinAviso(['infra/x/y.mjs', '.github/workflows/v.yml', 'scripts/q.mjs'], [doc('docs/a.md', ['infra', '.github/workflows', 'scripts'])]);
+  });
+
+  it('infra/kestra entera es una fuente amplia, pero un flow concreto sí exige su doc', () => {
+    sinAviso(['infra/kestra/flows/a.yml'], [doc('docs/a.md', ['infra/kestra'])]);
+    const docs = [doc('docs/a.md', ['infra/kestra']), doc('docs/b.md', ['infra/kestra/flows/a.yml'])];
+    assert.deepEqual(archivosSinDocCorrespondiente(['infra/kestra/flows/a.yml'], docs), [{ archivo: 'infra/kestra/flows/a.yml', docs: ['docs/b.md'] }]);
+  });
+
+  it('excluye .md y .env.example del código relevante, pero no otros archivos de la misma carpeta', () => {
+    const docs = [doc('docs/a.md', ['packages/mcp-server', 'supabase/functions/f'])];
+    sinAviso(['packages/mcp-server/CONTRATO.md', 'supabase/functions/f/.env.example'], docs);
+    assert.equal(archivosSinDocCorrespondiente(['packages/mcp-server/src/x.ts'], docs).length, 1);
+    assert.equal(archivosSinDocCorrespondiente(['supabase/functions/f/handler.ts'], docs).length, 1);
+    assert.equal(archivosSinDocCorrespondiente(['supabase/functions/f/env.example.ts'], docs).length, 1);
   });
 
   it('ignora docs con más de 40 fuentes y respeta el borde de 40', () => {
@@ -164,4 +178,68 @@ describe('entradas patológicas (ReDoS)', () => {
       });
     }
   }
+});
+
+describe('motivosSinDoc (excepción «Docs-no-aplica»)', () => {
+  it('toma el motivo de cada línea que empieza con la marca y tiene 15 caracteres o más', () => {
+    const texto = 'fix: x\n\nDocs-no-aplica: renombre interno sin efecto\n\nfeat: y\nDocs-no-aplica: solo formato de codigo\n';
+    assert.deepEqual(motivosSinDoc(texto), ['renombre interno sin efecto', 'solo formato de codigo']);
+  });
+
+  it('frontera del motivo: 14 caracteres no vale, 15 sí', () => {
+    assert.deepEqual(motivosSinDoc('Docs-no-aplica: ab cd ef gh ij'), []); // 14
+    assert.deepEqual(motivosSinDoc('Docs-no-aplica: ab cd ef gh ijk'), ['ab cd ef gh ijk']); // 15
+    assert.deepEqual(motivosSinDoc(`Docs-no-aplica:${' '.repeat(5)}ab cd ef gh ij${' '.repeat(5)}`), []);
+  });
+
+  it('exige la marca al inicio de la línea y con esa capitalización; acepta CRLF', () => {
+    assert.deepEqual(motivosSinDoc('  Docs-no-aplica: motivo suficientemente largo'), []);
+    assert.deepEqual(motivosSinDoc('docs-no-aplica: motivo suficientemente largo'), []);
+    assert.deepEqual(motivosSinDoc('texto Docs-no-aplica: motivo suficientemente largo'), []);
+    assert.deepEqual(motivosSinDoc('Docs-no-aplica: motivo suficientemente largo\r\n'), ['motivo suficientemente largo']);
+  });
+
+  it('sin commits o sin marca no hay excepción', () => {
+    assert.deepEqual(motivosSinDoc(''), []);
+    assert.deepEqual(motivosSinDoc('feat: algo\n\ncuerpo'), []);
+  });
+});
+
+describe('motivoValido (fronteras y mutaciones)', () => {
+  it('largo: 14 caracteres no, 15 sí (con 3 palabras y letras distintas)', () => {
+    assert.equal(motivoValido('uno dos tres ab'), true); // 15
+    assert.equal(motivoValido('uno dos tres a'), false); // 14
+  });
+
+  it('palabras: 2 palabras de 2+ letras no, 3 sí; una letra suelta no cuenta como palabra', () => {
+    assert.equal(motivoValido('renombre interno sin efecto'), true);
+    assert.equal(motivoValido('renombreinterno sinefectoalguno'), false);
+    assert.equal(motivoValido('renombre interno x y'), false); // «x» e «y» no son palabras: quedan 2
+    assert.equal(motivoValido('renombre interno de x'), true); // «de» sí: 3 palabras
+  });
+
+  it('una sola letra repetida se rechaza aunque el largo y las palabras alcancen', () => {
+    assert.equal(motivoValido('aaaaaaaaaaaaaaa'), false);
+    assert.equal(motivoValido('aaaaa aaaaa aaaaa'), false);
+    assert.equal(motivoValido('AAAAA aaaaa Aaaaa'), false);
+    assert.equal(motivoValido('aaaaa aaaaa aaaab'), true);
+  });
+
+  it('separa palabras por cualquier blanco (tab incluido)', () => {
+    assert.equal(motivoValido('renombre\tinterno\tsin efecto'), true);
+    assert.equal(motivoValido('renombre\tinterno'.padEnd(20, 'x')), false); // 2 palabras
+  });
+
+  it('acepta letras de alfabetos sin mayúsculas (CJK) y sigue rechazando el carácter repetido', () => {
+    assert.equal(motivoValido('内部重命名 没有任何影响 仅限格式'), true);
+    assert.equal(motivoValido('内内 内内 内内 内内 内内'), false);
+  });
+
+  it('números y signos no cuentan como letras', () => {
+    assert.equal(motivoValido('12 34 56 78 90 12 34'), false);
+  });
+
+  it('motivosSinDoc descarta los degenerados', () => {
+    assert.deepEqual(motivosSinDoc('Docs-no-aplica: aaaaaaaaaaaaaaa'), []);
+  });
 });
