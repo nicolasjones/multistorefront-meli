@@ -233,6 +233,9 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   la reparación original. Lo cubre el pgTAP `service_garantia`. Ver `docs/service-garantia.md`.
   Un reingreso deja **dos** eventos, a propósito: `reparacion.creada` (el trigger de alta de `reparaciones`, porque nace
   una reparación nueva) y `reparacion.reingreso_garantia` (el vínculo con la original).
+- `comision.regla_guardada` y `comision.reparto_cambiado` (comisiones de técnicos, lote 100): los registran las RPC `guardar_regla_comision` y
+  `guardar_reparto_comision` en la misma transacción. El reparto guarda el valor anterior y el nuevo (nombres de técnicos y porcentajes,
+  nunca ids ni importes) y, si la reparación ya estaba entregada, el motivo en el detalle. No son tipos sensibles. Ver `docs/tecnico/service-comisiones.md`.
 - `reparacion.enlace_generado` (F-SVC-22, Service técnico): lo registra la RPC `obtener_enlace_consulta` solo cuando
   **crea** el enlace de seguimiento de una reparación (los pedidos siguientes devuelven el mismo token y no registran
   nada), en la misma transacción que la fila de `dominio.reparacion_enlaces_consulta`. El detalle nombra el código
