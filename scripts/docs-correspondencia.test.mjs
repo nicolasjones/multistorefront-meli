@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
-import { anotacion, archivosSinDocCorrespondiente, escaparDato, escaparPropiedad, leerMapaDocs, lineaLista, motivosSinDoc } from './docs-correspondencia.mjs';
+import { anotacion, archivosSinDocCorrespondiente, escaparDato, escaparPropiedad, leerMapaDocs, lineaLista, motivoValido, motivosSinDoc } from './docs-correspondencia.mjs';
 
 let dir;
 before(async () => { dir = await mkdtemp(path.join(tmpdir(), 'docs-corr-')); });
@@ -187,9 +187,9 @@ describe('motivosSinDoc (excepción «Docs-no-aplica»)', () => {
   });
 
   it('frontera del motivo: 14 caracteres no vale, 15 sí', () => {
-    assert.deepEqual(motivosSinDoc(`Docs-no-aplica: ${'a'.repeat(14)}`), []);
-    assert.deepEqual(motivosSinDoc(`Docs-no-aplica: ${'a'.repeat(15)}`), ['a'.repeat(15)]);
-    assert.deepEqual(motivosSinDoc(`Docs-no-aplica:${' '.repeat(5)}${'a'.repeat(14)}${' '.repeat(5)}`), []);
+    assert.deepEqual(motivosSinDoc('Docs-no-aplica: ab cd ef gh ij'), []); // 14
+    assert.deepEqual(motivosSinDoc('Docs-no-aplica: ab cd ef gh ijk'), ['ab cd ef gh ijk']); // 15
+    assert.deepEqual(motivosSinDoc(`Docs-no-aplica:${' '.repeat(5)}ab cd ef gh ij${' '.repeat(5)}`), []);
   });
 
   it('exige la marca al inicio de la línea y con esa capitalización; acepta CRLF', () => {
@@ -202,5 +202,34 @@ describe('motivosSinDoc (excepción «Docs-no-aplica»)', () => {
   it('sin commits o sin marca no hay excepción', () => {
     assert.deepEqual(motivosSinDoc(''), []);
     assert.deepEqual(motivosSinDoc('feat: algo\n\ncuerpo'), []);
+  });
+});
+
+describe('motivoValido (fronteras y mutaciones)', () => {
+  it('largo: 14 caracteres no, 15 sí (con 3 palabras y letras distintas)', () => {
+    assert.equal(motivoValido('uno dos tres ab'), true); // 15
+    assert.equal(motivoValido('uno dos tres a'), false); // 14
+  });
+
+  it('palabras: 2 palabras de 2+ letras no, 3 sí; una letra suelta no cuenta como palabra', () => {
+    assert.equal(motivoValido('renombre interno sin efecto'), true);
+    assert.equal(motivoValido('renombreinterno sinefectoalguno'), false);
+    assert.equal(motivoValido('renombre interno x y'), false); // «x» e «y» no son palabras: quedan 2
+    assert.equal(motivoValido('renombre interno de x'), true); // «de» sí: 3 palabras
+  });
+
+  it('una sola letra repetida se rechaza aunque el largo y las palabras alcancen', () => {
+    assert.equal(motivoValido('aaaaaaaaaaaaaaa'), false);
+    assert.equal(motivoValido('aaaaa aaaaa aaaaa'), false);
+    assert.equal(motivoValido('AAAAA aaaaa Aaaaa'), false);
+    assert.equal(motivoValido('aaaaa aaaaa aaaab'), true);
+  });
+
+  it('números y signos no cuentan como letras', () => {
+    assert.equal(motivoValido('12 34 56 78 90 12 34'), false);
+  });
+
+  it('motivosSinDoc descarta los degenerados', () => {
+    assert.deepEqual(motivosSinDoc('Docs-no-aplica: aaaaaaaaaaaaaaa'), []);
   });
 });

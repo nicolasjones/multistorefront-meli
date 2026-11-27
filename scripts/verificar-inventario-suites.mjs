@@ -43,6 +43,16 @@ export const ARCHIVOS_EXCLUIDOS = {
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
+// Quita los comentarios YAML/shell: la línea que empieza con `#` y lo que sigue a ` #`. Un `# pnpm test:x` comentado no corre nada.
+// (Cortar en ` #` también recorta un ` #` dentro de una cadena: es raro y el efecto es conservador, la suite deja de contar.)
+export function sinComentarios(texto) {
+  return String(texto).split('\n').map((linea) => {
+    if (linea.trimStart().startsWith('#')) return '';
+    const i = linea.indexOf(' #');
+    return i >= 0 ? linea.slice(0, i) : linea;
+  }).join('\n');
+}
+
 // Nombres de script que invoca un texto: `pnpm test:x`, `pnpm -s test:x`, `pnpm run test:x`.
 export function scriptsInvocados(texto) {
   const nombres = [];
@@ -97,7 +107,8 @@ export function correArchivo(archivo, textoAlcanzable, nombrePaquete) {
   return false;
 }
 
-export function inventario({ scripts, textoWorkflows, archivosTest, nombresPaquete = {}, textoDocs = '', excluidas = EXCLUIDAS, archivosExcluidos = ARCHIVOS_EXCLUIDOS }) {
+export function inventario({ scripts, textoWorkflows: textoCrudo, archivosTest, nombresPaquete = {}, textoDocs = '', excluidas = EXCLUIDAS, archivosExcluidos = ARCHIVOS_EXCLUIDOS }) {
+  const textoWorkflows = sinComentarios(textoCrudo);
   const alcanzados = alcanzables(scripts, textoWorkflows);
   // `--filter` de pnpm también cuenta como «corre»: se evalúa sobre el texto de los scripts alcanzables y de los workflows.
   const textoAlcanzable = [textoWorkflows, ...[...alcanzados].map((n) => scripts[n] ?? '')].join('\n');

@@ -942,7 +942,7 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
   (`notificaciones`, `productos-create-permisos`, `ingresos-mercaderia-catalogo`). Falta la corrida en el job de sesión para dejar
   evidencia. El aviso de truncado del filtro de empresas del historial de ingresos ya existe (`HistorialIngresos.tsx`: pide 501 y avisa
   «Se muestran las primeras 500 tiendas; hay más.») con su prueba unitaria `HistorialIngresos.test.tsx`; el E2E del catálogo con 501
-  productos reales (`ingresos-mercaderia-catalogo.e2e.ts`) queda listo y necesita `e2e_sesion=true` para ejecutarse.
+  productos reales (`ingresos-mercaderia-catalogo.e2e.ts`) queda listo y se corre con `gh workflow run validate.yml --ref <rama> -f e2e_sesion=true -f e2e_archivos=ingresos-mercaderia-catalogo.e2e.ts` (hay que pasar `e2e_archivos`: por defecto el job de sesión solo corre `permisos-por-empresa.e2e.ts`).
 - **Pendientes sin ejecutar (MSF-665).** Siguen sin corrida con evidencia los recorridos «Pendiente» de la tabla de
   cobertura: usuarios (editar/suspender/reactivar), matriz de permisos, Empresas, editar la organización e ingreso con sesión y Catálogo (crear, editar, fotos y desactivar, SC-001/SC-006: no hay spec, falta el fixture por rol); Actividad con filtros ya tiene spec, MSF-879. Los de Inicio
   (tres roles y cambio de empresa) y Clientes (alta, búsqueda y exportación, SC-001) ya tienen su spec con corrida en

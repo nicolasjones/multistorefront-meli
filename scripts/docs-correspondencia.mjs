@@ -105,7 +105,19 @@ export function motivosSinDoc(mensajesDeCommits) {
   for (const linea of String(mensajesDeCommits).replace(/\r/g, '').split('\n')) {
     if (!linea.startsWith(MARCA_SIN_DOC)) continue;
     const motivo = linea.slice(MARCA_SIN_DOC.length).trim();
-    if (motivo.length >= MOTIVO_MINIMO) motivos.push(motivo);
+    if (motivoValido(motivo)) motivos.push(motivo);
   }
   return motivos;
+}
+
+// Un motivo vale si tiene >= 15 caracteres, al menos 3 palabras de 2+ letras y más de una letra distinta (rechaza «aaaa…»).
+// Es un filtro contra lo degenerado, no un juez del contenido: la revisión humana del PR debe cuestionar el motivo.
+export const PALABRAS_MINIMAS = 3;
+const esLetra = (c) => c.toLowerCase() !== c.toUpperCase();
+export function motivoValido(motivo) {
+  if (motivo.length < MOTIVO_MINIMO) return false;
+  const letras = [...motivo].filter(esLetra).map((c) => c.toLowerCase());
+  if (new Set(letras).size < 2) return false;
+  const palabras = motivo.split(' ').filter((p) => [...p].filter(esLetra).length >= 2);
+  return palabras.length >= PALABRAS_MINIMAS;
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ARCHIVOS_EXCLUIDOS, EXCLUIDAS, alcanzables, correArchivo, globACoincide, inventario, scriptsInvocados } from './verificar-inventario-suites.mjs';
+import { ARCHIVOS_EXCLUIDOS, EXCLUIDAS, alcanzables, correArchivo, globACoincide, inventario, sinComentarios, scriptsInvocados } from './verificar-inventario-suites.mjs';
 
 const base = () => ({
   scripts: { 'test:a': 'node --test scripts/a.test.mjs', 'test:ci:scripts': 'node scripts/correr-suites.mjs "pnpm -s test:a" "pnpm -s test:b"', 'test:b': 'node --test scripts/*.b.test.mjs' },
@@ -81,4 +81,16 @@ test('correArchivo: workspaces por nombre o por carpeta, y solo ahí', () => {
   assert.equal(correArchivo('workers/otro/test/a.test.ts', t, '@workers/otro'), false);
   assert.equal(correArchivo('workers/otro/test/a.test.ts', 'pnpm --filter "./workers/*" test', '@workers/otro'), true);
   assert.equal(correArchivo('scripts/a.test.mjs', 'pnpm --filter ./scripts test', undefined), false);
+});
+
+test('un comentario de workflow con `pnpm test:x` no cuenta como que corre', () => {
+  const e = inventario({ ...base(), scripts: { ...base().scripts, 'test:c': 'node x' }, textoWorkflows: `${base().textoWorkflows}\n      # pnpm test:c\n      - run: echo hola # pnpm test:c` });
+  assert.equal(e.length, 1);
+  assert.match(e[0], /suite «test:c»/);
+  const vivo = inventario({ ...base(), scripts: { ...base().scripts, 'test:c': 'node x' }, textoWorkflows: `${base().textoWorkflows}\n      - run: pnpm test:c` });
+  assert.deepEqual(vivo.filter((x) => x.includes('test:c')), []);
+});
+
+test('sinComentarios: línea completa, comentario tras espacio y # sin espacio previo se respetan', () => {
+  assert.equal(sinComentarios('  # a\nrun: x # b\nrun: y#z'), '\nrun: x\nrun: y#z');
 });

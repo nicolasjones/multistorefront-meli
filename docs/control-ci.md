@@ -257,7 +257,7 @@ así un fallo transitorio no queda fijado. La organización activa no se cachea:
   - `verificar-documentacion-cambios.mjs`: la correspondencia código→doc (`sources:` de cada doc) ahora es **error en todo PR**
     (`validate.yml`, job `chequeos`, `DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1` solo en `pull_request`). Antes quedaba en aviso desde el
     lote 88. Se redujo el ruido estructural y hay una excepción auditable (`Docs-no-aplica: <motivo>` en un commit): detalle y cifras
-    en `docs/documentacion-cambios.md`.
+    en `docs/documentacion-cambios.md`. **Aviso a agentes y runners:** si `docs:check` falla por correspondencia y el cambio no altera nada documentable, la salida es una línea `Docs-no-aplica: <motivo real, 3+ palabras>` en el mensaje de un commit; si altera algo, actualizá el doc que la salida nombra. No uses la marca para evitar escribir documentación.
   - `validar-migraciones-aditivas.mjs` (verificado en el árbol, ya estaba hecho): detecta además `DROP SCHEMA`, `DROP FUNCTION` y
     `DELETE FROM` sin `WHERE`; el marcador de reversión exige la palabra «Reversión» completa (no «reversible»), sin negar y con
     contenido. `DROP CONSTRAINT` no se marca a propósito (falso positivo comprobado: redefinir un check es seguro). Límites en
@@ -270,7 +270,7 @@ así un fallo transitorio no queda fijado. La organización activa no se cachea:
   corre en `test:ci:scripts`) falla si una suite `test:*` de `package.json` o un archivo de test (`scripts/`, `supabase/functions/`,
   `infra/`, `workers/`, `packages/`) no lo ejecuta ningún workflow, salvo que figure en su tabla `EXCLUIDAS` con el motivo; también
   falla si una exclusión quedó vieja (la suite ya corre o ya no existe) o si esta sección no la nombra. «Corre en el CI» es
-  alcanzable desde el texto de los workflows siguiendo `pnpm <script>`. Primer barrido: estaban sin correr los tests de los cinco
+  alcanzable desde el texto de los workflows (sin comentarios) siguiendo `pnpm <script>`. Primer barrido: estaban sin correr los tests de los cinco
   workers (`pnpm test:workers:unit`, ~15 s, vitest sin servicios), `supabase/functions/_shared/log-seguro.test.ts` (ahora en
   `test:edge:compartido-ia`) y `scripts/prototipo-inventario.test.mjs` (ahora en `test:prototipo:inventario`). Lo caro o con servicios
   sigue fuera, con el motivo en la lista de abajo. El test del inventario (`test:suites:inventario:unit`) fija sus fronteras.
