@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { redactError, run } from './operaciones.mjs';
-import { clasificarFaltantes, mensajeAdvertencia, mensajeFaltantes, modoEstricto, variablesFaltantes } from './preflight-deploy-vps.mjs';
+import { clasificarFaltantes, mensajeAdvertencia, mensajeFaltantes, mensajeValoresPorDefecto, modoEstricto, valoresPorDefecto, variablesFaltantes } from './preflight-deploy-vps.mjs';
 
 // `up` necesita su propia variante de run(): run() en modo no silencioso
 // usa stdio 'inherit' (el progreso de Compose queda visible en el log, pero
@@ -67,6 +67,12 @@ const estricto = modoEstricto(environment, process.env, contenidoEnv);
 const { bloqueantes, advertencias } = clasificarFaltantes(variablesFaltantes(contenidoEnv), estricto);
 if (bloqueantes.length > 0) throw new Error(mensajeFaltantes(bloqueantes, environment, path.basename(envFile)));
 if (advertencias.length > 0) console.warn(mensajeAdvertencia(advertencias, path.basename(envFile)));
+// MSF-649/705: un valor por defecto público cuenta como faltante (bloquea en estricto, advierte en dev transicional).
+const porDefecto = valoresPorDefecto(contenidoEnv);
+if (porDefecto.length > 0) {
+  if (estricto) throw new Error(mensajeValoresPorDefecto(porDefecto, environment, path.basename(envFile)));
+  console.warn(`::warning::MODO TRANSICIONAL (dev): ${mensajeValoresPorDefecto(porDefecto, environment, path.basename(envFile))}`);
+}
 
 // Puerto de la base del entorno: el compose lo usa para la URL de respaldos
 // (KESTRA_BACKUPS_DB_URL/PGDUMP_URL). Sin esto, cae al default (7634 = dev).

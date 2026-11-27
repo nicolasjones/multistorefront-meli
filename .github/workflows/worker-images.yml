@@ -3,10 +3,14 @@ name: Worker images
 # Orquestación de workers multi-organización (spec 013): publica la imagen de
 # cada worker de integración en ghcr.io usando el GITHUB_TOKEN ya disponible
 # en el runner self-hosted — sin credencial nueva que gestionar. El comando
-# SSH de despacho (infra/kestra/flows/plantilla-*.yml) hace `docker pull`
-# antes de `docker run`, así que una actualización de versión no requiere
-# ningún paso de despliegue activo hacia cada servidor de organización: el
-# próximo disparo de Kestra ya trae la imagen vigente.
+# SSH de despacho (infra/kestra/flows/plantilla-*.yml) hace `docker image inspect X ||
+# docker pull X` y luego `docker run`: con un tag mutable (`:latest`) el `inspect` tiene
+# éxito apenas la imagen existe y el `pull` NUNCA corre (MSF-712). Por eso las imágenes se
+# referencian por DIGEST (`imagen@sha256:...`), que cambia con cada build, y la política de
+# actualización es explícita: este job publica el digest nuevo en el resumen del run
+# (`scripts/resumen-imagenes-workers.mjs`) y quien despliega lo carga en `*_IMAGEN` del
+# `.env` del ambiente (secret VPS_DEPLOY_ENV); el preflight del deploy rechaza `:latest`.
+# Ver docs/endurecimiento-infra.md, «Imágenes de workers: digest y política de actualización».
 #
 # Corre solo en push a main que toque workers/ (no en cada PR: publicar una
 # imagen por cada intento de PR no aporta y consume minutos/almacenamiento de
@@ -37,11 +41,10 @@ on:
 permissions:
   contents: read
   packages: write
-  id-token: write
 
 jobs:
   build-and-publish:
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_DEPLOY || '["self-hosted","platform-local"]') }}
     # MSF-926: tope explícito (el default de GitHub son 360 min: un job colgado ocuparía el runner self-hosted horas).
     timeout-minutes: 60
     environment: worker-images-production
@@ -59,6 +62,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # MSF-712: las credenciales de Docker (ghcr.io y Docker Hub) viven solo en un DOCKER_CONFIG TEMPORAL de este job y se borran al
+          # terminar (también si falla): ni `~/.docker/config.json` ni las imágenes locales `:$SHA`/`:test` quedan en el runner para el job siguiente.
+          export DOCKER_CONFIG="$(mktemp -d)"
+          chmod 700 "$DOCKER_CONFIG"
+          # Los plugins (buildx, scout) viven en el directorio del sistema; si un runner viejo los tiene en el HOME, se reutilizan.
+          if [ -d "$HOME/.docker/cli-plugins" ]; then ln -s "$HOME/.docker/cli-plugins" "$DOCKER_CONFIG/cli-plugins"; fi
+          imagenes_locales=()
+          limpiar() {
+            docker logout "$REGISTRY" >/dev/null 2>&1 || true
+            docker logout >/dev/null 2>&1 || true
+            for imagen in "${imagenes_locales[@]}"; do docker rmi -f "$imagen" >/dev/null 2>&1 || true; done
+            rm -rf "$DOCKER_CONFIG"
+          }
+          trap limpiar EXIT
           node scripts/validar-egress-workers.mjs
           : > "$RUNNER_TEMP/worker-imagenes.txt"
 
@@ -103,6 +120,7 @@ jobs:
               --build-arg REPO_URL="https://github.com/${REPOSITORY}" \
               --tag "local/worker-$worker:$SHA" \
               --load .
+            imagenes_locales+=("local/worker-$worker:$SHA" "local/worker-$worker:test")
 
             report=$(mktemp)
             # --format json no existe en docker scout (CLI v1.26.0): el

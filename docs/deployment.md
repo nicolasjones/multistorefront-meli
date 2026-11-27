@@ -197,20 +197,13 @@ que ata un contenedor a un repo puntual son las variables de entorno
 y `GH_RUNNER_PAT` en `.env`) — para reutilizarlo en otro proyecto, se copia
 la carpeta tal cual y solo cambia `RUNNER_REPO`.
 
-Usa el mismo patrón Docker-fuera-de-Docker que Kestra (monta
-`/var/run/docker.sock`): los `docker compose`/`supabase start` que corren los
-jobs terminan controlando el Docker del host, no uno anidado.
+Desde el lote 99 (MSF-703/704) los jobs ya **no** corren con el socket de Docker del host: un supervisor (el único que ve el PAT) lanza un contenedor nuevo por job,
+que corre como usuario no root, con su propio daemon de Docker (runtime sysbox) y se destruye al terminar; hay un pool de PR (`infra/runner/compose.yaml`) y otro de deploy
+(`infra/runner/compose.deploy.yaml`). Diseño, runbook para recrearlos y acciones pendientes: `docs/endurecimiento-infra.md`.
 
-Hoy corre en la PC de desarrollo, no en un VPS — cuando exista uno, se migra
-sin cambiar nada del Dockerfile, solo dónde se levanta el compose.
-
-Detalle a tener en cuenta: dentro del contenedor del runner, `127.0.0.1` es
-el contenedor mismo, no el host — por eso el job `database` usa
-`pnpm test:db:ci` (conecta por `host.docker.internal`) en vez de
-`pnpm test:db` (que asume `127.0.0.1`, correcto solo para correrlo a mano en
-el host). `supabase start` sí funciona igual en los dos casos porque controla
-al Docker del host vía el socket montado, no depende de la red del
-contenedor.
+Detalle a tener en cuenta: dentro del contenedor del runner, `127.0.0.1` es el contenedor mismo, no el host. El stack de Supabase de los
+jobs corre en el daemon interno y publica sus puertos en el propio contenedor, así que `host.docker.internal` se resuelve al loopback del
+contenedor (`extra_hosts` del Compose) y `pnpm test:db:ci` conecta por ahí.
 
 ### Réplicas, memoria, red y store de pnpm del runner
 
@@ -219,7 +212,7 @@ medición y el análisis de concurrencia). Variables en `.env` (todas opcionales
 con default en `infra/runner/compose.yaml`; contrato en
 `specs/20260925-221701-optimizar-runners-locales/contracts/variables-runner.md`):
 
-- `RUNNER_REPLICAS` (default `3`): cuántos jobs de este repo corren a la vez.
+- `RUNNER_REPLICAS` (default `3`, son las «ranuras» del supervisor): cuántos jobs de este repo corren a la vez.
   Cada corrida de Validate usa tres runners (application, infrastructure,
   database) más uno para `Verificar alcance de plataforma`. Conviene bajarla a
   `1` o `2` cuando hay varios agentes activos con sus stacks (Supabase, Kestra)
@@ -228,10 +221,9 @@ con default en `infra/runner/compose.yaml`; contrato en
   los jobs esperan en cola y el CI de un PR tarda más, pero no se cae. `0` no
   levanta runners de este repo (útil para liberar la máquina sin borrar
   nada). Un valor no numérico o negativo hace fallar `docker compose`.
-- `RUNNER_MEMORY_LIMIT` (default `3g`): tope de memoria de cada réplica. Cubre
+- `RUNNER_MEMORY_LIMIT` (default `6g`): tope de memoria de cada réplica. Cubre
   lo que corre dentro del runner (pnpm, `tsc`, `vite build`, `vitest`,
-  `pg_prove`), no los contenedores que el job lanza por el socket (el stack de
-  Supabase del CI). Si un job lo supera, el step falla con código 137
+  `pg_prove`) y el stack de Supabase del CI, que ahora corre en el daemon interno del contenedor. Si un job lo supera, el step falla con código 137
   (OOM); subirlo en `.env` y recrear.
 - `RUNNER_CPU_LIMIT` (default `2`, `0` = sin tope): tope de CPU por réplica.
   Evita que un job (vitest es multi-núcleo) se coma la máquina y deje sin CPU a
@@ -250,45 +242,11 @@ con default en `infra/runner/compose.yaml`; contrato en
   (10 min por descarga): el binario opcional `@supabase/cli-linux-x64` pesa
   57 MB y con el timeout de 60 s nunca terminaba de bajar en un Wi-Fi lento,
   así que cada install lo reintentaba sin llegar a guardarlo.
-- `RUNNER_PNPM_STORE_VOLUME` (default `platform-runner-pnpm-store`): volumen
-  del store de pnpm.
+- `RUNNER_LIMPIAR_STORE` (default `0`; el pool de deploy siempre `1`): vacía el store de pnpm en cada job.
 
-**Store compartido.** El runner monta ese volumen en `/pnpm` y exporta
-`pnpm_config_store_dir=/pnpm/store` y `pnpm_config_cache_dir=/pnpm/cache`, que
-los steps heredan y que ganan sobre el `$PNPM_HOME/store` que implica
-`pnpm/action-setup` (antes cada réplica tenía su propio store dentro del
-contenedor y se perdía al recrearlo). El caché importa tanto como el store:
-pnpm 11 verifica el lockfile contra sus políticas de supply-chain pidiendo la
-metadata de cada paquete al registro, y solo se saltea esa consulta si
-encuentra el resultado para ese mismo lockfile en el caché. Todas las
-réplicas lo comparten y, como el nombre por defecto es el mismo en todos los
-productos que adopten la capacidad `local-ci-runners`, también los runners de
-otros productos de la máquina: una dependencia se descarga una sola vez. Para
-aislar un producto, darle otro nombre en su `.env`. Compartirlo no amplía la
-confianza: los runners ya montan el socket de Docker del host.
-
-Es seguro con instalaciones en paralelo (verificado en el código de pnpm
-11.19.0): cada archivo del store se nombra por su hash y se escribe en modo
-exclusivo o con temporal + `rename` atómico; si dos procesos escriben el mismo
-archivo escriben los mismos bytes, y pnpm verifica la integridad de cada
-archivo al importarlo. El índice (`index.db`) es SQLite en modo WAL con
-`busy_timeout`, que coordina varios procesos con locks del kernel. El caché
-se escribe con temporal + `rename` y un registro de una línea por lockfile
-verificado; sus errores nunca hacen fallar un install. Probado con tres
-contenedores instalando a la vez: los tres `reused 317, downloaded 0` y
-`pnpm store status` sin archivos alterados. Límites:
-
-- Tiene que ser un volumen local de Docker (o un disco local en Linux), nunca
-  una carpeta de Windows montada ni un sistema de archivos de red.
-- `pnpm store prune` **no** es seguro con instalaciones en curso. Para
-  limpiar, confirmar que ningún runner que use el volumen esté `busy` (en
-  todos los repos que lo compartan) y correr
-  `docker run --rm --entrypoint pnpm -v platform-runner-pnpm-store:/pnpm automation-platform-template-runner-dev-runner store prune --store-dir /pnpm/store`
-  (la imagen es la que construye `pnpm dev:runner`).
-  Tamaño actual: `docker run --rm -v platform-runner-pnpm-store:/s busybox du -sh /s`.
-- El store y el directorio de trabajo del job están en sistemas de archivos
-  distintos, así que pnpm copia en vez de crear enlaces duros. Es más lento
-  que un enlace, pero mucho más rápido que descargar.
+**Store propio por contenedor.** El runner exporta `pnpm_config_store_dir=/home/runner/.pnpm-store` y `pnpm_config_cache_dir=/home/runner/.cache/pnpm`,
+dentro del contenedor: ya no hay volumen compartido entre réplicas, productos ni con el pool de deploy (MSF-704), así que el código de un PR no puede
+dejar paquetes que ejecute luego un job de deploy. El costo es descargar de nuevo al recrear el contenedor. `pnpm store prune` ya no necesita coordinarse con otros runners.
 
 **Recrear los runners corta los jobs en curso.** Antes de `pnpm dev:runner`
 tras cambiar alguna de estas variables, verificar que ninguno esté ocupado:
@@ -603,16 +561,16 @@ El deploy por `DOCKER_HOST=ssh://` verifica la clave del host con `StrictHostKey
 1. Obtener la clave pública del host por un canal de confianza (consola del proveedor, o `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`
    en el propio VPS y comparar la huella). Con la clave ya verificada: `ssh-keyscan -t ed25519 <host>` desde una máquina de confianza
    **y comparar la huella** con la del paso anterior.
-2. Guardar la línea (`<host> ssh-ed25519 AAAA…`) en el secret `VPS_SSH_KNOWN_HOSTS` del Environment, **o** (opción futura: `infra/vps/` NO existe todavía, hay que crear la carpeta y el archivo) versionarla en
-   `infra/vps/known_hosts.staging` / `infra/vps/known_hosts.production` (las claves públicas de host no son secretas). Hoy solo sirve el secret.
+2. Guardar la línea (`<host> ssh-ed25519 AAAA…`) en el secret `VPS_SSH_KNOWN_HOSTS` del Environment, **o** versionarla (la carpeta `infra/vps/` ya existe) en
+   `infra/vps/known_hosts.staging` / `infra/vps/known_hosts.production` (las claves públicas de host no son secretas).
 3. Sin clave fijada el paso «Iniciar ssh-agent» falla con el mensaje de instrucciones. Si el VPS se reinstala y cambia la clave, el
    deploy falla a propósito: actualizar el secret/archivo tras verificar el cambio.
 
 ### Credenciales obligatorias, imágenes inmutables y clave de host: modo transicional (MSF-705, MSF-706, MSF-712)
 
-Tres controles hacen que el despliegue **falle cerrado** si faltan valores que solo se cargan a mano:
+Tres controles (más el rechazo de valores por defecto ya definidos, MSF-649) hacen que el despliegue **falle cerrado** si faltan valores que solo se cargan a mano:
 
-1. **Credenciales (MSF-705).** `infra/<producto>/compose.estricto.yaml` exige las 14 credenciales de Kestra, Superset y Nango (`${VAR:?}`).
+1. **Credenciales (MSF-705).** `infra/<producto>/compose.estricto.yaml` exige las 17 credenciales de Kestra, Superset y Nango (las 3 últimas de Kestra: `KESTRA_BACKUPS_PGDUMP_URL` y el par S3 de los respaldos) (`${VAR:?}`).
 2. **Imágenes de workers inmutables (MSF-712).** Las 5 `*_IMAGEN` (`HISTORIAL_IMPORTADOR_IMAGEN`, `IMPORTAR_PRODUCTOS_IMAGEN`,
    `EXPORTAR_COMPROBANTES_IMAGEN`, `EXPORTAR_ORGANIZACION_IMAGEN`, `COMPROBANTES_PDF_IMAGEN`) deben ser `imagen@sha256:<64 hex>` o un tag igual al
    SHA del commit (un tag mutable como `:latest` nunca se actualiza: el despacho hace `docker image inspect || docker pull`). `worker-images.yml`
@@ -654,7 +612,7 @@ El arranque local documentado (`pnpm dev:kestra`, etc.) no cambia.
 1. Correr un deploy de dev y leer la advertencia: lista exactamente qué falta.
 2. Cargar en el `.env.dev` (secret `VPS_DEPLOY_ENV` del Environment de dev) las 14 credenciales (valores nuevos y aleatorios, nunca los
    `change-me-local`) y las 5 `*_IMAGEN` con las referencias del resumen del último `worker-images.yml`.
-3. Cargar la clave de host: secret `VPS_SSH_KNOWN_HOSTS` (o, cuando se cree `infra/vps/`, `infra/vps/known_hosts.dev`; hoy no existe) (ver «Clave de host del VPS»).
+3. Cargar la clave de host: secret `VPS_SSH_KNOWN_HOSTS` (o `infra/vps/known_hosts.dev`) (ver «Clave de host del VPS»).
 4. Volver a correr el deploy de dev: no debe quedar ninguna advertencia.
 5. Definir `VPS_ESTRICTO=1` como variable de entorno del job de deploy de dev **o** como línea `VPS_ESTRICTO=1` en el `.env.dev` (el preflight lee las dos; la del proceso manda; el paso de clave de host solo lee la del proceso) y repetir: ahora dev bloquea igual que staging.
 6. Antes de promover a staging/production, comprobar que sus `VPS_DEPLOY_ENV` ya traen lo mismo (ahí el bloqueo es inmediato).

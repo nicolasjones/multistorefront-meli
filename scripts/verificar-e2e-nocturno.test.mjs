@@ -82,7 +82,7 @@ test('no se confunde con un comentario que menciona pull_request', (t) => {
 });
 
 test('falla si el job puede quedar verde con continue-on-error', (t) => {
-  const runsOn = '    runs-on: [self-hosted, platform-local]';
+  const runsOn = `    runs-on: \${{ fromJSON(vars.CI_RUNS_ON_PR || '["self-hosted","platform-local"]') }}`;
   assert.ok(workflow.includes(runsOn));
   const enJob = workflow.replace(runsOn, `    continue-on-error: true\n${runsOn}`);
   fallaYCambio(t, { workflow: enJob }, 'continue-on-error del job');

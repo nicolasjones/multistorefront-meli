@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   deep:
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PR || '["self-hosted","platform-local"]') }}
     # MSF-926: tope explícito (el default de GitHub son 360 min: un job colgado ocuparía el runner self-hosted horas).
     timeout-minutes: 45
     steps:
@@ -110,12 +110,11 @@ jobs:
           if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
             echo "supabase 2.116.0 ya presente en el runner -> no descargo"
           else
-            # El binario se verifica contra el SHA256 publicado del release (el que dice `checksums.txt`):
-            # un release alterado no se ejecuta en el runner self-hosted.
-            TAR="$(mktemp)/supabase_2.116.0_linux_amd64.tar.gz"
-            curl -fsSL -o "$TAR" https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz
-            echo "5b3031cb297d51b25be4c284e4c852254460ec722ec221d3b81b07d55acfd158  $TAR" | sha256sum -c -
-            tar -xz -C /usr/local/bin supabase
+            # El binario se verifica contra el SHA256 fijado en el repo (el de `checksums.txt` del release) antes de extraerlo:
+            # un release alterado no se ejecuta en el runner. Va a un directorio del job (el usuario `runner` no escribe en /usr/local/bin).
+            bash scripts/instalar-binario-verificado.sh https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz 5b3031cb297d51b25be4c284e4c852254460ec722ec221d3b81b07d55acfd158 supabase "$RUNNER_TEMP/bin"
+            echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+            export PATH="$RUNNER_TEMP/bin:$PATH"
           fi
           supabase --version
 
@@ -253,7 +252,7 @@ jobs:
           # sólo para esta llamada, que es la que lo baja.
           env -u PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD pnpm --filter @platform/web exec playwright install chromium
           # El caché guarda el binario, no las libs del SO (mismo motivo que en validate.yml).
-          pnpm --filter @platform/web exec playwright install-deps chromium
+          [ "$(id -u)" != 0 ] || pnpm --filter @platform/web exec playwright install-deps chromium
           CHROME=""
           for base in "$BASE" "$HOME/.cache/ms-playwright" /ms-playwright; do
             [ -d "$base" ] || continue

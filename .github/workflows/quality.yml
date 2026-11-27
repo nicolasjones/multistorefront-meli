@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   quality:
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PR || '["self-hosted","platform-local"]') }}
     # MSF-926: tope explícito (el default de GitHub son 360 min: un job colgado ocuparía el runner self-hosted horas).
     timeout-minutes: 20
     steps:
@@ -37,7 +37,9 @@ jobs:
       - name: gitleaks (binario nativo)
         run: |
           if ! command -v gitleaks >/dev/null 2>&1; then
-            curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz | tar -xz -C /usr/local/bin gitleaks
+            bash scripts/instalar-binario-verificado.sh https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb gitleaks "$RUNNER_TEMP/bin"
+            echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+            export PATH="$RUNNER_TEMP/bin:$PATH"
           fi
           gitleaks version
       - name: calidad (determinista)

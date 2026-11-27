@@ -1,0 +1,41 @@
+name: multistorefront-meli-runner-deploy
+
+# Pool de runners para los jobs con `environment:` (deploy de infraestructura, migraciones cloud, publicación de flows y de imágenes) y el release
+# (MSF-704). Etiqueta `platform-deploy` y NUNCA `platform-local`. Misma arquitectura que compose.yaml (supervisor + un contenedor nuevo por job,
+# PAT solo en el supervisor) y además store/caché vacíos en cada job (RUNNER_LIMPIAR_STORE) y una sola ranura por defecto.
+# IMPORTANTE (revisión C+S del lote 99): este pool NO es un límite de confianza por sí solo. En un PR GitHub usa el workflow del propio PR, que
+# puede pedir `platform-deploy`. Los controles reales son: (1) los secretos de deploy viven en Environments de GitHub restringidos a ramas
+# protegidas (`dokploy`/`main`), de modo que un job de PR no los recibe aunque caiga acá; (2) cada job corre en un contenedor que se destruye
+# al terminar, así que un PR que caiga acá no deja nada para el próximo deploy; (3) la política de aprobación de PRs de forks. Ver
+# docs/endurecimiento-infra.md. El workflow elige este pool con la variable de repo CI_RUNS_ON_DEPLOY = ["self-hosted","platform-deploy"].
+services:
+  supervisor:
+    build: .
+    image: multistorefront-meli-runner:local
+    entrypoint: ["node", "/supervisor.mjs"]
+    init: true
+    environment:
+      RUNNER_ROLE: deploy
+      RUNNER_REPO: nicolasjones/multistorefront-meli
+      RUNNER_NAME: multistorefront-meli-deploy
+      RUNNER_LABELS: self-hosted,platform-deploy
+      RUNNER_IMAGE: multistorefront-meli-runner:local
+      RUNNER_RUNTIME: ${RUNNER_RUNTIME:-sysbox-runc}
+      # Daemon interno solo para construir las imágenes de los workers (worker-images.yml); el deploy al VPS usa DOCKER_HOST=ssh://.
+      RUNNER_DOCKER_INTERNO: "1"
+      RUNNER_SLOTS: ${RUNNER_DEPLOY_REPLICAS:-1}
+      RUNNER_MEMORY_LIMIT: ${RUNNER_DEPLOY_MEMORY_LIMIT:-4g}
+      RUNNER_CPU_LIMIT: ${RUNNER_DEPLOY_CPU_LIMIT:-2}
+      RUNNER_PIDS_LIMIT: ${RUNNER_PIDS_LIMIT:-4096}
+      RUNNER_LIMPIAR_STORE: "1"
+      RUNNER_PNPM_NETWORK_CONCURRENCY: ${RUNNER_PNPM_NETWORK_CONCURRENCY:-16}
+      RUNNER_PAT_FILE: /run/secrets/gh_runner_pat
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    secrets:
+      - gh_runner_pat
+    restart: unless-stopped
+
+secrets:
+  gh_runner_pat:
+    file: ${GH_RUNNER_PAT_FILE:-/etc/platform-runner/gh_runner_pat}

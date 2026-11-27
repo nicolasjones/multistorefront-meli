@@ -16,6 +16,8 @@ sources:
   - supabase/verificacion/higiene_base_migraciones.sql
   - scripts/verificar-higiene-base.mjs
   - scripts/analizar-definer-search-path.mjs
+  - scripts/reconciliar-base.mjs
+  - supabase/migrations/20270514000000_reafirmar_acl_rpc_internas_de_publico.sql
 ---
 
 # Higiene y endurecimiento de la base de datos (lote 33)
@@ -249,3 +251,10 @@ Migraciones `20270507240000` a `20270507240200`, con pgTAP `lote42_*` (cada uno 
   sección `proveedores` ve solo nombre y estado; ver `20261018190500`); las 137 claves foráneas sin índice y la revisión de las
   tablas con RLS sin política (MSF-918) piden decisión caso por caso; la deriva del ACL de `publico.crear_consulta_publica` en
   la base DEV (MSF-653) es operativa, no de repo.
+
+## Lote 99: ACL reafirmado y reconciliación de solo lectura (MSF-653 / 658 / 671 / 915)
+
+La migración `20270514000000` crea `private.reafirmar_acl_rpc_internas_de_publico()` (repite el `revoke` a `public`, `anon` y `authenticated` y el `grant` a `service_role` de
+`publico.crear_consulta_publica` y `publico.registrar_interes_whatsapp`) y la invoca, para corregir la deriva del DEV; la prueba pgTAP `lote99_reafirmar_acl_publico.test.sql` llama a esa misma función.
+`scripts/reconciliar-base.mjs` es el diagnóstico de solo lectura (versiones renumeradas vs sin equivalente, nombres distintos, `aplicada-manual`, organizaciones de prueba vacías, índices ausentes y ACL de
+`publico`); con `--aplicar --confirmo <destino>` repara solo ese ACL. Uso, runbook y límites: `docs/endurecimiento-infra.md`.

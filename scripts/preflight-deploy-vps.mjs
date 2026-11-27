@@ -1,3 +1,5 @@
+import { hallazgosPorDefecto } from './secretos-por-defecto.mjs';
+
 // Preflight del despliegue al VPS: variables que el Compose exige (`${VAR:?}`) y que, si faltan, hacen fallar
 // `docker compose config` y abortan el despliegue de los tres productos en esa corrida. Se comprueban ANTES, con un
 // mensaje que dice exactamente qué variable falta y dónde definirla.
@@ -30,6 +32,21 @@ export const VARIABLES_OBLIGATORIAS = [
   {
     nombre: 'KESTRA_ORQUESTACION_DB_PASSWORD',
     descripcion: 'credencial de kestra sin valor por defecto en el VPS (infra/kestra/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
+  },
+  {
+    nombre: 'KESTRA_BACKUPS_PGDUMP_URL',
+    descripcion: 'credencial de kestra sin valor por defecto en el VPS (infra/kestra/compose.estricto.yaml, MSF-705)',
+    soloEstricto: true,
+  },
+  {
+    nombre: 'RESPALDOS_STORAGE_ACCESS_KEY_ID',
+    descripcion: 'credencial de kestra sin valor por defecto en el VPS (infra/kestra/compose.estricto.yaml, MSF-705)',
+    soloEstricto: true,
+  },
+  {
+    nombre: 'RESPALDOS_STORAGE_SECRET_ACCESS_KEY',
+    descripcion: 'credencial de kestra sin valor por defecto en el VPS (infra/kestra/compose.estricto.yaml, MSF-705)',
     soloEstricto: true,
   },
   {
@@ -163,5 +180,19 @@ export function mensajeAdvertencia(faltantes, archivo) {
     `::warning::MODO TRANSICIONAL (dev): faltan o son inválidas ${faltantes.length} variable(s) en ${archivo}; el despliegue CONTINÚA, pero staging y producción lo rechazarían:`,
     ...faltantes.map((f) => `- ${f.nombre}: ${f.descripcion}.`),
     'Cargalas en el .env de dev y activá VPS_ESTRICTO=1 para que dev también bloquee (docs/deployment.md, «Pasar dev a modo estricto»).',
+  ].join('\n');
+}
+
+// MSF-649 / MSF-705: un valor por defecto público en el `.env` del ambiente (la variable está definida, pero con `change-me-local`, `postgres`,
+// el secreto JWT público de Supabase, etc.) es tan malo como que falte. Solo nombres y motivo: nunca el valor. Mismo criterio estricto/transicional.
+export function valoresPorDefecto(contenido) {
+  return hallazgosPorDefecto(contenido);
+}
+
+export function mensajeValoresPorDefecto(hallazgos, entorno, archivo = `.env.${entorno}`) {
+  return [
+    `${hallazgos.length} variable(s) de ${archivo} usan un valor por defecto público (${entorno}); se muestran solo los nombres:`,
+    ...hallazgos.map((h) => `- ${h.nombre}: ${h.motivo}.`),
+    'Generá valores propios con `node scripts/generar-secretos-entorno.mjs` y rotalos (docs/endurecimiento-infra.md, «Rotar los secretos de un entorno»).',
   ].join('\n');
 }
