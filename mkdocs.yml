@@ -139,6 +139,7 @@ nav:
           - Reparaciones, ítems e impresión: producto/service-listado-items-impresion.md
           - Repuestos y stock: producto/service-repuestos-y-stock.md
           - Fotos, garantía, seguimiento y reportes: producto/service-seguimiento-y-reportes.md
+          - Comisiones de técnicos: producto/service-comisiones.md
       - Tiendas online:
           - Tiendas online: producto/tiendas-online.md
           - Dominio, identidad y textos: producto/tienda-dominio-e-identidad.md
@@ -287,6 +288,7 @@ nav:
           - Repuestos y stock: tecnico/service-repuestos-y-stock.md
           - Cobro, avisos y ficha del cliente: tecnico/service-cobro-y-avisos.md
           - Seguimiento y reportes: tecnico/service-seguimiento-y-reportes.md
+          - Comisiones de técnicos: tecnico/service-comisiones.md
       - Tienda pública:
           - Catálogo y ficha: tecnico/tienda-catalogo-y-ficha.md
           - Demo frente al prototipo (MSF-825): tecnico/tienda-demo-vs-prototipo.md

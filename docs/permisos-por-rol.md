@@ -43,7 +43,7 @@ contrato en sus políticas RLS en vez de `private.puede_escribir()`.
 |---|---|---|
 | `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion`, `tecnico` (MSF-182) y `miembro` (template). |
 | `permisos_rol` | `public` | Organización × rol × sección → `edicion` / `lectura` / `ninguno`. |
-| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`, `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) → permitido. |
+| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`, `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`, `ver_comisiones`) → permitido. |
 
 Son mecanismos de acceso transversales (Principio VII), por eso viven en `public`. Cada
 organización tiene su propia matriz, sembrada al crearla (trigger sobre `organizaciones`) con los
@@ -61,7 +61,9 @@ Secciones (clave → nombre): `inicio`, `productos`, `categorias`, `stock`, `cot
   la matriz inicial; sin membresía o sección desconocida devuelve `'ninguno'` (nunca acceso total).
   Un superadmin con organización activa equivale a administrador.
 - `private.puede_accion(seccion text, accion text) returns boolean`. `eliminar` exige `edicion`;
-  `exportar` y `ver_costos` exigen al menos `lectura`; una acción desconocida es `false`.
+  `exportar`, `ver_costos` y `ver_comisiones` exigen al menos `lectura`; una acción desconocida es `false`.
+  `ver_comisiones` (MSF-957) existe solo en `service_tecnico`, se siembra en `true` para Administrador y Administración y es
+  **independiente** de `ver_costos` (ninguna implica la otra); ver `docs/tecnico/service-comisiones.md`.
 - Exportar la actividad (F-AUD-03) exige la acción `exportar` **y** el nivel `edicion` en `actividad` (por defecto solo el
   Administrador); ver `docs/actividad.md`. Operador y Administración tienen la acción `exportar` por defecto pero solo
   lectura en Actividad, así que no exportan (el spec de MSF-170 se alineó con el código).
@@ -247,7 +249,7 @@ iniciales son los de la spec (*Decisiones abiertas* 1: roles a confirmar con el 
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
   a las secciones reservadas a Administrador/Administración (nunca gana acceso que no tenía).
 - Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`,
-  `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) son una
+  `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`, `ver_comisiones`) son una
   **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02. Excepción confirmada: `ver_costos`
   en **Stock** también es del Operador (reportes de inventario, migración `20270438000000`); los demás roles sin ella ven solo cantidades.
 - **Suspendidos (resuelto):** `usuarios_organizacion.estado` existe (`20261012140100`) y la resolución de

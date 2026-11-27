@@ -141,6 +141,7 @@ const ServicioEtiqueta = lazy(() => import('./pages/service-tecnico/etiqueta').t
 const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-entrega').then((modulo) => ({ default: modulo.ServicioRemitoEntrega })))
 const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
 const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
+const ServicioComisiones = lazy(() => import('./pages/service-tecnico/comisiones').then((modulo) => ({ default: modulo.ServicioComisiones })))
 const ServicioReportes = lazy(() => import('./pages/service-tecnico/reportes').then((modulo) => ({ default: modulo.ServicioReportes })))
 // Ventas: también fuera del recorrido principal (Principio VI).
 const DevolucionesList = lazy(() => import('./pages/ventas/devoluciones').then((modulo) => ({ default: modulo.DevolucionesList })))
@@ -214,6 +215,7 @@ function App() {
               { name: 'service-tecnico-modelos', list: '/service-tecnico/modelos', meta: { label: 'Modelos' } },
               { name: 'service-tecnico-estados', list: '/service-tecnico/estados', meta: { label: 'Estados de reparación' } },
               { name: 'service-tecnico-reportes', list: '/service-tecnico/reportes', meta: { label: 'Reportes' } },
+              { name: 'service-tecnico-comisiones', list: '/service-tecnico/comisiones', meta: { label: 'Comisiones' } },
               { name: 'ventas-presupuestos', list: '/ventas/presupuestos', meta: { label: 'Presupuestos' } },
               // F-VTA-22 (MSF-347): «Reportes de ventas» (sección `reportes` de la matriz de permisos).
               { name: 'ventas-reportes', list: '/ventas/reportes', meta: { label: 'Reportes de ventas' } },
@@ -720,6 +722,16 @@ function App() {
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="service_tecnico">
                         <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioReportes /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/service-tecnico/comisiones"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioComisiones /></Suspense></RequiereServiceTecnico>
                       </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
