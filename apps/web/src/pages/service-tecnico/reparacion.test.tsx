@@ -371,6 +371,16 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
     expect(await screen.findByTestId('adjuntos')).toHaveAttribute('data-puede-editar', 'false')
   })
 
+  it('integra la sección «Comisión de técnicos» en el detalle y no la ofrece en el alta (MSF-953)', async () => {
+    mocks.obtenerReparacion.mockResolvedValue(REPARACION)
+    const detalle = abrirDetalle()
+    expect(await screen.findByRole('region', { name: 'Comisión de técnicos' })).toBeInTheDocument()
+    detalle.unmount()
+    abrirNueva()
+    await screen.findByRole('heading', { name: 'Cliente y equipo' })
+    expect(screen.queryByRole('region', { name: 'Comisión de técnicos' })).not.toBeInTheDocument()
+  })
+
   it('muestra la Entrega real como solo lectura cuando ya se entregó', async () => {
     mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, entrega_real: '2026-10-25', entregado_por: 'Ana' })
     abrirDetalle()

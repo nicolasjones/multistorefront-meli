@@ -21,6 +21,8 @@ vi.mock('../../hooks/useOrganizacionDeTrabajo', () => ({ useOrganizacionDeTrabaj
 // F-SVC-20 y F-SVC-21: las secciones de fotos y de vínculos tienen su propio test.
 vi.mock('../../components/service/AdjuntosReparacion', () => ({ AdjuntosReparacion: () => null }))
 vi.mock('../../components/service/VinculosGarantia', () => ({ VinculosGarantia: () => null }))
+// Comisión de técnicos (MSF-953): tiene su propio test (RepartoComision.test.tsx); acá se aísla para que su «Reintentar» no se confunda con el de esta pantalla.
+vi.mock('../../components/service/RepartoComision', () => ({ RepartoComision: () => null }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 vi.mock('../../lib/serviceTecnico', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/serviceTecnico')>()),

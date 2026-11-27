@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
 
@@ -87,9 +87,19 @@ describe('MisComisiones', () => {
     render(<MisComisiones />)
     fireEvent.change(screen.getByLabelText('Mes'), { target: { value: '2027-01' } })
     expect(await screen.findByTestId('total-comision')).toHaveTextContent('$ 111')
-    tardia?.({ data: DETALLE({ total: 999 }), error: null })
-    await Promise.resolve()
+    await act(async () => {
+      tardia?.({ data: DETALLE({ total: 999 }), error: null })
+      await new Promise((r) => setTimeout(r, 20))
+    })
     expect(screen.getByTestId('total-comision')).toHaveTextContent('$ 111')
+  })
+
+  it('con todas las reparaciones con regla no muestra el aviso de «sin regla» ni el de tope', async () => {
+    mocks.rpc.mockResolvedValue({ data: DETALLE({ sin_regla: 0, truncado: false }), error: null })
+    render(<MisComisiones />)
+    await screen.findByTestId('total-comision')
+    expect(screen.queryByText(/regla de comisión vigente a su fecha/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/más de 1\.000/)).not.toBeInTheDocument()
   })
 
   it('sin comisiones en el mes lo explica', async () => {
