@@ -38,7 +38,7 @@ La documentación debe registrar la decisión, el contrato afectado, los riesgos
 la validación ejecutada y cualquier limitación pendiente. Los archivos generados
 (por ejemplo `docs/schema.html`) no reemplazan la documentación fuente.
 
-## Correspondencia código-doc (MSF-869, modo aviso)
+## Correspondencia código-doc (MSF-688, MSF-869): estricta en los PR
 
 La regla de arriba se satisface con **cualquier** doc, aunque no tenga relación con el cambio (se elude tocando uno
 cualquiera: MSF-688). Por eso `verificar-documentacion-cambios.mjs` hace una segunda verificación, por correspondencia,
@@ -50,14 +50,24 @@ que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada 
   docs (por ruta exacta o dentro de una carpeta listada), esos docs deberían cambiar también. Si ninguno de ellos cambió, el
   archivo se reporta.
 - **No generan aviso:** archivos que no están en ningún `sources:`; tests (`*.test.*`, `*.spec.*`, `tests/`, `e2e/`, `fixtures/`),
-  snapshots, lockfiles y `supabase/migrations/` (las cubre `verificar-migraciones`); fuentes que abarcan un área entera
-  (`infra`, `.github/workflows`, una raíz de un solo segmento), porque no identifican un doc concreto; y docs con más de 40 fuentes.
-- **Modo aviso (por defecto):** emite una anotación `::warning file=<doc>::` por doc (agrupa sus archivos) y una lista legible
-  por doc en la salida, y **sale con 0**: no cambia ningún resultado de CI. El control heredado (código relevante sin ningún doc
-  → exit 1) queda idéntico.
-- **Modo estricto:** `DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1 node scripts/verificar-documentacion-cambios.mjs` (o el flag
-  `--estricto`) convierte los avisos en `::error` y sale con 1. Para activarlo en el CI, definir esa variable en el job `chequeos`
-  de `validate.yml`; conviene hacerlo solo cuando la tasa de ruido sea aceptable para el equipo.
+  snapshots, lockfiles, `*.md`, `.env.example` y `supabase/migrations/` (las cubre `verificar-migraciones`); fuentes que abarcan un
+  área entera (`infra/kestra`, `.github/workflows`, una raíz de un solo segmento), porque no identifican un doc concreto; y docs con más de 40 fuentes.
+- **Modo aviso (por defecto, local y fuera de un PR):** emite una anotación `::warning file=<doc>::` por doc (agrupa sus archivos) y una
+  lista legible por doc en la salida, y **sale con 0**. El control heredado (código relevante sin ningún doc → exit 1) queda idéntico.
+- **Modo estricto (activo en el CI de todo PR):** `DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1 node scripts/verificar-documentacion-cambios.mjs`
+  (o `--estricto`) convierte los avisos en `::error` y sale con 1. Desde el lote 96 el job `chequeos` de `validate.yml` lo activa en
+  `pull_request` (`github.event_name == 'pull_request'`); en `push`, `workflow_dispatch` y `merge_group` sigue en aviso porque no hay un
+  diff de PR que juzgar. Localmente se prueba con `DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1 pnpm docs:check`.
+- **Excepción auditable (`Docs-no-aplica`):** un cambio de código que de verdad no altera nada documentable (renombre interno, formato, una
+  dependencia) lo declara con una línea `Docs-no-aplica: <motivo de 15 caracteres o más>` en el mensaje de CUALQUIER commit del PR (se mira
+  `git log <base>..HEAD`). En estricto, con esa línea las anotaciones bajan a `::warning` y la salida nombra el motivo; sin ella, o con un
+  motivo corto, falla. La marca va al principio de la línea y con esa capitalización. El motivo se filtra contra lo degenerado (3 palabras de 2+ letras y más de una letra distinta; `aaaaaaaaaaaaaaa` no vale), pero no se juzga su contenido (las palabras se separan por cualquier blanco y cuenta toda letra Unicode, también CJK): **quien revisa el PR debe cuestionar el motivo**; un motivo vago es un hallazgo. **No** salta el control heredado (código sin ningún
+  doc) ni el aviso de `sources:`: solo evita el exit 1 de la correspondencia, y queda en el historial para que lo revise quien aprueba.
+- **Cómo se llegó a un estricto razonable (lote 96).** Medido sobre los últimos 40 merges de `dokploy`: con la regla original fallaban
+  14 (35 %); ruido estructural eliminado: los `*.md` (son documentación: `CONTRATO.md` no exige otro doc), los `.env.example` y la fuente
+  `infra/kestra` entera (90 archivos de un solo doc: el flow concreto ya figura en el `sources:` de su propio doc). Quedan 12 de 40
+  (30 %), todos con un doc propio que de verdad no se tocó (p. ej. `apps/web/src/lib/superadmin.ts` sin tocar `docs/tecnico/auditoria-y-soporte.md`):
+  eso es lo que la regla busca, y la salida indica el doc exacto. Los PR de lote ya traen su doc por la regla «documentá en el mismo cambio».
 - **Formatos de `sources:` aceptados:** lista en bloque, array en línea (`sources: [a, b]`), escalar (`sources: ruta`), `[]`,
   CRLF, comillas y comentarios finales (`- ruta # nota`). Produce el mismo mapa que `docs-manifest.mjs` para los 313 docs con fuentes.
 - **Escape de anotaciones:** los nombres de archivo y de doc vienen del PR, así que se escapan como `@actions/core` (mensaje:
@@ -198,7 +208,15 @@ aparte a propósito, `apps/web/playwright.capturas.config.ts`).
 **Estado (MSF-877, 2026-11-17).** El repo tiene 262 imágenes versionadas bajo `docs/producto/img/`, en 44 carpetas.
 La guía de uso es [Capturas del manual de usuario](capturas-documentacion.md). Esta revisión de documentación **no regeneró imágenes**, porque hacerlo exige levantar el stack con el dataset demo.
 Las capturas de pantallas cambiadas hoy (Productos con Margen, Empresas, Migración de datos con pestañas, Actividad,
-Importaciones) quedan pendientes de recaptura con el comando de arriba. Además, el comentario de
+Importaciones) quedan pendientes de recaptura con el comando de arriba.
+
+**Actualización (2026-11-26, MSF-877, MSF-570, MSF-643).** Los hijos de MSF-877 quedaron así: MSF-646 (comando, dataset demo
+y specs) está entregado (`pnpm docs:capturas`, `pnpm demo:dataset`, `apps/web/e2e/capturas/`, `dataset-demo.md`); MSF-643:
+las páginas del manual declaran `sources` salvo `glosario.md`, que es de términos y queda estática a propósito
+(`README`, `capacidades` y `ventas-cierre-caja` ahora enlazan sus fuentes); MSF-862 (wiki reconciliado) lo entregó
+c7860a7c y hoy `docs-check` pasa; MSF-570: el spec `40-catalogo-tiendas` suma la captura de «Rentabilidad · Comparativo» a 320,
+768 y 1440 px (`09-comparativo-<ancho>.png`), **pendiente de ejecutar** porque necesita el stack con el dataset demo y la
+revisión visual lado a lado con el sistema de diseño en STG. MSF-644 se trata en el PR #1226. Además, el comentario de
 `playwright.capturas.config.ts` remite a `docs/capturas-documentacion.md`, que ahora existe.
 
 ## Ramas `main` y `dokploy`: estado y reconciliación de la documentación (MSF-590)
@@ -228,6 +246,37 @@ es lo que `dokploy` agregó o cambió desde entonces. La documentación de usuar
 
 Pendiente: este procedimiento no se ejecutó en este lote (no se tocó `main`); la integración de `origin/main` en `dokploy`
 queda para quien prepare el Release.
+
+**Medición vigente (2026-11-26, MSF-590, MSF-858, MSF-833).** `git rev-list --left-right --count origin/main...origin/dokploy`
+da `16 4774`: `main` sigue teniendo los mismos 16 commits (no los 444 ni los 408 que citan MSF-858 y MSF-833, medidos
+antes de que #929 integrara `main` en `dokploy`) y `dokploy` lleva 4774 que `main` no tiene. `git merge-tree --write-tree
+--name-only origin/dokploy origin/main` marca conflicto en **19 archivos, todos de documentación o del workflow
+`e2e-nocturno.yml`** (no 35, y ninguno de código; `e2e-nocturno.yml` es un conflicto add/add): `.github/workflows/e2e-nocturno.yml`, `docs/_generated/inventory.{json,md}`,
+`docs/manifest.json`, `docs/actividad.md`, `docs/deployment.md`, `docs/e2e-app.md`, `docs/operar-superset.md`,
+`docs/roadmap-template.md`, `docs/system-design/roadmap.md`, `mkdocs.yml`, `docs/producto/{README,consultas,gastos,
+tableros-analiticos,ventas-avisos-de-faltantes}.md` y `docs/tecnico/{biblioteca,datos,rentabilidad}.md`.
+
+**Por qué no se integró `main` en este PR.** **Advertencia: en la integración real NO usar `-X ours` ni `-s ours`**
+(descartan en silencio contenido de `main`, o lo mezclan sin revisar); resolver archivo por archivo y sin force-push.
+`.github/workflows/e2e-nocturno.yml` es un conflicto add/add y se resuelve conservando el de `main`. Solo para medir qué
+entraría se probó `git merge origin/main -X ours` (gana `dokploy` en los conflictos) y se abortó; trae
+18 archivos nuevos que **duplican** páginas que `dokploy` ya tiene con otro nombre: `docs/tecnico/gastos.md` frente a
+`docs/gastos.md`, `docs/tecnico/analitica-avanzada.md` frente a `docs/analitica-avanzada.md`,
+`docs/tecnico/tienda-compra-y-cuentas.md` frente a `docs/tienda-compra-y-cuentas.md`,
+`docs/tecnico/opiniones-de-clientes.md` frente a `docs/tienda-opiniones.md`, `docs/tecnico/resumen-semanal-correo.md` y los dos
+`revision-seguridad-*` frente a sus equivalentes planos, más 9 capturas de Inicio. Además mezcla en las páginas ya existentes
+texto escrito contra el código de `main`. Hacerlo sin revisar página por página contradice la regla de no afirmar en la
+documentación lo que no se verificó contra el código de `dokploy`. Qué hacer en la integración: aplicar el procedimiento de
+arriba, descartar las páginas duplicadas (conservar la de `dokploy`), conservar de `main` solo el manual de Inicio con sus
+capturas y el workflow `e2e-nocturno.yml`, y regenerar `docs/manifest.json` y `docs/_generated/`.
+
+**Estado de la deriva de documentación (MSF-991, 2026-11-26).** `node scripts/docs-drift.mjs --json` lista **181 páginas** con la
+fuente cambiada desde su última revisión (25 de ellas en `docs/producto/`), tanto en esta rama como en `origin/dokploy`; el
+«41» de MSF-991 era de otra fecha. (Una versión anterior de este párrafo decía 29: era un error de lectura de una salida
+truncada.) Se ven así porque sus fuentes (directorios de `supabase/migrations` y de `apps/web/src`) cambiaron después de la
+última revisión; no significa que el texto sea falso, significa que nadie lo volvió a contrastar. No se reconcilian en este
+PR: se hace al preparar el Release (paso 4 del procedimiento), contrastando cada página con el código.
+`docs.yml` sigue limitado a PR hacia `main` por este motivo.
 
 **Páginas planas fuera del menú.** `mkdocs.yml` no lista todas las páginas planas de `docs/` (p. ej. `control-ci.md`,
 `deployment.md`, `documentacion-cambios.md`, `capturas-documentacion.md` y `decisiones-2026-11-17.md`): el menú solo
