@@ -555,5 +555,6 @@ antes de agendarla; (3) para quitar un agendado: `select cron.unschedule('<nombr
 - `_shared/ia/purga.ts` (el `AggregateError` con el mensaje del primer fallo de Storage; no se imprime en ningún log de estas funciones).
 
 **Seguimiento del lote 92 (revisión):** los handlers con cupo (`chat-ia-responder`, `preguntar-documentos`, `enviar-correo-proveedor` e `indexar-documento`)
-envían `Access-Control-Expose-Headers: Retry-After` en todas sus respuestas (cada test del 429 lo verifica): sin esa cabecera el navegador del panel,
-que llama desde otro origen, no puede leer el `Retry-After`.
+y `consultar-estado-reparacion` envían `Access-Control-Expose-Headers: Retry-After` en todas sus respuestas (cada test del 429 lo verifica): sin esa cabecera
+el navegador del panel, que llama desde otro origen, no puede leer el `Retry-After`. Quedan fuera a propósito `api-v1` (no define CORS) y
+`verificar-dominio-tienda` (su 429 `demasiado_pronto` no tiene una ventana calculada que informar y el frontend usa un texto fijo según el código).
