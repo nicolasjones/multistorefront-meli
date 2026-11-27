@@ -34,3 +34,10 @@ La raíz delega en `pnpm --filter @platform/web docs:capturas`, que corre
 Todo PR que cambia una pantalla rehace las capturas del manual que esa pantalla ilustra, o declara en su descripción por
 qué no corresponde. La regla y el estado (MSF-877) están en
 [Documentación y control de cambios](documentacion-cambios.md#capturas-del-manual-regla-de-proceso-y-estado-msf-644-msf-877).
+
+## Revisión visual de «Rentabilidad · Comparativo» (MSF-570)
+
+La pestaña Comparativo no existe en el prototipo (`design/pantallas/*.dc.html`), así que no se compara contra un diseño sino
+contra el sistema de diseño. El spec `apps/web/e2e/capturas/40-catalogo-tiendas.capturas.ts` guarda su captura a 320, 768 y
+1440 px en `docs/producto/img/rentabilidad/09-comparativo-<ancho>.png`; el manual no las enlaza, son solo para la revisión.
+`pnpm docs:capturas 40-catalogo-tiendas` las genera con el stack y el dataset demo levantados.

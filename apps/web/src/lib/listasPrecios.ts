@@ -198,7 +198,7 @@ export async function leerListaDeCliente(cliente: SupabaseClient, clienteId: str
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Asignación masiva (MSF-973, migración 20270509000200) y lista por tipo de cliente (MSF-976, migración 20270509000300).
+// Asignación masiva (MSF-973, migración 20270511000200) y lista por tipo de cliente (MSF-976, migración 20270511000300).
 // ---------------------------------------------------------------------------------------------------------------------
 
 export type TipoClienteLista = 'minorista' | 'mayorista'

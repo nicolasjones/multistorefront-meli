@@ -130,7 +130,7 @@ Cada consulta nueva (también cada pedido, con el resumen de los productos) gene
 
 ## Estados
 
-En la bandeja se usan tres estados:
+En la bandeja siempre existen tres estados:
 
 | Estado | Cuándo usarlo |
 |---|---|
@@ -142,7 +142,9 @@ En la bandeja se usan tres estados:
 
 *Una consulta resuelta: queda con su responsable y la nota interna del equipo.*
 
-El Administrador también tiene una lista de estados de consulta en **Administración → Listas configurables**. Por ahora los cambios que hagas ahí no modifican estos tres estados de la bandeja.
+El Administrador puede agregar más estados en **Administración → Listas configurables** (por ejemplo «Descartada»). Esos estados aparecen en el filtro de la bandeja y en el selector «Estado» de cada consulta. Los tres de arriba no se pueden desactivar ni renombrar. Si desactivás un estado, las consultas que ya estaban en él lo siguen mostrando y podés seguir guardando su nota o su responsable, pero no se lo puede elegir para otra consulta.
+
+Cuando filtrás por una tienda distinta de la empresa de la barra superior, el número de «Nuevas» del filtro cuenta las de esa tienda y puede no coincidir con el del menú, que sigue a la barra superior.
 
 ## Cuánto tiempo se guardan los datos
 

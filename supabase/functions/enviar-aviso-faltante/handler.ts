@@ -7,6 +7,7 @@
 // base no pudo cerrar el aviso, se reintenta pasada la reserva y puede llegar un duplicado (se prefiere
 // eso a perder el aviso). Un fallo de envío nunca toca la venta ni el stock.
 import { tokenValido } from '../_shared/token.ts'
+import { errorDeBase, mensajeParaLog, registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 import type { EnviarCorreo } from '../_shared/correo.ts'
 import { CARACTERES_NO_PERMITIDOS } from '../_shared/texto.ts'
 import type { CodigoError } from './codigos.ts'
@@ -73,13 +74,8 @@ export type Deps = {
 // El error del SMTP puede traer direcciones, hosts o usuarios (p. ej. «535 Authentication failed for user smtp-prod@host»).
 // `ultimo_error` lo lee el panel (cualquiera con `ventas` en la tienda): ahí solo va un código genérico y el
 // detalle, con las direcciones saneadas, queda únicamente en el log de la función.
-const CORREO_EN_ERROR = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g
-const DETALLE_MAX = 300
-
-const textoDeError = (error: unknown) => (error instanceof Error ? error.message : String(error))
-
-const mensajeDeError = (error: unknown) =>
-  textoDeError(error).replace(CORREO_EN_ERROR, '[correo]').replace(/\s+/g, ' ').trim().slice(0, DETALLE_MAX) || 'Error de envío sin detalle'
+// Solo para CLASIFICAR (`codigoDeError`): este texto crudo nunca se imprime; al log va `textoDeError` (nombre y código corto).
+const mensajeCrudo = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 const ERRORES_DE_RED_DENO = new Set(['NotFound', 'ConnectionRefused', 'ConnectionReset', 'ConnectionAborted', 'NotConnected', 'AddrNotAvailable', 'BrokenPipe', 'TimedOut'])
 const ERRORES_DE_RED_NODE = new Set(['ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 'EHOSTUNREACH', 'ENETUNREACH', 'ETIMEDOUT', 'EPIPE', 'ECONNABORTED'])
@@ -97,7 +93,7 @@ const ERRORES_DE_RED_NODE = new Set(['ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 
  */
 export function codigoDeError(error: unknown): CodigoError {
   const nombre = error instanceof Error ? error.name : ''
-  const texto = textoDeError(error)
+  const texto = mensajeCrudo(error)
   // Fallas de RED por su nombre o código (aunque el mensaje no diga nada): Deno (`NotFound` por DNS, `ConnectionRefused`, ...) y
   // Node (`ECONNREFUSED`, ...). No salió nada: `smtp_conexion`, reintentable. `smtp_timeout` queda SOLO para el corte propio del envío.
   const codigoRed = (error as { code?: unknown } | null)?.code
@@ -129,7 +125,7 @@ export function codigoDeError(error: unknown): CodigoError {
 /** Procesa los avisos de un cliente: toma, envía un correo y cierra. Idempotente por cliente. */
 export async function procesarCliente(clienteId: string, deps: Deps): Promise<EstadoAviso> {
   const { data, error } = await deps.datos.tomar(clienteId, MAX_INTENTOS)
-  if (error || !data) throw new Error(`No se pudo tomar el aviso: ${error?.message ?? 'sin respuesta'}`)
+  if (error || !data) throw errorDeBase('No se pudo tomar el aviso', error)
   // Sin filas: otra invocación lo tiene reservado, ya se envió o no quedó nada vigente.
   if (data.length === 0 || !data[0].lineas?.length) return 'nada'
   const fila = data[0]
@@ -142,7 +138,7 @@ export async function procesarCliente(clienteId: string, deps: Deps): Promise<Es
   const tanda = fila.tanda
   const cerrarFallido = async (codigo: CodigoError) => {
     const cierre = await deps.datos.cerrar(clienteId, false, codigo, MAX_INTENTOS, tanda)
-    if (cierre.error) console.error('enviar-aviso-faltante: no se pudo registrar el fallo', clienteId, cierre.error.message)
+    if (cierre.error) registrarErrorDeBase(`enviar-aviso-faltante: no se pudo registrar el fallo ${clienteId}`, cierre.error)
     return 'fallido' as const
   }
 
@@ -159,12 +155,12 @@ export async function procesarCliente(clienteId: string, deps: Deps): Promise<Es
     })
   } catch (falla) {
     const codigo = codigoDeError(falla)
-    console.error('enviar-aviso-faltante: falló el envío', clienteId, codigo, mensajeDeError(falla))
+    console.error('enviar-aviso-faltante: falló el envío', clienteId, codigo, textoDeError(falla))
     return cerrarFallido(codigo)
   }
 
   const cierre = await deps.datos.cerrar(clienteId, true, null, MAX_INTENTOS, tanda)
-  if (cierre.error) console.error('enviar-aviso-faltante: el correo salió pero no se pudo cerrar el aviso', clienteId, cierre.error.message)
+  if (cierre.error) registrarErrorDeBase(`enviar-aviso-faltante: el correo salió pero no se pudo cerrar el aviso ${clienteId}`, cierre.error)
   return 'enviado'
 }
 
@@ -187,10 +183,10 @@ function configuracionLista(deps: Deps): Response | null {
     return null
   } catch (falla) {
     if (falla instanceof ConfiguracionSmtpError) {
-      console.error('enviar-aviso-faltante: configuración SMTP inválida', falla.message)
+      console.error('enviar-aviso-faltante: configuración SMTP inválida', mensajeParaLog(falla.message, 200))
       return response({ error: 'La configuración del correo no es válida.', codigo: 'configuracion_smtp' }, 503)
     }
-    console.error('enviar-aviso-faltante: error inesperado al validar la configuración SMTP', falla instanceof Error ? falla.name : 'error')
+    console.error('enviar-aviso-faltante: error inesperado al validar la configuración SMTP', textoDeError(falla))
     return response({ error: 'No se pudo validar la configuración del correo.', codigo: 'error_interno' }, 500)
   }
 }
@@ -205,10 +201,10 @@ async function esquemaListo(deps: Deps): Promise<Response | null> {
   const { error } = await deps.sonda()
   if (!error) return null
   if (esErrorDeEsquemaFaltante(error)) {
-    console.error('enviar-aviso-faltante: la base no está migrada (falta cerrar_aviso_faltante con p_tanda)', error.code ?? '', error.message)
+    registrarErrorDeBase('enviar-aviso-faltante: la base no está migrada (falta cerrar_aviso_faltante con p_tanda)', error)
     return response({ error: 'La base no está migrada: aplicá la migración 20270306120000 antes de desplegar esta función.', codigo: 'base_no_migrada' }, 503)
   }
-  console.error('enviar-aviso-faltante: no se pudo verificar la base', error.code ?? '', error.message)
+  registrarErrorDeBase('enviar-aviso-faltante: no se pudo verificar la base', error)
   return response({ error: 'No se pudo verificar la base de datos.', codigo: 'base_no_disponible' }, 502)
 }
 
@@ -230,7 +226,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     if (sinEsquema) return sinEsquema
     const { data: ids, error } = await deps.datos.pendientes(MAX_INTENTOS, LIMITE_BARRIDO)
     if (error) {
-      console.error('enviar-aviso-faltante: no se pudo listar los pendientes', error.message)
+      registrarErrorDeBase('enviar-aviso-faltante: no se pudo listar los pendientes', error)
       return response({ error: 'No se pudieron leer los avisos pendientes.' }, 502)
     }
     const resultados: Partial<Record<EstadoAviso, number>> = {}
@@ -247,7 +243,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
         resultados[estado] = (resultados[estado] ?? 0) + 1
       } catch (falla) {
         errores += 1
-        console.error('enviar-aviso-faltante: aviso con error', id, mensajeDeError(falla))
+        console.error('enviar-aviso-faltante: aviso con error', id, textoDeError(falla))
       }
     }
     const cuerpo = { procesados, resultados, errores, ...(procesados < (ids ?? []).length ? { pendientes: (ids ?? []).length - procesados } : {}) }
@@ -264,7 +260,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   try {
     return response({ estado: await procesarCliente(body.cliente_id, deps) })
   } catch (falla) {
-    console.error('enviar-aviso-faltante: error inesperado', mensajeDeError(falla))
+    console.error('enviar-aviso-faltante: error inesperado', textoDeError(falla))
     return response({ error: 'No se pudo procesar el aviso.' }, 502)
   }
 }

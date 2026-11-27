@@ -7,6 +7,7 @@
 // ni de Supabase.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 import { manejar, type Deps, type Lectura, type Limite, type Validacion } from './handler.ts'
 
 const CONTRATO = {
@@ -271,5 +272,23 @@ describe('api-v1', () => {
     assert.equal(auditoria.clave_id, 'clave-1')
     assert.equal(auditoria.organizacion_id, 'org-1')
     assert.ok(!JSON.stringify(auditoria).includes(CLAVE), 'el token no se audita')
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  it('el contrato OpenAPI que no carga y la auditoría que lanza dejan solo el nombre del error', async () => {
+    const { deps } = montar()
+    deps.openapi = async () => { throw errorHostil() }
+    deps.registrarLlamada = async () => { throw errorHostil() }
+    const { lineas } = await capturarLog(() => manejar(pedir('/v1/productos'), deps))
+    assert.deepEqual(lineas, ['api-v1: no se pudo cargar el contrato OpenAPI Error', 'api-v1: no se pudo auditar la llamada Error'])
+  })
+
+  it('el error de la base al auditar deja el código y no el mensaje', async () => {
+    const { deps } = montar({ errorAuditoria: ERROR_BASE_HOSTIL })
+    const { lineas } = await capturarLog(() => manejar(pedir('/v1/productos'), deps))
+    assert.equal(lineas.length, 1)
+    assert.match(lineas[0], /^api-v1: no se pudo auditar la llamada 42501 /)
+    assert.doesNotMatch(lineas[0], /sk-secreta|db\.example\.com/)
   })
 })

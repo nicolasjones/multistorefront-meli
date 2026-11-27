@@ -4,9 +4,6 @@ import { useResponsablesConsultas } from '../../hooks/useConsultas'
 import { useItemsConsulta, type ItemsConsulta } from '../../hooks/useItemsConsulta'
 import { useRespuestasRapidas } from '../../hooks/useRespuestasRapidas'
 import {
-  ESTADOS_CONSULTA,
-  COLOR_ESTADO_CONSULTA,
-  ETIQUETA_ESTADO_CONSULTA,
   ETIQUETA_ORIGEN_CONSULTA,
   NOTA_MAXIMA,
   actualizarConsulta,
@@ -16,7 +13,11 @@ import {
   nombreProducto,
   type Consulta,
   type EstadoConsulta,
+  colorEstadoConsulta,
+  etiquetaEstadoConsulta,
+  opcionesParaElegir,
 } from '../../lib/consultas'
+import { useOpcionesEstadoConsulta } from '../../hooks/useOpcionesEstadoConsulta'
 import { avisoRespuestaRegistrada, enlaceRespuesta, registrarRespuesta } from '../../lib/responderConsulta'
 import { ContactoConsulta } from '../../pages/consultas/ContactoConsulta'
 import { TituloDialogo } from '../base/TituloDialogo'
@@ -62,6 +63,8 @@ function FormularioDePedido(props: Props) {
 
 function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar, items }: Props & { items: ItemsConsulta | null }) {
   const [estado, setEstado] = useState<EstadoConsulta>(consulta.estado)
+  // Estados configurados de la organización; el que la consulta ya tiene se ofrece aunque se haya desactivado.
+  const { opciones: opcionesEstado } = useOpcionesEstadoConsulta()
   const [responsableId, setResponsableId] = useState(consulta.responsable_id ?? '')
   const [nota, setNota] = useState(consulta.nota_interna ?? '')
   const [errorServidor, setErrorServidor] = useState<{ texto: string; conflicto: boolean; alResponder?: boolean } | null>(null)
@@ -127,6 +130,7 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar, i
       })
       onGuardado(avisoRespuestaRegistrada(cambios, {
         nombreConsulta: consulta.nombre,
+        nombreEstado: etiquetaEstadoConsulta(cambios.estado, opcionesEstado),
         nombreResponsable:
           opcionesResponsable.find((persona) => persona.user_id === cambios.responsableId)?.nombre
           ?? consulta.responsable_nombre,
@@ -172,7 +176,7 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar, i
           <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
             <Chip size="small" color="primary" variant="outlined" label={consulta.empresa_nombre} />
             <Chip size="small" variant="outlined" label={ETIQUETA_ORIGEN_CONSULTA[consulta.origen]} />
-            <Chip size="small" color={COLOR_ESTADO_CONSULTA[consulta.estado]} label={ETIQUETA_ESTADO_CONSULTA[consulta.estado]} />
+            <Chip size="small" color={colorEstadoConsulta(consulta.estado)} label={etiquetaEstadoConsulta(consulta.estado, opcionesEstado)} />
             <Typography variant="xs" sx={{ ml: 'auto' }}>{formatearCuando(consulta.created_at)}</Typography>
           </Stack>
 
@@ -213,11 +217,11 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar, i
             label="Estado"
             size="small"
             value={estado}
-            onChange={(evento) => setEstado(evento.target.value as EstadoConsulta)}
+            onChange={(evento) => setEstado(evento.target.value)}
             disabled={!puedeEditar || guardando}
           >
-            {ESTADOS_CONSULTA.map((valor) => (
-              <MenuItem key={valor} value={valor}>{ETIQUETA_ESTADO_CONSULTA[valor]}</MenuItem>
+            {opcionesParaElegir(opcionesEstado, consulta.estado).map((opcion) => (
+              <MenuItem key={opcion.clave} value={opcion.clave}>{opcion.nombre}{opcion.activo ? '' : ' (desactivado)'}</MenuItem>
             ))}
           </TextField>
           {puedeEditar ? (

@@ -11,7 +11,7 @@ sources:
   - apps/web/src/pages/productos/create.tsx
   - apps/web/src/pages/productos/edit.tsx
   - apps/web/src/components/productos/ProveedoresDelProducto.tsx
-  - supabase/migrations/20270509000100_productos_proveedores.sql
+  - supabase/migrations/20270511000100_productos_proveedores.sql
   - apps/web/src/components/productos/DialogoProducto.tsx
   - apps/web/src/lib/productosListado.ts
   - apps/web/src/lib/productos.ts
@@ -195,7 +195,7 @@ Spec: `specs/20261022-120000-precios-e-iva/`. Todo aditivo; el cálculo se hace 
   Convive con `producto.editado`.
 - Pantalla: el formulario de alta y edición reemplaza el campo «Precio en pesos: No disponible» por el bloque «Precio y costo»
   (`components/precios/`): vista previa en pesos, hint «costo $ … · con dólar $ … (fecha)», aviso «Cargá la cotización» si falta y
-  «Margen estimado (escala x1)» solo con `rentabilidad`. El botón `Cotización →` queda deshabilitado hasta la pantalla del dólar
+  «Margen estimado (escala x1)» solo con `rentabilidad`. El botón `Cotización →` (que hoy lleva a la pantalla del dólar, ver más abajo)
   (MSF-116). La vista previa espeja `private.a_pesos` (`lib/precios.ts`) solo mientras se escribe; la autoridad es la base.
 - Reversión (migración posterior; exportar antes los datos): `drop trigger producto_costos_registrar_precio on dominio.producto_costos`,
   `drop trigger productos_registrar_precio on dominio.productos`, `drop function private.registrar_precio_costo_producto()`,
@@ -257,7 +257,7 @@ El buscador del listado acepta también un **código de barras EAN-13** (lector 
 
 - **Columnas**: Producto (miniatura, nombre, SKU), Precio (en pesos: ver «Precio en el listado»), Costo y Margen (solo con acceso a Rentabilidad; Margen = (precio − costo) / precio en pesos, «—» si falta precio o costo; con un tooltip que lo aclara como estimación: `apps/web/src/pages/productos/list.tsx:119-131`, `apps/web/src/lib/productosListado.ts:224-236`), Stock (etiqueta de disponibilidad, F-CAT-17), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
 - **Búsqueda**: por nombre o SKU (y, desde F-CAT-14, por código de barras: ver su sección), parcial y sin distinguir mayúsculas (`ilike`), con espera de tipeo de 300 ms, 80 caracteres como máximo, comodines `%`/`_` escapados y `, ( ) " \` descartados (`filtroBusquedaProductos`). Vuelve a la página 1.
-- **Filtros**: Todos e Inactivos (y, desde F-CAT-17, «Disponibilidad»: ver su sección). «Stock bajo» y «Sin vincular a ML» se ven deshabilitados con su explicación hasta que lleguen Stock y Mercado Libre. «Limpiar filtros» aparece cuando hay alguno activo.
+- **Filtros**: Todos e Inactivos (y, desde F-CAT-17, «Disponibilidad»: ver su sección). «Stock bajo» (MSF-611) deja los productos cuyo disponible (cantidad − reservado) está en o bajo el mínimo sin llegar a cero, con la misma regla que la pantalla Stock: lo resuelve la columna `estado_stock` de `v_productos_listado` (migración `20270510000100`) y el filtro `stock_bajo` de `exportar_productos`, así «Lo filtrado (N)» baja lo mismo que se ve. Solo se ofrece a quien tiene acceso a Stock (sin él la base no devuelve el estado). «Sin vincular a ML» se quitó: Mercado Libre está fuera de alcance. «Limpiar filtros» aparece cuando hay alguno activo.
 - **Orden**: por encabezado Producto y Estado (tabla ancha) y, en cualquier ancho —incluidas las tarjetas de <600 px—, con el selector «Ordenar por» (Producto, SKU, Estado) y el botón Ascendente/Descendente; desempate estable por `id`. La búsqueda quita también el comodín `*` de PostgREST.
 - **Estados**: carga, «Todavía no hay productos cargados.» (catálogo vacío), «No hay productos que coincidan» + «Probá con otra búsqueda o limpiá los filtros.» y error con «Reintentar».
 - **Índices** (`dominio.productos`): GIN trigram sobre `nombre` y `sku` y btree `(organizacion_id, nombre, id)` / `(organizacion_id, sku, id)`. Se indexa la columna cruda (no `lower(...)`, como decía la tarea T002) porque PostgREST expresa `ilike`/`order` sobre la columna y un índice sobre `lower()` no se usaría. Requiere `pg_trgm`.
@@ -445,7 +445,7 @@ Al integrar la base de deploy a DEV coincidieron cuatro versiones con migracione
 - **Categorías de 2 niveles** (raíz y subcategoría); el prototipo dice «hasta 3.er nivel» (Decisión 1 de la spec).
 - **Sin IVA** en el listado ni en el precio mostrado; el listado no expone costo ni precio.
 - **Acciones masivas**: solo las de «Productividad» (mover de categoría, estado y empresas; ver la sección homónima).
-- **Precio, Costo y Margen** ya muestran datos reales (ver «Columnas»): «—» solo si falta el dato o el rol no ve Costo y Margen (la columna Stock muestra la disponibilidad, F-CAT-17); los filtros Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
+- **Precio, Costo y Margen** ya muestran datos reales (ver «Columnas»): «—» solo si falta el dato o el rol no ve Costo y Margen (la columna Stock muestra la disponibilidad, F-CAT-17); el filtro Stock bajo funciona (con acceso a Stock) y «Sin vincular a ML» ya no existe (MSF-611).
 - El dominio web de cada tienda no se muestra en «Empresas que lo venden»: `dominio.empresas` todavía no lo guarda.
 
 ## Revisión de seguridad de MSF-160 (T030, SC-006)

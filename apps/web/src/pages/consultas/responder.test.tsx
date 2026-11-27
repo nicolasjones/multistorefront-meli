@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   onRecargar: vi.fn(),
 }))
 
+vi.mock('../../hooks/useOpcionesEstadoConsulta', () => ({ useOpcionesEstadoConsulta: () => ({ opciones: null, hayError: false }) }))
 vi.mock('../../hooks/useConsultas', () => ({ useResponsablesConsultas: mocks.useResponsablesConsultas }))
 vi.mock('../../hooks/useRespuestasRapidas', () => ({ useRespuestasRapidas: mocks.useRespuestasRapidas }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: { auth: { getUser: mocks.getUser } } }))

@@ -4,7 +4,7 @@ import { ingresar, serviceKey, url, violacionesAxe } from './importaciones-sopor
 import { paso, prepararPaginaVisible } from './visible'
 import { cabeceras, rest } from './soporte/fixtures'
 
-// Las pantallas de listado del panel no tienen scroll horizontal en la PÁGINA a 320, 375 y 1280 px. Cada pantalla se
+// Las pantallas de listado del panel no tienen scroll horizontal en la PÁGINA a 320, 375, 768, 1280 y 1440 px. Cada pantalla se
 // mide con `scrollWidth <= clientWidth` del documento (la tabla puede desplazarse dentro de su contenedor, la página no).
 // Evita que vuelva el `width: 1` (= 100 % en sx de MUI) de los textos solo para lectores y los tabs/botones que no
 // envuelven. Siembra una persona administradora con la API admin (la service-role key nunca llega al navegador).
@@ -15,13 +15,13 @@ async function borrar(destino: string) {
   if (!r.ok) console.warn(`limpieza E2E: DELETE ${destino} → ${r.status}`)
 }
 
-const ANCHOS = [320, 375, 1280]
+const ANCHOS = [320, 375, 768, 1280, 1440]
 const RUTAS = ['/productos', '/clientes', '/consultas']
 
 test.describe('Panel: listados sin scroll horizontal de la página', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
-  test('productos, clientes y consultas a 320, 375 y 1280 px', async ({ browser }, testInfo) => {
+  test('productos, clientes y consultas a 320, 375, 768, 1280 y 1440 px', async ({ browser }, testInfo) => {
     test.setTimeout(240_000)
     const sufijo = randomUUID().slice(0, 8)
     const correo = `desborde-${sufijo}@example.com`
@@ -68,7 +68,7 @@ test.describe('Panel: listados sin scroll horizontal de la página', () => {
     }
   })
 
-  test('axe a 320 px en listados con avisos y con el menú lateral abierto', async ({ browser }, testInfo) => {
+  test('axe a 320, 768 y 1440 px en listados con avisos y con el menú lateral abierto', async ({ browser }, testInfo) => {
     test.setTimeout(240_000)
     const sufijo = randomUUID().slice(0, 8)
     const correo = `desborde-axe-${sufijo}@example.com`
@@ -85,15 +85,21 @@ test.describe('Panel: listados sin scroll horizontal de la página', () => {
       const { page } = sesion
       await prepararPaginaVisible(page)
       await ingresar(page, correo)
-      await page.setViewportSize({ width: 320, height: 900 })
-      for (const ruta of ['/ventas/comprobantes', '/proveedores', '/ventas/presupuestos', ...RUTAS]) {
-        await paso(page, `axe en ${ruta} a 320 px`, async () => {
-          await page.goto(ruta)
-          await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-          await page.waitForLoadState('networkidle')
-          expect(await violacionesAxe(page)).toEqual([])
-        })
+      // MSF-595/MSF-611: la bandeja de consultas (filtros por estado configurado) y el listado de productos (filtro «Stock bajo»)
+      // se revisan también a 768 y 1440 px; el resto, a 320 como siempre.
+      for (const ancho of [320, 768, 1440]) {
+        await page.setViewportSize({ width: ancho, height: 900 })
+        const rutas = ancho === 320 ? ['/ventas/comprobantes', '/proveedores', '/ventas/presupuestos', ...RUTAS] : ['/productos', '/consultas']
+        for (const ruta of rutas) {
+          await paso(page, `axe en ${ruta} a ${ancho} px`, async () => {
+            await page.goto(ruta)
+            await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+            await page.waitForLoadState('networkidle')
+            expect(await violacionesAxe(page)).toEqual([])
+          })
+        }
       }
+      await page.setViewportSize({ width: 320, height: 900 })
       await paso(page, 'axe con el menú lateral abierto a 320 px', async () => {
         await page.goto('/')
         await expect(page.getByRole('heading', { level: 1 })).toBeVisible()

@@ -29,7 +29,7 @@ import { erroresFrontMatter, erroresYaml } from './docs-yaml.mjs';
 const aqui = import.meta.dirname;
 const ARCHIVOS = [...readdirSync(aqui).filter((f) => /^docs-.+\.mjs$/.test(f) && !f.includes('.test.')), 'verificar-documentacion-cambios.mjs'].sort();
 // IMPORTABLES: exportan funciones puras y el test los importa (y ejecuta) para barrerlas. No deben tener efectos al importarse.
-const IMPORTABLES = ['docs-check.mjs', 'docs-correspondencia.mjs', 'docs-enlaces.mjs', 'docs-lineas.mjs', 'docs-yaml.mjs'];
+const IMPORTABLES = ['docs-capturas-manual.mjs', 'docs-check.mjs', 'docs-correspondencia.mjs', 'docs-enlaces.mjs', 'docs-lineas.mjs', 'docs-yaml.mjs'];
 // NO_IMPORTAR: corren al importarse (escriben archivos, llaman a process.exit) o no exportan nada; jamás se importan.
 const NO_IMPORTAR = ['docs-drift.mjs', 'docs-inventario.mjs', 'docs-manifest.mjs', 'verificar-documentacion-cambios.mjs'];
 // Decisión por archivo SIN leer ni importar nada: 'importar' (IMPORTABLES) | null (NO_IMPORTAR) | [problema] (sin clasificar).

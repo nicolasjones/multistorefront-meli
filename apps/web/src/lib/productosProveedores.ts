@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { mensajeDeErrorBase } from './mensajeErrorBase'
 import { parsearImporte } from './productos'
 
-// Varios proveedores por producto, con uno principal (MSF-530, migración 20270509000100). El proveedor principal sigue
+// Varios proveedores por producto, con uno principal (MSF-530, migración 20270511000100). El proveedor principal sigue
 // siendo el selector «Proveedor» del formulario del producto (espejo en `productos.proveedor_id`); acá se administran
 // todos los vínculos con su código y su costo. La autoridad es la base: las RPC validan rol, organización y datos.
 

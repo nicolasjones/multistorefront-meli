@@ -44,6 +44,8 @@ export type Deps = {
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  // Sin esto el navegador (el panel) no puede leer el Retry-After del 429 de otro origen.
+  'Access-Control-Expose-Headers': 'Retry-After',
 }
 
 function jsonResponse(body: unknown, status: number, extra: Record<string, string> = {}) {

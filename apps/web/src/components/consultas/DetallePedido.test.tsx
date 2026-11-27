@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   crearPresupuesto: vi.fn(), navegar: vi.fn(),
 }))
 
+vi.mock('../../hooks/useOpcionesEstadoConsulta', () => ({ useOpcionesEstadoConsulta: () => ({ opciones: null, hayError: false }) }))
 vi.mock('../../hooks/useRespuestasRapidas', () => ({ useRespuestasRapidas: () => ({ respuestas: [], isLoading: false, isError: false, refetch: vi.fn() }) }))
 vi.mock('../../hooks/useConsultas', () => ({ useResponsablesConsultas: () => ({ responsables: [], isLoading: false, isError: false }) }))
 vi.mock('../../hooks/useItemsConsulta', () => ({ useItemsConsulta: mocks.useItemsConsulta }))

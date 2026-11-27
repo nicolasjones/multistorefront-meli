@@ -2,6 +2,7 @@
 // Corre con `node --test` (`pnpm test:edge:invitar-cliente`); el handler no importa nada de Deno ni de Supabase.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 import { manejar, type Deps } from './handler.ts'
 
 const CLIENTE = 'c5000000-0000-0000-0000-000000000001'
@@ -235,5 +236,29 @@ describe('invitar-cliente · entrada', () => {
     assert.equal((await manejar(pedido({}, 'valido', 'GET'), deps)).status, 405)
     assert.equal((await manejar(pedido({ cliente_id: 'no-uuid', empresa_id: EMPRESA }), deps)).status, 400)
     assert.equal((await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA, accion: 'borrar' }), deps)).status, 400)
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  it('un fallo del registro de actividad deja el código y no el mensaje', async () => {
+    const { deps } = montar({ preparar: { correo: 'viejo@example.com', dominio: 'sanjavucho.ejemplo.com', auth_user_id: 'auth-1' }, cuentas: [{ empresa_id: EMPRESA, estado: 'activa' }] })
+    const base = deps.caller
+    deps.caller = (jwt) => {
+      const cliente = base(jwt)
+      return { rpc: async (nombre: string, args: Record<string, unknown>) => (nombre === 'registrar_restablecimiento_cuenta_cliente' ? { data: null, error: ERROR_BASE_HOSTIL } : cliente.rpc(nombre, args)) }
+    }
+    const { resultado, lineas } = await capturarLog(() => manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA, accion: 'restablecer' }), deps))
+    assert.equal(resultado.status, 200)
+    assert.equal(lineas.length, 1)
+    assert.match(lineas[0], new RegExp(`^invitar-cliente: no se registró el restablecimiento ${CLIENTE} ${EMPRESA} 42501 `))
+    assert.doesNotMatch(lineas[0], /sk-secreta|db\.example\.com/)
+  })
+
+  it('si falla el borrado del usuario huérfano deja solo el nombre y el código del error de Auth', async () => {
+    const { deps } = montar({ vincularError: { code: '22023', message: 'x' } })
+    deps.admin.auth.admin.deleteUser = async () => ({ data: null, error: errorHostil() })
+    const { resultado, lineas } = await capturarLog(() => manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA }), deps))
+    assert.equal(resultado.status, 409)
+    assert.deepEqual(lineas, ['invitar-cliente: usuario huérfano tras vincular_cuenta_cliente auth-nuevo Error'])
   })
 })

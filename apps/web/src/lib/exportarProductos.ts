@@ -79,6 +79,7 @@ export function filtrosExportacion(consulta: ConsultaProductos, todos: boolean):
     disponibilidad: consulta.disponibilidad,
     // Las variantes ya expandidas que usa el listado: «Lo filtrado (N)» baja lo mismo que se ve (FR-202).
     compatible: consulta.compatibles,
+    ...(consulta.stockBajo ? { stock_bajo: true } : {}),
   }
 }
 

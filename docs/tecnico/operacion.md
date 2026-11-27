@@ -74,7 +74,7 @@ sources:
   la siguiente corrida. No hay reenvío manual desde la UI.
 - Listas: `dominio.estados_consulta` se administra en `/configuracion/listas`; `dominio.motivos_movimiento`
   es la misma tabla de `/stock/motivos`. La pantalla no borra: desactiva.
-- **Pendiente:** conectar `estados_consulta` con la bandeja de Consultas (hoy usa tres estados fijos) y elegir
+- `estados_consulta` está conectada a la bandeja de Consultas (MSF-595). **Pendiente:** elegir
   proveedor/remitente de correo (SPF/DKIM). Detalle: [Avisos y listas](avisos-y-listas.md).
 
 ## Avisos de consultas

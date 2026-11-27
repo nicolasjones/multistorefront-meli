@@ -36,36 +36,40 @@ Los motivos son **la misma tabla** que edita `/stock/motivos`: el editor (`Panel
   cosmético (no hay reordenamiento ni se usa como clave) y se aceptó a propósito.
 
 - **Estados de sistema** (migración `20270507000400`, columna `es_sistema`): un estado que el flujo de la
-  consulta necesita (p. ej. el de la acción «Cerrar») no se desactiva, renombra ni borra. La guarda está en la
+  consulta necesita no se desactiva, renombra ni borra. La guarda está en la
   base (trigger `estados_consulta_proteger_sistema`, error `23514` con mensaje en castellano que la pantalla
   muestra tal cual) y en la UI (botones deshabilitados con la explicación «Es un estado de sistema: lo
-  necesita el cierre de las consultas…»). Solo una migración marca un estado como de sistema: la guarda frena a quien usa la app
+  necesita el flujo de las consultas…»). Solo una migración marca un estado como de sistema: la guarda frena a quien usa la app
   (`authenticated`/`anon`), pero `service_role` y las funciones `security definer` SÍ pueden marcar o desmarcar
   `es_sistema` y deben hacerlo únicamente desde migraciones. Borrar una organización arrastra sus estados en
-  cascada, también los de sistema. **Hoy no hay ninguno marcado**: las consultas siguen con sus tres estados
-  fijos (Nueva, En curso, Resuelta) y la lista no se siembra; el primer estado de sistema lo marca la
-  migración de la funcionalidad que lo use. **Tarea para F-CFG-01:** esa migración deberá sembrar el estado de
-  cierre (con `es_sistema = true`) para cada organización y para las que se creen después. Pruebas: `listas_configurables.test.sql` y `listas.test.tsx`.
+  cascada, también los de sistema. Desde la migración `20270510000000` **los tres estados de base (Nueva, En curso y
+  Resuelta) son de sistema** en toda organización (ver la sección siguiente). Pruebas: `listas_configurables.test.sql` y `listas.test.tsx`.
 
-## Estados configurables y `consultas.estado` (MSF-595, pendiente de decisión de producto)
+## Estados configurables y `consultas.estado` (MSF-595)
 
-Hallazgo confirmado, **no es un defecto de código sino una decisión abierta**: `dominio.consultas.estado` tiene un
-check `('nueva', 'en_curso', 'resuelta')` y `public.actualizar_consulta` solo admite esos tres; `dominio.estados_consulta`
-(crear, renombrar, desactivar) **no está conectada** a la consulta, por lo que un estado nuevo como «Descartada» se
-puede crear pero ninguna consulta puede quedar en él. Es lo que dice la spec (Decisión abierta 4 y 7: «si los estados
-fueran fijos en código, se resuelve con el Administrador antes de seguir») y `docs/consultas.md` («tres estados fijos»);
-nadie confirmó el modelo definitivo.
+Los estados de la lista **sí son los que usa una consulta**. Decisión de producto (2026-11-26, delegada): el
+Administrador puede agregar estados y una consulta puede quedar en cualquier estado activo de su organización. Esto
+revierte la decisión previa de dejar los tres estados fijos que figura en `decisiones-2026-11-17.md`.
 
-Conectarla no es una corrección menor: obliga a reemplazar el check por una referencia a la lista (FK compuesta
-`(estado_id, organizacion_id)`), sembrar los tres estados como de sistema por organización (`es_sistema`), migrar los
-datos, y adaptar la bandeja, sus filtros y badges, el resumen, los avisos y las exportaciones, todo contra un
-prototipo (`Consultas.dc.html`) que dibuja los tres estados fijos.
-
-**Decisión que falta**: ¿el Administrador puede agregar estados que una consulta efectivamente use? **Propuesta**:
-sí, con los tres actuales sembrados como estados de sistema (no desactivables ni renombrables), y los nuevos
-reciben un «grupo» (abierta / cerrada) para que filtros, contadores y el botón «Cerrar» sigan funcionando. Si la
-respuesta es no, se retira el panel «Estados de consulta» de Listas configurables para no ofrecer algo sin efecto.
-Hasta entonces no se toca código.
+- **Clave estable.** `dominio.estados_consulta.clave` es el valor que guarda `dominio.consultas.estado`. Los tres de
+  base conservan sus claves históricas (`nueva`, `en_curso`, `resuelta`); un estado creado por el Administrador usa su
+  propio id como clave, así renombrarlo no deja consultas huérfanas. La clave no cambia nunca (el trigger lo impide a
+  quien usa la app). No hay clave foránea: el check cerrado de `consultas.estado` se reemplazó por una guarda de formato
+  y la validez la decide `actualizar_consulta` (se evita una FK que complicaría el borrado en cascada por organización y los
+  tests de las demás áreas).
+- **Siembra.** Cada organización, existente o nueva (trigger `organizaciones_sembrar_estados_consulta`), tiene los tres de base
+  como `es_sistema`: no se desactivan ni se renombran. Si una organización ya había creado un estado con el mismo nombre
+  que uno de base, esa fila se adopta (se reactiva y se marca de sistema) sin duplicar.
+- **Elegir un estado.** `actualizar_consulta` acepta cualquier estado **activo** de la organización. Un estado inexistente
+  responde `PT404` y uno desactivado `PT412` con `detail = estado` (el `PT412` sin `detail` sigue siendo el conflicto de
+  edición); el detalle de códigos está en [`errores-negocio-postgrest.md`](./errores-negocio-postgrest.md).
+- **Un estado que luego se desactiva.** Las consultas que ya estaban en él siguen mostrándose con su nombre y se pueden
+  guardar sin cambiarlo (nota, responsable); no se puede elegir como destino desde otro estado.
+- **Pantalla.** La bandeja y el detalle leen la lista (`useOpcionesEstadoConsulta`): los filtros y el selector de estado ofrecen los
+  estados configurados; uno desactivado se sigue ofreciendo marcado «(desactivado)» porque puede tener consultas. El color del chip
+  es el de siempre para los tres de base y neutro para los propios. La acción «Responder» sigue pasando `nueva` a `en_curso`.
+- **Pruebas.** `estados_consulta_conectados.test.sql`, `listas_configurables.test.sql`, `consultas.test.sql`, `lib/consultas.test.ts`,
+  `DetalleConsulta.test.tsx` y `pages/consultas/list.test.tsx`.
 
 ## Empresa activa
 

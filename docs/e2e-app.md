@@ -275,8 +275,9 @@ queda como paso previo al merge (T024/T026), no como evidencia ya obtenida.
   servidor de `vite preview` no los sirve ni tiene por qué. Si arrancaste excluyendo `edge-runtime`,
   Kong responde 500 (`supabase_edge_runtime_<proyecto>` no resuelve): es lo ESPERADO sin las funciones servidas, no un bug del producto. Se corre con las funciones servidas:
   `pnpm exec supabase functions serve --no-verify-jwt` en otra terminal.
-- `e2e/panel-sin-desborde.e2e.ts`: `/productos`, `/clientes` y `/consultas` sin scroll horizontal de la página a 320, 375 y
-  1280 px, y axe a 320 px en esos listados, comprobantes, proveedores, presupuestos y con el menú lateral abierto.
+- `e2e/panel-sin-desborde.e2e.ts`: `/productos`, `/clientes` y `/consultas` sin scroll horizontal de la página a 320, 375, 768,
+  1280 y 1440 px, y axe a 320 px en esos listados, comprobantes, proveedores, presupuestos y con el menú lateral abierto, y a 768 y 1440 px
+  en productos y consultas (MSF-595/MSF-611).
   Con sesión de administrador sembrada con la API admin; no deja datos.
 - Los specs de la tienda (`tienda-*`) cambian el estado de la empresa (p. ej. `tienda-seo` la desactiva un momento) y
   comparten las dos tiendas del seed: correrlos con `--workers=1`.
@@ -935,6 +936,14 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     350 y 30.
   - Dos corridas previas (`43728936584`, `43730883232`) fallaron por infraestructura (el stack de la ranura compartida se pisó
     con otro run concurrente), no por los specs.
+- **Estado de MSF-966, MSF-665 y MSF-773 en el lote 96 (sin stack de Supabase en esta máquina: nada de esto se ejecutó).**
+  `productos-create-permisos` y `notificaciones` ya no dependen de grants a `service_role`: siembran y limpian lo que no tiene grant
+  (`conexiones`, `avisos_pendientes`, `procesos_masivos`, etc.) con `sql()` de `soporte/fixtures.ts` (conexión admin de siembra,
+  el patrón del repo) y no se amplió ningún grant; `pnpm e2e:escritura:check` pasa y `playwright test --list` carga los tres specs
+  (`notificaciones`, `productos-create-permisos`, `ingresos-mercaderia-catalogo`). Falta la corrida en el job de sesión para dejar
+  evidencia. El aviso de truncado del filtro de empresas del historial de ingresos ya existe (`HistorialIngresos.tsx`: pide 501 y avisa
+  «Se muestran las primeras 500 tiendas; hay más.») con su prueba unitaria `HistorialIngresos.test.tsx`; el E2E del catálogo con 501
+  productos reales (`ingresos-mercaderia-catalogo.e2e.ts`) queda listo y se corre con `gh workflow run validate.yml --ref <rama> -f e2e_sesion=true -f e2e_archivos=ingresos-mercaderia-catalogo.e2e.ts` (hay que pasar `e2e_archivos`: por defecto el job de sesión solo corre `permisos-por-empresa.e2e.ts`).
 - **Pendientes sin ejecutar (MSF-665).** Siguen sin corrida con evidencia los recorridos «Pendiente» de la tabla de
   cobertura: usuarios (editar/suspender/reactivar), matriz de permisos, Empresas, editar la organización e ingreso con sesión y Catálogo (crear, editar, fotos y desactivar, SC-001/SC-006: no hay spec, falta el fixture por rol); Actividad con filtros ya tiene spec, MSF-879. Los de Inicio
   (tres roles y cambio de empresa) y Clientes (alta, búsqueda y exportación, SC-001) ya tienen su spec con corrida en

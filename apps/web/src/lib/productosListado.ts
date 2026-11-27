@@ -48,6 +48,8 @@ export type ConsultaProductos = {
   // Filtro «Compatible con» (F-CAT-09, FR-003): en el estado de la pantalla son las claves elegidas
   // (en minúsculas); en la consulta al servidor, todas las variantes de mayúsculas de esos valores.
   compatibles: string[]
+  // Filtro «Stock bajo» (MSF-611): solo productos cuyo disponible está en o bajo el mínimo (sin llegar a cero), en el servidor.
+  stockBajo: boolean
 }
 
 export const CONSULTA_INICIAL: ConsultaProductos = {
@@ -60,6 +62,7 @@ export const CONSULTA_INICIAL: ConsultaProductos = {
   categoriaId: null,
   disponibilidad: null,
   compatibles: [],
+  stockBajo: false,
 }
 
 const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad, codigo_barras, compatible_con'
@@ -86,7 +89,7 @@ export function codigoBarrasBuscado(texto: string): string | null {
 }
 
 export function hayFiltrosActivos(consulta: ConsultaProductos): boolean {
-  return consulta.texto.trim() !== '' || consulta.estado !== 'todos' || consulta.empresaId !== null || consulta.categoriaId !== null || consulta.disponibilidad !== null || consulta.compatibles.length > 0
+  return consulta.texto.trim() !== '' || consulta.estado !== 'todos' || consulta.empresaId !== null || consulta.categoriaId !== null || consulta.disponibilidad !== null || consulta.compatibles.length > 0 || consulta.stockBajo
 }
 
 // F-CAT-09 (FR-003): los valores de «Compatible con» se comparan sin distinguir mayúsculas. La base guarda
@@ -144,6 +147,8 @@ export async function consultarProductos(
   if (consulta.categoriaId) peticion = peticion.contains('categoria_ids', [consulta.categoriaId])
   // Se resuelve en el servidor sobre la columna `disponibilidad` de la vista.
   if (consulta.disponibilidad) peticion = peticion.eq('disponibilidad', consulta.disponibilidad)
+  // Misma regla que la pantalla Stock (`public.stock_estados`), calculada en la vista del listado.
+  if (consulta.stockBajo) peticion = peticion.eq('estado_stock', 'stock_bajo')
   // Alguno de los valores elegidos (OR), en el servidor.
   if (consulta.compatibles.length > 0) peticion = peticion.overlaps('compatible_con', literalArrayPostgres(consulta.compatibles))
   const desde = (consulta.pagina - 1) * TAMANO_PAGINA_PRODUCTOS

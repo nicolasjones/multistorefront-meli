@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { mensajeDeErrorBase } from './mensajeErrorBase'
 
-// Ventas por lista de precios (MSF-975, migración 20270509000500): `public.ventas_por_lista_precios` agrupa las líneas facturadas del
+// Ventas por lista de precios (MSF-975, migración 20270511000500): `public.ventas_por_lista_precios` agrupa las líneas facturadas del
 // período por la lista que fijó su precio (snapshot de la línea). Acá solo se lee y se muestra; el cálculo vive en la base.
 
 export type FilaVentasPorLista = {

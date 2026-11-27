@@ -4,6 +4,7 @@
 // Orden: (1) cuenta la consulta por IP hasheada (toda consulta, válida o no) y corta con 429 antes de tocar las
 // reparaciones; (2) valida el formato del token; (3) consulta. Token mal formado o desconocido → 404 uniforme.
 import { createHmac } from 'node:crypto'
+import { registrarErrorDeBase } from '../_shared/log-seguro.ts'
 
 export const VENTANA_SEG = 600
 export const LIMITE_CONSULTAS = 30
@@ -18,7 +19,7 @@ const IP_FIJA = 'sin-ip'
 // por entorno con `SEGUIMIENTO_SALTOS_PROXY` sin tocar el código.
 export const SALTOS_PROXY_CONFIABLES = 1
 
-const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
+const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Expose-Headers': 'Retry-After' }
 const seguridadHeaders = { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Robots-Tag': 'noindex' }
 const response = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, ...seguridadHeaders, 'Content-Type': 'application/json', ...extra } })
@@ -95,7 +96,7 @@ export async function manejar(req: Request, { sal, saltosProxy, datos }: Deps): 
   const ipHash = createHmac('sha256', sal).update(ipDelPedido(req, saltos)).digest('hex')
   const limite = await datos.registrarConsulta(ipHash, VENTANA_SEG, LIMITE_CONSULTAS)
   if (limite.error || !limite.data) {
-    console.error('consultar-estado-reparacion: no se pudo registrar la consulta', limite.error?.message)
+    registrarErrorDeBase('consultar-estado-reparacion: no se pudo registrar la consulta', limite.error)
     return response({ error: 'error_interno' }, 500)
   }
   if (!limite.data.permitido) {
@@ -108,7 +109,7 @@ export async function manejar(req: Request, { sal, saltosProxy, datos }: Deps): 
 
   const { data, error } = await datos.estadoPublico(token)
   if (error) {
-    console.error('consultar-estado-reparacion: no se pudo consultar', error.message)
+    registrarErrorDeBase('consultar-estado-reparacion: no se pudo consultar', error)
     return response({ error: 'error_interno' }, 500)
   }
   if (!data) return response({ error: 'no_encontrada' }, 404)

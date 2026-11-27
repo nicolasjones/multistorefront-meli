@@ -48,7 +48,7 @@ En el menú de la izquierda: **Catálogo → Productos** y **Catálogo → Categ
 | **Ordenar por** | Producto, SKU o Estado. El botón **Ascendente / Descendente** invierte el orden. |
 | **Limpiar filtros** | Aparece cuando hay algún filtro puesto y vuelve al listado completo. |
 
-Los botones **Stock bajo** y **Sin vincular a ML** se ven apagados: por ahora no se pueden usar.
+El botón **Stock bajo** deja solo los productos que están por debajo del mínimo que configuraste (sin llegar a cero; los que ya no tienen stock se ven con el filtro de disponibilidad). Solo lo ves si tu rol tiene acceso a Stock. Se puede combinar con la búsqueda y con los demás filtros.
 
 ![Listado de Productos con la palabra «joystick» escrita en el buscador y los productos que coinciden](img/catalogo-productos/01-busqueda.png)
 

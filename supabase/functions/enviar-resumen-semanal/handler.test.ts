@@ -14,7 +14,8 @@ import {
   periodoTexto,
   type ContenidoResumen,
 } from './contenido.ts'
-import { CORREO_VALIDO, MAX_CUERPO_BYTES, MAX_INTENTOS, manejar, mensajeDeError, procesarOrganizacion, type Deps, type Generado } from './handler.ts'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
+import { CORREO_VALIDO, MAX_CUERPO_BYTES, MAX_INTENTOS, manejar, procesarOrganizacion, type Deps, type Generado } from './handler.ts'
 
 const ORG = '11111111-1111-4111-8111-111111111111'
 const RESUMEN = '22222222-2222-4222-8222-222222222222'
@@ -301,11 +302,46 @@ describe('tope del cuerpo del pedido', () => {
   })
 })
 
-describe('mensajeDeError', () => {
-  it('quita correos, IP y hosts y acota el largo', () => {
-    const texto = mensajeDeError(new Error(`falló ana@example.com en 10.1.2.3 y smtp.example.com ${'x'.repeat(500)}`))
-    assert.doesNotMatch(texto, /ana@|10\.1\.2\.3|smtp\.example/)
-    assert.ok(texto.length <= 300)
-    assert.equal(mensajeDeError(new Error('')), 'Error de envío sin detalle')
+describe('logs sin texto crudo (lote 92)', () => {
+  const hostil = ERROR_BASE_HOSTIL
+
+  it('un fallo de SMTP deja nombre y código, sin mensaje, cause, stack ni URL', async () => {
+    const { deps } = montar({ generado: [generado()] })
+    deps.enviar = async () => { throw errorHostil() }
+    const { resultado, lineas } = await capturarLog(() => procesarOrganizacion(ORG, deps))
+    assert.equal(resultado, 'fallido')
+    assert.deepEqual(lineas, [`enviar-resumen-semanal: falló el envío ${RESUMEN} Error`])
+  })
+
+  it('un error de la base al listar, generar y cerrar deja el código y no el mensaje', async () => {
+    const { deps } = montar({ organizaciones: [ORG], generado: [generado()] })
+    deps.datos.organizaciones = async () => ({ data: null, error: hostil })
+    const listar = await capturarLog(() => manejar(pedido({ barrer: true }), deps))
+    assert.equal(listar.resultado.status, 502)
+    assert.equal(listar.lineas.length, 1)
+    assert.match(listar.lineas[0], /^enviar-resumen-semanal: no se pudo listar las organizaciones 42501 /)
+    assert.doesNotMatch(listar.lineas[0], /sk-secreta|db\.example\.com/)
+
+    deps.datos.organizaciones = async () => ({ data: [ORG], error: null })
+    deps.datos.generar = async () => ({ data: null, error: hostil })
+    const generar = await capturarLog(() => manejar(pedido({ barrer: true }), deps))
+    assert.equal(generar.resultado.status, 502)
+    assert.deepEqual(generar.lineas, [`enviar-resumen-semanal: organización con error ${ORG} Error 42501`])
+
+    deps.datos.generar = async () => ({ data: [generado()], error: null })
+    deps.datos.cerrar = async () => ({ data: null, error: hostil })
+    const cerrar = await capturarLog(() => procesarOrganizacion(ORG, deps))
+    assert.equal(cerrar.resultado, 'enviado')
+    assert.equal(cerrar.lineas.length, 1)
+    assert.match(cerrar.lineas[0], new RegExp(`^enviar-resumen-semanal: el correo salió pero no se pudo cerrar el resumen ${RESUMEN} 42501 `))
+    assert.doesNotMatch(cerrar.lineas[0], /sk-secreta|db\.example\.com/)
+  })
+
+  it('un error inesperado en el pedido individual deja nombre y código', async () => {
+    const { deps } = montar()
+    deps.datos.generar = async () => { throw errorHostil() }
+    const { resultado, lineas } = await capturarLog(() => manejar(pedido({ organizacion_id: ORG }), deps))
+    assert.equal(resultado.status, 502)
+    assert.deepEqual(lineas, ['enviar-resumen-semanal: error inesperado Error'])
   })
 })

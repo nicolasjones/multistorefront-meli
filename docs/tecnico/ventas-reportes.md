@@ -606,3 +606,7 @@ período y canal». Las dos vistas no guardan datos.
 - **[API y RPC](api.md#ventas-reportes-basicos-msf-338)** — los contratos públicos.
 - **[Operar Superset](../operar-superset.md)** — importar y publicar los tableros.
 - **[Rentabilidad](rentabilidad.md)** — el mismo esquema `analitica` y el mismo embebido (MSF-120).
+
+## Pestaña «Ventas por lista de precios» (lote 93)
+
+`pages/ventas-reportes/VentasPorLista.tsx` lee la RPC `ventas_por_lista_precios` (sin Superset). Contrato y alcance (sin margen) en [Ventas · Reportes](../ventas-reportes.md#pestana-ventas-por-lista-de-precios-msf-975-lote-93) y en [Listas de precios](../listas-de-precios.md).

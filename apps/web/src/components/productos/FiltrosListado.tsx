@@ -1,4 +1,4 @@
-import { Autocomplete, Box, Button, Chip, InputAdornment, Stack, TextField, Tooltip } from '@mui/material'
+import { Autocomplete, Box, Button, Chip, InputAdornment, Stack, TextField } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import { BarraHerramientas } from '../pagina/BarraHerramientas'
 import { FiltroEmpresa } from '../pagina/FiltroEmpresa'
@@ -6,12 +6,6 @@ import { DISPONIBILIDADES, type Disponibilidad } from '../../lib/productos'
 import { opcionesCategoriaProducto, type Categoria } from '../../lib/categorias'
 import { LARGO_MAXIMO_BUSQUEDA, type GrupoCompatible, type ColumnaOrdenProducto, type DireccionOrden, type FiltroEstadoProducto } from '../../lib/productosListado'
 import { SOLO_LECTORES } from '../base/solo-lectores'
-
-// Filtros que llegan con otras épicas (FR-004): se ven, pero deshabilitados y con su explicación.
-const FILTROS_PENDIENTES: ReadonlyArray<{ etiqueta: string; motivo: string }> = [
-  { etiqueta: 'Stock bajo', motivo: 'El listado de productos todavía no trae el estado de stock. Usá el filtro «Stock bajo» de la pantalla Stock.' },
-  { etiqueta: 'Sin vincular a ML', motivo: 'Sin datos todavía: la vinculación de productos con Mercado Libre no está integrada.' },
-]
 
 const OPCIONES_ORDEN: ReadonlyArray<{ valor: ColumnaOrdenProducto; etiqueta: string }> = [
   { valor: 'nombre', etiqueta: 'Producto' },
@@ -29,6 +23,9 @@ type FiltrosListadoProps = {
   columnaOrden: ColumnaOrdenProducto
   direccion: DireccionOrden
   onOrden: (columna: ColumnaOrdenProducto, direccion: DireccionOrden) => void
+  // Filtro «Stock bajo» (MSF-611): solo se ofrece a quien ve el stock (la pantalla pasa `onStockBajo` solo con acceso a Stock).
+  stockBajo?: boolean
+  onStockBajo?: (stockBajo: boolean) => void
   hayFiltros: boolean
   onLimpiar: () => void
   contador?: string
@@ -54,7 +51,7 @@ type FiltrosListadoProps = {
 
 // Barra de búsqueda y filtros del listado de productos. Solo presenta: el estado y la espera de
 // tipeo viven en la pantalla (el texto sube sin demora; ella decide cuándo consultar).
-export function FiltrosListado({ texto, onTexto, onBuscar, estado, onEstado, columnaOrden, direccion, onOrden, hayFiltros, onLimpiar, contador, ayuda, empresas = [], empresaId = null, onEmpresa, errorEmpresas = false, categorias = [], categoriaId = null, onCategoria, disponibilidad = null, onDisponibilidad, grupoCompatibles = [], compatibles = [], onCompatibles, errorCompatibles = false }: FiltrosListadoProps) {
+export function FiltrosListado({ texto, onTexto, onBuscar, estado, onEstado, columnaOrden, direccion, onOrden, stockBajo = false, onStockBajo, hayFiltros, onLimpiar, contador, ayuda, empresas = [], empresaId = null, onEmpresa, errorEmpresas = false, categorias = [], categoriaId = null, onCategoria, disponibilidad = null, onDisponibilidad, grupoCompatibles = [], compatibles = [], onCompatibles, errorCompatibles = false }: FiltrosListadoProps) {
   const opcionesCategoria = opcionesCategoriaProducto(categorias)
   return (
     <BarraHerramientas contador={contador} ayuda={ayuda}>
@@ -92,13 +89,16 @@ export function FiltrosListado({ texto, onTexto, onBuscar, estado, onEstado, col
           aria-pressed={estado === 'inactivos'}
           onClick={() => onEstado('inactivos')}
         />
-        {FILTROS_PENDIENTES.map(({ etiqueta, motivo }) => (
-          <Tooltip key={etiqueta} title={motivo}>
-            <span>
-              <Chip label={etiqueta} variant="outlined" clickable disabled aria-label={`${etiqueta}. ${motivo}`} />
-            </span>
-          </Tooltip>
-        ))}
+        {onStockBajo ? (
+          <Chip
+            label="Stock bajo"
+            clickable
+            color={stockBajo ? 'primary' : 'default'}
+            variant={stockBajo ? 'filled' : 'outlined'}
+            aria-pressed={stockBajo}
+            onClick={() => onStockBajo(!stockBajo)}
+          />
+        ) : null}
       </Stack>
       {onEmpresa ? (
         <FiltroEmpresa

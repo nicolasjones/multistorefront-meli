@@ -19,7 +19,7 @@ Se implementó con la opción más simple y compatible con los vínculos proveed
 Compatibilidad: `productos.proveedor_id` y `codigo_proveedor` pasan a ser el **espejo del principal**; las firmas de `crear_producto` y
 `actualizar_producto`, la exportación, los reportes y `productos_de_proveedor` no cambian de contrato. El camino viejo conserva su
 semántica: elegir otro proveedor reemplaza al principal anterior; para conservarlo como secundario se usa «Marcar como principal». Detalle,
-RPC y reversión en `docs/proveedores.md` y en `supabase/migrations/20270509000100_productos_proveedores.sql`.
+RPC y reversión en `docs/proveedores.md` y en `supabase/migrations/20270511000100_productos_proveedores.sql`.
 
 ## Summary
 
@@ -29,7 +29,7 @@ Aplicado en el lote 93 (ver «Resolución» arriba). MSF-530 era el seguimiento 
 
 | File | Change | Notes |
 |------|--------|-------|
-| `supabase/migrations/20270509000100_productos_proveedores.sql` | tabla `dominio.productos_proveedores`, disparadores, relleno y RPC | Aditiva; las columnas viejas se conservan |
+| `supabase/migrations/20270511000100_productos_proveedores.sql` | tabla `dominio.productos_proveedores`, disparadores, relleno y RPC | Aditiva; las columnas viejas se conservan |
 | `apps/web/src/components/productos/ProveedoresDelProducto.tsx`, `apps/web/src/lib/productosProveedores.ts` | sección «Proveedores del producto» | Montada en la edición del producto |
 | `supabase/tests/database/lote93_productos_proveedores.test.sql` y Vitest de la sección y la librería | pruebas | Incluye axe a 320, 768 y 1440 px |
 
@@ -47,5 +47,5 @@ Aplicado en el lote 93 (ver «Resolución» arriba). MSF-530 era el seguimiento 
 
 ## Follow-ups
 
-- Ninguno abierto: las tres preguntas quedaron resueltas (ver «Resolución (lote 93)») y la spec nueva no se abrió; la decisión y el diseño viven en `docs/proveedores.md` y en la migración `20270509000100_productos_proveedores.sql`.
+- Ninguno abierto: las tres preguntas quedaron resueltas (ver «Resolución (lote 93)») y la spec nueva no se abrió; la decisión y el diseño viven en `docs/proveedores.md` y en la migración `20270511000100_productos_proveedores.sql`.
 - Costo del vínculo y costo efectivo: la sincronía entre `producto_costos` y el principal es simétrica (alta, cambio y borrado) y exige edición en Rentabilidad para cambiar el costo efectivo.

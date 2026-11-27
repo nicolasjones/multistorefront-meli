@@ -19,8 +19,8 @@ sources:
   - supabase/migrations/20261018190500_proveedores_basico.sql
   - supabase/migrations/20261018190600_productos_proveedor_rpc.sql
   - supabase/migrations/20261018190700_productos_de_proveedor.sql
-  - supabase/migrations/20270509000000_proveedores_condiciones_compra.sql
-  - supabase/migrations/20270509000100_productos_proveedores.sql
+  - supabase/migrations/20270511000000_proveedores_condiciones_compra.sql
+  - supabase/migrations/20270511000100_productos_proveedores.sql
   - apps/web/src/lib/condicionesCompra.ts
   - apps/web/src/lib/productosProveedores.ts
 ---
@@ -291,8 +291,8 @@ compatibilidad del espejo `productos.proveedor_id` y costo efectivo) está en [P
 
 | Migración | Qué hace |
 |---|---|
-| `20270509000000_proveedores_condiciones_compra.sql` | Tabla `dominio.proveedores_condiciones_compra` (una fila por proveedor) y las RPC de lectura y guardado con control de concurrencia. |
-| `20270509000100_productos_proveedores.sql` | Tabla `dominio.productos_proveedores` (varios proveedores, uno principal, código y costo por vínculo), disparadores de sincronización con `productos` y `producto_costos`, RPC para listar, asignar, quitar y marcar principal, y `productos_de_proveedor` leyendo los vínculos. |
+| `20270511000000_proveedores_condiciones_compra.sql` | Tabla `dominio.proveedores_condiciones_compra` (una fila por proveedor) y las RPC de lectura y guardado con control de concurrencia. |
+| `20270511000100_productos_proveedores.sql` | Tabla `dominio.productos_proveedores` (varios proveedores, uno principal, código y costo por vínculo), disparadores de sincronización con `productos` y `producto_costos`, RPC para listar, asignar, quitar y marcar principal, y `productos_de_proveedor` leyendo los vínculos. |
 
 Pantallas: `CondicionesDeCompra.tsx` (ficha del proveedor) y `ProveedoresDelProducto.tsx` (edición del producto), con sus librerías
 `lib/condicionesCompra.ts` y `lib/productosProveedores.ts`. Pruebas: pgTAP `lote93_proveedores_condiciones_compra` y

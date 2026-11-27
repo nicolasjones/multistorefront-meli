@@ -200,6 +200,17 @@ test('rentabilidad: pestañas y umbral', async ({ page }) => {
   await page.waitForTimeout(600)
   if (await page.getByRole('dialog').count()) { await capturar(page.getByRole('dialog'), G4, '03-umbral'); await page.getByRole('button', { name: 'Cancelar' }).click() }
 })
+// MSF-570: la pestaña Comparativo (F-REN-06) no está en el prototipo; se captura a 320, 768 y 1440 px para la revisión visual
+// lado a lado con el sistema de diseño. Los PNG `09-comparativo-<ancho>` son de revisión: el manual no los enlaza.
+test('rentabilidad: Comparativo en 320, 768 y 1440 px', async ({ page }) => {
+  await panel(page)
+  for (const ancho of [320, 768, 1440]) {
+    await page.setViewportSize({ width: ancho, height: 900 })
+    await irA(page, '/rentabilidad/comparativo')
+    await page.waitForLoadState('networkidle'); await page.waitForTimeout(1000)
+    await capturar(page, G4, `09-comparativo-${ancho}`)
+  }
+})
 test('rentabilidad: rol sin acceso', async ({ page }) => {
   await panel(page, 'operador')
   await page.goto('/rentabilidad'); await page.waitForLoadState('networkidle'); await page.waitForTimeout(1000)
