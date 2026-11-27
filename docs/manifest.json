@@ -1803,15 +1803,15 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "ebc1a0f55d1a317aa41cd9671806aec73e0ea86e7309f3ffc38306f835884586",
-      "sourceHash": "4908f1f9936e16519ce69f07f7385acf8f9c3ca0468fcc419d319562d2ff47a1",
-      "sourceAt": "7c49050f",
+      "pageHash": "b79ba7a47d4d14dbe00fc96b6889a7d219f9981c71c8a876e75ed67ff6aa56f8",
+      "sourceHash": "d08d89dc138ba70f65d3d8ff8de13630dd6622638368f4701ec81117bc2690ea",
+      "sourceAt": "7c49050f1",
       "sources": [
         "apps/web/src/pages/actividad/list.tsx",
         "apps/web/src/lib/actividad.ts"
       ],
       "owner": "producto",
-      "commit": "7c49050f"
+      "commit": "7c49050f1"
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
