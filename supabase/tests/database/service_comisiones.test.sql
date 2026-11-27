@@ -72,6 +72,8 @@ begin
   set local role authenticated;
 end $$;
 
+-- `hoy` es el día de Buenos Aires: el de UTC (`current_date` del CI) solo difiere entre las 00:00 y las 03:00 UTC, por eso un mutante que lo
+-- cambie solo se distingue en esa franja (equivalente declarado fuera de ella; el cliente lo fija con fechas explícitas en comisiones.test.ts).
 create temp table datos as
   select
     (select id from dominio.modelos_equipo where organizacion_id = '11111111-1111-1111-1111-111111111111' and equipo = 'Nintendo Switch' and modelo = 'Estándar') as modelo_uno,
@@ -106,7 +108,7 @@ select is(
   (select count(*) from unnest(array[
     'private.comisiones_calculadas(uuid,date,date,uuid)', 'private.comisiones_detalle_json(uuid,uuid,date,date,boolean)',
     'private.nombre_de_tecnico(uuid)', 'private.validar_periodo_comisiones(date,date)',
-    'private.validar_reparto_comision()', 'private.congelar_reparto_comision()'
+    'private.validar_reparto_comision()', 'private.congelar_reparto_comision()', 'private.rellenar_reparto_comision()'
   ]) as f where has_function_privilege('anon', f::regprocedure, 'execute') or has_function_privilege('authenticated', f::regprocedure, 'execute'))::int,
   0, 'las funciones private de comisiones no son ejecutables por la API');
 select is(
@@ -782,6 +784,18 @@ select throws_ok(
   $$insert into dominio.reparacion_comision_historial (reparacion_id, entregada, antes, despues) values (gen_random_uuid(), false, '[]', '[]')$$,
   '42501', null, 'sin escritura directa en el historial');
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+-- Tienda accesible: un cambio de reparto en Mundo JC (R7); Administración y Consulta solo acceden a San Javucho.
+select lives_ok(
+  $$select public.guardar_reparto_comision((select id from reps where clave = 'r7'),
+    '[{"tecnico_id":"e1000000-0000-0000-0000-000000000008","porcentaje":100}]', 'Revisión de la otra tienda')$$,
+  'cambio de reparto en una entregada de otra tienda');
+select is((select count(*)::int from dominio.reparacion_comision_historial), 6, 'el Administrador (todas las tiendas) ve 6 filas del historial');
+select pg_temp.como('e1000000-0000-0000-0000-000000000004');
+select is((select count(*)::int from dominio.reparacion_comision_historial), 5,
+  'RLS: Administración tiene ver_comisiones pero solo San Javucho: ve 5 filas, no la de Mundo JC');
+select is((select count(*)::int from dominio.reparacion_comision_historial
+            where reparacion_id = (select id from reps where clave = 'r7')), 0, 'y ninguna de la reparación de la otra tienda');
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 select is(
   (select (public.comisiones_de_tecnico('e1000000-0000-0000-0000-000000000008', (select hoy - 30 from datos), (select hoy from datos))->>'total')::numeric),
   3450::numeric + 150::numeric, 'el cambio posterior recalcula: R3 del técnico Uno pasa de 900 a 1.050 (70 %)');
@@ -827,6 +841,38 @@ select is(
      public.comisiones_resumen((select hoy - 30 from datos), (select hoy from datos))->'tecnicos') t where t->>'tecnico_id' is null),
   'Técnico dado de baja', 'el resumen muestra «Técnico dado de baja» en vez de perder la comisión');
 reset role;
+
+-- ============================================================================
+-- Relleno de las reparaciones ya entregadas (lo que hace la migración 20270515010000 con datos previos)
+-- ============================================================================
+
+reset role;
+-- Una entregada con técnico y SIN reparto (como las que existían antes de la migración) y otra con un reparto personalizado que no
+-- incluye a su técnico asignado.
+insert into dominio.reparaciones (organizacion_id, empresa_id, numero, cliente_id, modelo_id, estado_id, tecnico_id, ingreso_en, entrega_real)
+values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 900, 'c5000000-0000-0000-0000-000000000001',
+        (select modelo_uno from datos), (select cierra_uno from datos), 'e1000000-0000-0000-0000-000000000008', (select hoy from datos), (select hoy from datos)),
+       ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 901, 'c5000000-0000-0000-0000-000000000001',
+        (select modelo_uno from datos), (select cierra_uno from datos), 'e1000000-0000-0000-0000-000000000008', (select hoy from datos), (select hoy from datos));
+insert into dominio.reparacion_comision_reparto (organizacion_id, reparacion_id, tecnico_id, porcentaje)
+select '11111111-1111-1111-1111-111111111111', id, 'e1000000-0000-0000-0000-000000000001', 100 from dominio.reparaciones where numero = 901;
+
+select is(private.rellenar_reparto_comision(), 1, 'el relleno crea el reparto solo de la entregada sin reparto');
+select is(
+  (select porcentaje::text || '@' || tecnico_id::text from dominio.reparacion_comision_reparto where reparacion_id = (select id from dominio.reparaciones where numero = 900)),
+  '100.00@e1000000-0000-0000-0000-000000000008', 'queda 100 % al técnico asignado');
+select is(
+  (select sum(porcentaje) from dominio.reparacion_comision_reparto where reparacion_id = (select id from dominio.reparaciones where numero = 901)),
+  100.00, 'un reparto personalizado sin el técnico asignado NO recibe una fila de más (la suma sigue en 100)');
+select is(private.rellenar_reparto_comision(), 0, 'es idempotente: la segunda pasada no crea nada');
+
+-- Regresión del error de la migración con datos previos: el relleno deja eventos diferidos y el `alter table` siguiente de la misma
+-- transacción fallaba con «pending trigger events». La función fuerza la comprobación al terminar, así que el orden ya no importa.
+delete from dominio.reparacion_comision_reparto where reparacion_id = (select id from dominio.reparaciones where numero = 900);
+select is(private.rellenar_reparto_comision(), 1, 'se vuelve a rellenar una entregada sin reparto');
+select lives_ok(
+  $$alter table dominio.reparacion_comision_reparto enable row level security$$,
+  'un alter table después del relleno, en la misma transacción, no falla con «pending trigger events»');
 
 -- ============================================================================
 -- Tope de 1.000 filas del detalle (`truncado`): fronteras 1.000 / 1.001 con reparaciones reales del técnico Uno

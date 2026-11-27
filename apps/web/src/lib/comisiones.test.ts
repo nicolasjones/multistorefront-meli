@@ -36,6 +36,8 @@ describe('período del mes', () => {
     expect(esMesValido('2026-12')).toBe(true)
   })
 
+  // UTC y Buenos Aires solo difieren de 00:00 a 03:00 UTC: por eso las pruebas usan instantes dentro de esa franja (un mutante a UTC solo
+  // sobrevive con instantes fuera de ella; es equivalente ahí).
   it('el mes actual es el de Buenos Aires, no el de UTC', () => {
     // 2026-12-01 02:30 UTC = 2026-11-30 23:30 en Buenos Aires.
     expect(mesActual(new Date('2026-12-01T02:30:00Z'))).toBe('2026-11')

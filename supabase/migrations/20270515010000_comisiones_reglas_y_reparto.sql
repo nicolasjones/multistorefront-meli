@@ -22,6 +22,7 @@
 -- `security definer`); `anon` sin privilegios. La suma 100 % se valida en SQL con un disparador de restricción diferido.
 --
 -- Migración aditiva e idempotente. Reversión (migración posterior; exportar antes los datos):
+--   drop function private.rellenar_reparto_comision();
 --   drop trigger if exists reparaciones_congelar_reparto on dominio.reparaciones;
 --   drop function private.congelar_reparto_comision();
 --   drop table dominio.reparacion_comision_historial;
@@ -202,12 +203,32 @@ grant select, insert, update, delete on dominio.comision_reglas to service_role;
 grant select, insert, update, delete on dominio.reparacion_comision_reparto to service_role;
 grant select, insert, update, delete on dominio.reparacion_comision_historial to service_role;
 
--- Relleno de las reparaciones ya entregadas (idempotente). Va AL FINAL a propósito: el disparador de suma 100 es diferido y, si
--- hubiera eventos pendientes, un `alter table` posterior de la misma transacción (`supabase db push` aplica todo en una) fallaría con
--- «pending trigger events». Con el ALTER de RLS y los grants ya hechos, no queda ninguna sentencia de DDL después.
-insert into dominio.reparacion_comision_reparto (organizacion_id, reparacion_id, tecnico_id, porcentaje)
-select r.organizacion_id, r.id, r.tecnico_id, 100
-  from dominio.reparaciones r
- where r.entrega_real is not null and r.tecnico_id is not null
-on conflict (reparacion_id, tecnico_id) do nothing;
+-- Relleno de las reparaciones ya entregadas, idempotente. Es una función para poder probarlo con pgTAP (que no puede aplicar una
+-- migración). Solo rellena reparaciones SIN reparto guardado (un reintento no suma más de 100 a un reparto personalizado) y fuerza la
+-- comprobación del disparador diferido al terminar: si quedaran eventos pendientes, un `alter table` posterior de la misma transacción
+-- (`supabase db push` aplica cada archivo en una) fallaría con «pending trigger events».
+create or replace function private.rellenar_reparto_comision()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_filas integer;
+begin
+  insert into dominio.reparacion_comision_reparto (organizacion_id, reparacion_id, tecnico_id, porcentaje)
+  select r.organizacion_id, r.id, r.tecnico_id, 100
+    from dominio.reparaciones r
+   where r.entrega_real is not null and r.tecnico_id is not null
+     and not exists (select 1 from dominio.reparacion_comision_reparto t where t.reparacion_id = r.id)
+  on conflict (reparacion_id, tecnico_id) do nothing;
+  get diagnostics v_filas = row_count;
+  set constraints dominio.reparto_comision_suma_100 immediate;
+  set constraints dominio.reparto_comision_suma_100 deferred;
+  return v_filas;
+end;
+$$;
 
+revoke execute on function private.rellenar_reparto_comision() from public, anon, authenticated;
+
+select private.rellenar_reparto_comision();

@@ -5318,8 +5318,8 @@
     },
     "docs/tecnico/service-comisiones.md": {
       "title": "Service técnico · Comisiones de técnicos (MSF-187, MSF-953, MSF-954, MSF-957)",
-      "pageHash": "64bf50aec78c0ecdf5d99e9a6899e838afa4fe759fb7b0dac05e6737db7a9865",
-      "sourceHash": "506e4c57bd57752c5a908a6eb187c977e321ed836302d82389e793015ff8767f",
+      "pageHash": "f0805a43cfb815f3eacade953f5d08191d4fc489ed3b2ca91fd61820a13a8372",
+      "sourceHash": "e6ae66ad37fe2bc9761690ac5da834a4e88f44ce649c15753062109a44151378",
       "sourceAt": "10f3ad9f7",
       "sources": [
         "supabase/migrations/20270515000000_acciones_ver_comisiones.sql",
