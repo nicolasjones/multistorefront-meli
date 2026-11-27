@@ -10,10 +10,12 @@ insert into organizaciones (id, nombre) values
 insert into auth.users (id, email) values
   ('d1000000-0000-0000-0000-000000000001', 'admin-uno@example.com'),
   ('d1000000-0000-0000-0000-000000000002', 'lector@example.com'),
+  ('d1000000-0000-0000-0000-000000000003', 'operador@example.com'),
   ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo'),
   ('d1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'consulta', 'activo'),
+  ('d1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'operador', 'activo'),
   ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo');
 insert into dominio.empresas (id, organizacion_id, nombre, activa) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda A', true),
@@ -315,6 +317,17 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 select is(pg_temp.intentar($$delete from storage.objects where bucket_id = 'newsletter-imagenes' and name = '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000003.webp'$$), 'filas:0', 'quien no es Administrador no borra ni lo ve');
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select is(pg_temp.intentar($$delete from storage.objects where bucket_id = 'newsletter-imagenes' and name = '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000003.webp'$$), 'filas:0', 'el Administrador de otra organización no borra');
+
+-- Un Operador tiene edición en Contactos (matriz inicial) pero no es Administrador: no escribe en el bucket (la condición de Administrador cuenta aparte del nivel).
+reset role;
+insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values ('d1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador');
+select pg_temp.como('d1000000-0000-0000-0000-000000000003');
+select is((select private.nivel_seccion('clientes')), 'edicion', 'el Operador de la prueba tiene edición en Contactos');
+select throws_ok($$insert into storage.objects (bucket_id, name, owner) values ('newsletter-imagenes', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000003.webp', 'd1000000-0000-0000-0000-000000000003')$$,
+  '42501', null, 'un Operador con edición en Contactos que no es Administrador no sube a la tienda');
+-- (La condición de nivel de la política es redundante con la de Administrador: un Administrador siempre tiene edición, la base lo exige con el check
+-- `permisos_rol_administrador_edicion`; es un equivalente declarado. Se deja por si el rol Administrador deja de tener edición fija.)
+reset role;
 
 -- ===== Imagen en las promociones =====
 reset role;

@@ -85,6 +85,8 @@ revoke execute on function private.limite_newsletter_visitante_hora(), private.l
 -- IP del cliente a partir de una cadena `x-forwarded-for` y los saltos de proxy de confianza: el valor que está `p_saltos` lugares antes del último. Sin valores,
 -- o con una cadena MÁS CORTA que `p_saltos + 1` (algún proxy no agregó su IP, así que el primer valor lo puede haber escrito el cliente y elegiría su propio
 -- cupo), un valor fijo: `sin-ip`, un cupo compartido que falla cerrado, igual que `consultar-estado-reparacion`. Los valores vacíos de la cadena se descartan.
+-- Equivalente declarado: la guarda `largo < saltos + 1` podría ser `largo < saltos`, porque con `largo = saltos` el índice calculado es 0 y `ips[0]` es nulo, que el
+-- `coalesce` final también lleva a `sin-ip`; se deja la forma explícita para que la regla se lea.
 create or replace function private.ip_de_cadena(p_cadena text, p_saltos integer)
 returns text
 language sql
