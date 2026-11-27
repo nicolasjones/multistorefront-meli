@@ -182,3 +182,5 @@ conserva la evidencia con la relación **`duplicates`** (del duplicado al origin
 > **CI (2026-10-27):** los `.md` de raíz (`CLAUDE.md`, `AGENTS.md`) ya no cuentan como cambio de la app web. Antes, un PR sólo de docs encendía el e2e sin `build` y moría con *"Falta apps/web/dist"*; ahora, si el e2e corre, el `build` corre antes.
 
 > **CI (2026-11-12):** el paso «avisar el link del visor en el PR» de `validate.yml` ya no falla si el runner no trae `gh` (la imagen de `infra/runner/Dockerfile` no lo instala): avisa en el log y sigue. Antes salía con 127 y dejaba rojo el job `application` aunque sus tests pasaran.
+
+> Lote 99 (MSF-703/704): los workflows eligen su pool de runners por variable de repo (`CI_RUNS_ON_PR`, `CI_RUNS_ON_PESADO`, `CI_RUNS_ON_DEPLOY`), los binarios descargados (gitleaks, Supabase CLI) se instalan en `$RUNNER_TEMP/bin` con SHA256 verificado y release-please y el gate de staging abren un issue `alerta-ci` si fallan. Detalle y runbook: [endurecimiento-infra.md](../endurecimiento-infra.md).

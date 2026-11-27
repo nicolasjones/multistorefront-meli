@@ -39,3 +39,5 @@ la línea base (14.000 ms). Comando local:
 1. `pnpm add -D @vitest/coverage-v8 @stryker-mutator/core @stryker-mutator/vitest-runner`
 2. Agregar `test:coverage` (vitest --coverage) y `mutation` (stryker run) a `package.json`.
 3. En `quality` (PR): `diff-cover`. En `nightly`: `stryker run`.
+
+> Lote 99 (MSF-703/704): los workflows eligen su pool de runners por variable de repo (`CI_RUNS_ON_PR`, `CI_RUNS_ON_PESADO`, `CI_RUNS_ON_DEPLOY`), los binarios descargados (gitleaks, Supabase CLI) se instalan en `$RUNNER_TEMP/bin` con SHA256 verificado y release-please y el gate de staging abren un issue `alerta-ci` si fallan. Detalle y runbook: [endurecimiento-infra.md](endurecimiento-infra.md).

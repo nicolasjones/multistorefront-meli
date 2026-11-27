@@ -272,3 +272,5 @@ Código con sangría de 4:      un enlace dentro de un bloque con sangría, o de
 
 Un bloque con fences mezclados se interpreta como CommonMark: cierra solo con el mismo carácter (backtick o tilde) y una
 longitud igual o mayor a la de apertura.
+
+> Lote 99 (MSF-703/704): los workflows eligen su pool de runners por variable de repo (`CI_RUNS_ON_PR`, `CI_RUNS_ON_PESADO`, `CI_RUNS_ON_DEPLOY`), los binarios descargados (gitleaks, Supabase CLI) se instalan en `$RUNNER_TEMP/bin` con SHA256 verificado y release-please y el gate de staging abren un issue `alerta-ci` si fallan. Detalle y runbook: [endurecimiento-infra.md](endurecimiento-infra.md).

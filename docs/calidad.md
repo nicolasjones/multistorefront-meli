@@ -122,3 +122,5 @@ F4 release/preview/flags · F5 mutation/a11y/perf.
 > `scripts/publicar-videos-e2e.mjs`. `hostname` (`hostname -I`) y `pkill` (`pkill -f 'http.server …'`) los llama `scripts/publicar-videos-e2e.mjs` dentro de
 > un `execSync`; knip los cuenta como binarios sin declarar si se quitan de `ignoreBinaries` (se probó: siguen siendo necesarios).
 > `knip.json` es JSON estricto (sin comentarios), por eso el motivo se documenta acá. Un script nuevo que dependa de un binario del sistema lo suma a `ignoreBinaries`.
+
+> Lote 99 (MSF-703/704): los workflows eligen su pool de runners por variable de repo (`CI_RUNS_ON_PR`, `CI_RUNS_ON_PESADO`, `CI_RUNS_ON_DEPLOY`), los binarios descargados (gitleaks, Supabase CLI) se instalan en `$RUNNER_TEMP/bin` con SHA256 verificado y release-please y el gate de staging abren un issue `alerta-ci` si fallan. Detalle y runbook: [endurecimiento-infra.md](endurecimiento-infra.md).

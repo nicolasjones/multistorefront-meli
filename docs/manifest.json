@@ -456,9 +456,9 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "7aee778212256ea470bf2a60ba0d2152b7a808eb45cf6e95077e7ddd6beeaa11",
-      "sourceHash": "a8c77e7f6f75901b5a4a885db541deb5eb316ff41736ea270d12c2d4c9520444",
-      "sourceAt": "10fa9457c",
+      "pageHash": "d7379ed2a4f427881f0ce20f208ce268150a99559636f59daeffe20a8b87aa95",
+      "sourceHash": "df623edb5c25155e9f624674d1cadf643d156c038731068cda496817b59136ae",
+      "sourceAt": "2dbd6b0ab",
       "sources": [
         "scripts/calidad.mjs",
         ".github/workflows/quality.yml",
@@ -469,7 +469,7 @@
         "apps/web/vite.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "10fa9457c"
+      "commit": "2dbd6b0ab"
     },
     "docs/capturas-documentacion.md": {
       "title": "Capturas del manual de usuario",
@@ -928,9 +928,9 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "e6538a6a9b0f45be53708459a7e6a5c4cbd4271bc5d0b006ba54f1a67220be1b",
-      "sourceHash": "cc5633e76497f1708e2e0997ecb51071acf12c7fd959c888cca2c376df24651d",
-      "sourceAt": "604620925",
+      "pageHash": "339f42b324a2787e670ed94632eede235df7fd6882de14cb454dfafabc32f78e",
+      "sourceHash": "7d47b45962d1b0d366180fc31ad35cfe8c3d019cfaeeb25a481c4d83a4db3441",
+      "sourceAt": "a067b6413",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
@@ -949,7 +949,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "604620925"
+      "commit": "a067b6413"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
@@ -995,8 +995,8 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "3e4a50cddd115dba6fa2f9e01b40a2b3edf0d845a71aed689cc06b714fd20059",
-      "sourceHash": "a5b4421cbccd504a3b2e6064b1a67565ee70c5884cf2500b11a22634822796a1",
+      "pageHash": "7fba616b82df37ac5a1f518bcc114402deea5d3951e8619084e383678b5d4cba",
+      "sourceHash": "e69107d032305a22fcdc8e29fdbf1750ba309399b282f6ee608eacf7005826fd",
       "sourceAt": "e1e6da5b9",
       "sources": [
         "apps/web/playwright.config.ts",
@@ -2731,9 +2731,9 @@
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
-      "pageHash": "fe6d8875e4ccba64714285f1f56edfda4346a5af69ce63cd3f4e613b711b694c",
-      "sourceHash": "c82498bb0f4c9d8d7b45d53a1f2a434d8e15824561ce4658676ad9ee60b203e5",
-      "sourceAt": "0a889b887",
+      "pageHash": "b98b25d16b743a0ff7c2b995a82c5169d5580254cb1b5a5179f6a6ca5ac1d353",
+      "sourceHash": "ef3132c49bdea45cc24daa052ed31446f9fdacc59815888d2540942f858637e5",
+      "sourceAt": "ea58a5415",
       "sources": [
         ".github/workflows/nightly.yml",
         ".lighthouserc.json",
@@ -2741,7 +2741,7 @@
         "scripts/medir-tienda-lighthouse.mjs"
       ],
       "owner": "producto",
-      "commit": "0a889b887"
+      "commit": "ea58a5415"
     },
     "docs/promociones-precio.md": {
       "title": "Promociones de precio por empresa (F-PRE-11, MSF-439)",
@@ -2798,9 +2798,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "a69ef6830005157e7b1f124784ebda03412f8588cefc4979e64e15b3a1ba2ad0",
-      "sourceHash": "bd84ab2fe82e22392fa4116aefe759501cb98392ca8635450e0722be87cf9d9d",
-      "sourceAt": "9e94da6b5",
+      "pageHash": "ffb1c69572ebd7e86b2240d17c3d9cb5f4120ba9a793c350fc7e7ab74012487e",
+      "sourceHash": "044a7c7c2da60182f44c27fce42a7eecd3e57703579046a26625b978cfcbd651",
+      "sourceAt": "863c32401",
       "sources": [
         "scripts/tests-afectados.mjs",
         "scripts/tests-afectados.test.mjs",
@@ -2814,7 +2814,7 @@
         ".github/workflows/quality.yml"
       ],
       "owner": "plataforma",
-      "commit": "9e94da6b5"
+      "commit": "863c32401"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -2832,9 +2832,9 @@
     },
     "docs/release.md": {
       "title": "Release automático (F4)",
-      "pageHash": "c98c3264d882be1e01e83beb77913849ac88bea9e640094d3f4ade6efb579a54",
-      "sourceHash": "35d970b840b83e157c4755b67dc15e4296b08902644c6fb479ce58c9c19fdf7d",
-      "sourceAt": "6776fb4d",
+      "pageHash": "3ac7eeeb55a9c8d93e0ee721d03d0231c014c7a18da65c2715ae1a7540f29582",
+      "sourceHash": "ad5838e785bd72d784baa2bf156fe9f418e98b4e66feb5c0605d0ccced4ed5bc",
+      "sourceAt": "6776fb4d3",
       "sources": [
         "release-please-config.json",
         ".release-please-manifest.json",
@@ -2843,7 +2843,7 @@
         ".specify/bugs/msf-784/fix.md"
       ],
       "owner": "tecnico",
-      "commit": "6776fb4d"
+      "commit": "6776fb4d3"
     },
     "docs/rentabilidad.md": {
       "title": "Rentabilidad (margen por producto y canal)",
@@ -4741,9 +4741,9 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "43b41897088fa8875d45eae924d62a78633d7a8922dd9d8dd30b174ba7f2ce8e",
-      "sourceHash": "0c5aab6d2ed5bc5b649a32d4a283cce4fc8e2759a0ca3cf364a17abb59d7b54d",
-      "sourceAt": "273dffad1",
+      "pageHash": "0224d356c3d86d4d6f21e5a6ce208dea051aeda82073c63ff670eff3b8c71a92",
+      "sourceHash": "d0ef56790266cd62c7391abc1ffc5f694400353064341faa1b92e73dbbbbc543",
+      "sourceAt": "07661f192",
       "sources": [
         ".github/workflows/validate.yml",
         ".github/workflows/quality.yml",
@@ -4757,7 +4757,7 @@
         "scripts/auditar-duplicados-tracker.mjs"
       ],
       "owner": "operacion",
-      "commit": "273dffad1"
+      "commit": "07661f192"
     },
     "docs/tecnico/organizaciones-nuevas.md": {
       "title": "Organizaciones nuevas: alta, contrato y pruebas (MSF-162)",
@@ -5096,9 +5096,9 @@
     },
     "docs/tecnico/runbooks/ci-trabado.md": {
       "title": "CI trabado",
-      "pageHash": "905b306de65e431b9347d9d9c522ffeb5e85a1780d1ce678b4490a19324bb1bd",
-      "sourceHash": "b382e92f9db6f49c4f4b5e9a6ff8eaa29b2a60547714cd5cf70eea19b12f0039",
-      "sourceAt": "6776fb4d3",
+      "pageHash": "5acd976ef5e8713cba7e776a65e4e3f6073a558d23b0c0fa7c3114f01d6820df",
+      "sourceHash": "c9d25f6c4bc6289069664e8e3ba7b8860740c9d1bd73537268980fd8571264f2",
+      "sourceAt": "d4721f58c",
       "sources": [
         ".github/workflows/validate.yml",
         ".github/workflows/ci-janitor.yml",
@@ -5108,7 +5108,7 @@
         "infra/runner/compose.yaml"
       ],
       "owner": "operacion",
-      "commit": "6776fb4d3"
+      "commit": "d4721f58c"
     },
     "docs/tecnico/runbooks/cola-eventos.md": {
       "title": "Cola de eventos trabada",
