@@ -248,8 +248,8 @@ tableros-analiticos,ventas-avisos-de-faltantes}.md` y `docs/tecnico/{biblioteca,
 
 **Por qué no se integró `main` en este PR.** **Advertencia: en la integración real NO usar `-X ours` ni `-s ours`**
 (descartan en silencio contenido de `main`, o lo mezclan sin revisar); resolver archivo por archivo y sin force-push.
-`.github/workflows/e2e-nocturno.yml` es un conflicto add/add y se resuelve conservando el de `main`. La prueba que sigue
-usó `-X ours` solo para medir qué entraría, y se abortó. Se probó `git merge origin/main -X ours` (gana `dokploy` en los conflictos) y trae
+`.github/workflows/e2e-nocturno.yml` es un conflicto add/add y se resuelve conservando el de `main`. Solo para medir qué
+entraría se probó `git merge origin/main -X ours` (gana `dokploy` en los conflictos) y se abortó; trae
 18 archivos nuevos que **duplican** páginas que `dokploy` ya tiene con otro nombre: `docs/tecnico/gastos.md` frente a
 `docs/gastos.md`, `docs/tecnico/analitica-avanzada.md` frente a `docs/analitica-avanzada.md`,
 `docs/tecnico/tienda-compra-y-cuentas.md` frente a `docs/tienda-compra-y-cuentas.md`,
