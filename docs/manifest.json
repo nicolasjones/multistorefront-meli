@@ -712,9 +712,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "4607940afff0e4a07cd60fde89399b64442d335f64881ea34856ae6e835158f8",
-      "sourceHash": "889d51c55ec7ec06ab74084b47020198d9214782d24dca9e2fc225d8224cf6fb",
-      "sourceAt": "6fd530583",
+      "pageHash": "84de9d43f4c0dc0d489dc1c84fb8e77dce194b4d313ed907cab2a6f467ef8eae",
+      "sourceHash": "24a2136cd324444b8085d7bf9d914679782da5523aa3a68c6d899386dfcb98d5",
+      "sourceAt": "0eb04f5aa",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -728,7 +728,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "6fd530583"
+      "commit": "0eb04f5aa"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -930,9 +930,9 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "7e358bc9ebcc6cecb9a4d62978a3800c23fa851dfa40f1256c9b6c4de43d147d",
-      "sourceHash": "c9ab0fd07ba0538588d1352168a934dc215fe388c89f461f5bb7aa9c1b0f6c63",
-      "sourceAt": "6fd530583",
+      "pageHash": "9f25ac2edae6bd39cb63a45bb2bf2deaedbb7a79a049f3b838f9e16e6682bada",
+      "sourceHash": "b5f82552bd46f983c60028c185759724ee3d02dece9eb1367df2d85ea8a00b36",
+      "sourceAt": "0eb04f5aa",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
@@ -951,7 +951,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "6fd530583"
+      "commit": "0eb04f5aa"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
@@ -997,9 +997,9 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "ab5973b957f646217d55ea5a0d0568a9ddc566cbdcc98c791ee3c0314cf16667",
+      "pageHash": "d9bdd86611db102b8297d383b6ab81354407dde108d412842cc81faf09882c2d",
       "sourceHash": "1895dae6ab3f81e97ef023917b00af3800a5ddd357bd87874e4d9f604c439f72",
-      "sourceAt": "6fd530583",
+      "sourceAt": "0eb04f5aa",
       "sources": [
         "apps/web/playwright.config.ts",
         "apps/web/e2e/verificar-dist.mjs",
@@ -1015,7 +1015,7 @@
         "scripts/e2e-cobertura-epicas.py"
       ],
       "owner": "tecnico",
-      "commit": "6fd530583"
+      "commit": "0eb04f5aa"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
