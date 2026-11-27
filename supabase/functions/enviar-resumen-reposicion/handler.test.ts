@@ -3,6 +3,7 @@
 // Verifica FR-203 (contenido), FR-204 (destinatarios), FR-205 (el barrido llama a la función) y FR-206.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 import { TOPE_PRODUCTOS, asuntoResumen, cuerpoResumen, enlaceStock, type ProductoResumen } from './contenido.ts'
 import { MAX_INTENTOS, manejar, procesarOrganizacion, type Deps, type Generado } from './handler.ts'
 
@@ -169,7 +170,7 @@ describe('procesarOrganizacion', () => {
     console.error = (...a: unknown[]) => { lineas.push(a.join(' ')) }
     try { await procesarOrganizacion(ORG, deps) } finally { console.error = original }
     const log = lineas.join('\n')
-    assert.ok(log.includes('ECONNREFUSED'))
+    assert.equal(log, `enviar-resumen-reposicion: falló el envío ${RESUMEN} Error`)
     assert.ok(!/10\.0\.0\.5|smtp\.interno|admin@interno/.test(log))
   })
 
@@ -186,7 +187,7 @@ describe('procesarOrganizacion', () => {
 
   it('si la base no puede generar el resumen lanza el error (el barrido lo cuenta)', async () => {
     const { deps } = montar({ generarError: true })
-    await assert.rejects(procesarOrganizacion(ORG, deps), /No se pudo generar el resumen: boom/)
+    await assert.rejects(procesarOrganizacion(ORG, deps), /No se pudo generar el resumen/)
   })
 
   it('si el correo salió pero el cierre falla, igual informa enviado', async () => {
@@ -247,5 +248,49 @@ describe('manejar (HTTP)', () => {
     assert.deepEqual(await ok.json(), { estado: 'enviado' })
     assert.equal((await manejar(pedido({ organizacion_id: 'no-uuid' }), deps)).status, 400)
     assert.equal((await manejar(pedido({}), deps)).status, 400)
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  const hostil = ERROR_BASE_HOSTIL
+
+  it('un fallo de SMTP deja nombre y código, sin mensaje, cause, stack ni URL', async () => {
+    const { deps } = montar({ generado: [generado([producto(1, 'sin_stock')])] })
+    deps.enviar = async () => { throw errorHostil() }
+    const { resultado, lineas } = await capturarLog(() => procesarOrganizacion(ORG, deps))
+    assert.equal(resultado, 'fallido')
+    assert.deepEqual(lineas, [`enviar-resumen-reposicion: falló el envío ${RESUMEN} Error`])
+  })
+
+  it('un error de la base al listar, generar y cerrar deja el código y no el mensaje', async () => {
+    const { deps } = montar({ organizaciones: [ORG], generado: [generado([producto(1, 'sin_stock')])] })
+    deps.datos.organizaciones = async () => ({ data: null, error: hostil })
+    const listar = await capturarLog(() => manejar(pedido({ barrer: true }), deps))
+    assert.equal(listar.resultado.status, 502)
+    assert.equal(listar.lineas.length, 1)
+    assert.match(listar.lineas[0], /^enviar-resumen-reposicion: no se pudo listar las organizaciones 42501 /)
+    assert.doesNotMatch(listar.lineas[0], /sk-secreta|db\.example\.com/)
+
+    deps.datos.organizaciones = async () => ({ data: [ORG], error: null })
+    deps.datos.generar = async () => ({ data: null, error: hostil })
+    const generar = await capturarLog(() => manejar(pedido({ barrer: true }), deps))
+    assert.equal(generar.resultado.status, 502)
+    assert.deepEqual(generar.lineas, [`enviar-resumen-reposicion: organización con error ${ORG} Error 42501`])
+
+    deps.datos.generar = async () => ({ data: [generado([producto(1, 'sin_stock')])], error: null })
+    deps.datos.cerrar = async () => ({ data: null, error: hostil })
+    const cerrar = await capturarLog(() => procesarOrganizacion(ORG, deps))
+    assert.equal(cerrar.resultado, 'enviado')
+    assert.equal(cerrar.lineas.length, 1)
+    assert.match(cerrar.lineas[0], new RegExp(`^enviar-resumen-reposicion: el correo salió pero no se pudo cerrar el resumen ${RESUMEN} 42501 `))
+    assert.doesNotMatch(cerrar.lineas[0], /sk-secreta|db\.example\.com/)
+  })
+
+  it('un error inesperado en el pedido individual deja nombre y código', async () => {
+    const { deps } = montar()
+    deps.datos.generar = async () => { throw errorHostil() }
+    const { resultado, lineas } = await capturarLog(() => manejar(pedido({ organizacion_id: ORG }), deps))
+    assert.equal(resultado.status, 502)
+    assert.deepEqual(lineas, ['enviar-resumen-reposicion: error inesperado Error'])
   })
 })

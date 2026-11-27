@@ -4,6 +4,7 @@
 // Orden: (1) cuenta la consulta por IP hasheada (toda consulta, válida o no) y corta con 429 antes de tocar las
 // reparaciones; (2) valida el formato del token; (3) consulta. Token mal formado o desconocido → 404 uniforme.
 import { createHmac } from 'node:crypto'
+import { registrarErrorDeBase } from '../_shared/log-seguro.ts'
 
 export const VENTANA_SEG = 600
 export const LIMITE_CONSULTAS = 30
@@ -95,7 +96,7 @@ export async function manejar(req: Request, { sal, saltosProxy, datos }: Deps): 
   const ipHash = createHmac('sha256', sal).update(ipDelPedido(req, saltos)).digest('hex')
   const limite = await datos.registrarConsulta(ipHash, VENTANA_SEG, LIMITE_CONSULTAS)
   if (limite.error || !limite.data) {
-    console.error('consultar-estado-reparacion: no se pudo registrar la consulta', limite.error?.message)
+    registrarErrorDeBase('consultar-estado-reparacion: no se pudo registrar la consulta', limite.error)
     return response({ error: 'error_interno' }, 500)
   }
   if (!limite.data.permitido) {
@@ -108,7 +109,7 @@ export async function manejar(req: Request, { sal, saltosProxy, datos }: Deps): 
 
   const { data, error } = await datos.estadoPublico(token)
   if (error) {
-    console.error('consultar-estado-reparacion: no se pudo consultar', error.message)
+    registrarErrorDeBase('consultar-estado-reparacion: no se pudo consultar', error)
     return response({ error: 'error_interno' }, 500)
   }
   if (!data) return response({ error: 'no_encontrada' }, 404)

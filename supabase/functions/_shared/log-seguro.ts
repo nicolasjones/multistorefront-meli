@@ -124,3 +124,9 @@ export function mensajeParaLog(valor: unknown, max: number): string {
 export function registrarErrorDeBase(prefijo: string, error: unknown): void {
   console.error(prefijo, limpiarParaLog(leerCampo(error, 'code') ?? '', 64), mensajeParaLog(leerCampo(error, 'message'), 300))
 }
+
+// Error propio para un fallo de la base: el mensaje es una constante de la función y el `code` de PostgREST/Postgres (corto) viaja aparte,
+// de modo que `textoDeError` lo imprime como `Error 42P01` sin el texto de la base. Un `code` ausente o raro queda vacío (no se imprime).
+export function errorDeBase(mensaje: string, error: unknown): Error {
+  return Object.assign(new Error(mensaje), { code: limpiarParaLog(leerCampo(error, 'code') ?? '', 64) })
+}

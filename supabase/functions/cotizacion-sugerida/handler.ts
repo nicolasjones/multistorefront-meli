@@ -5,6 +5,7 @@
 // Seguridad: la URL de la fuente es una constante (el navegador no manda nada que llegue a la consulta, así no
 // hay SSRF); exige sesión y nivel `edicion` en `cotizacion_dolar` (quien puede cargar el dólar), con tiempo
 // máximo y validación estricta de la respuesta; sin service-role y sin secretos.
+import { registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -48,7 +49,7 @@ export async function manejar(req: Request, { getUser, caller, leerFuente }: Dep
 
   const { data: nivel, error: nivelError } = await caller(jwt).nivelCotizacion()
   if (nivelError) {
-    console.error('cotizacion-sugerida: no se pudo resolver el permiso', nivelError.message)
+    registrarErrorDeBase('cotizacion-sugerida: no se pudo resolver el permiso', nivelError)
     return response({ error: 'No se pudo verificar tu permiso.' }, 502)
   }
   if (nivel !== 'edicion') return response({ error: 'No tienes permiso para cargar la cotización.' }, 403)
@@ -57,7 +58,7 @@ export async function manejar(req: Request, { getUser, caller, leerFuente }: Dep
   try {
     cuerpo = await leerFuente()
   } catch (error) {
-    console.error('cotizacion-sugerida: la fuente no respondió', error instanceof Error ? error.message : error)
+    console.error('cotizacion-sugerida: la fuente no respondió', textoDeError(error))
     return response({ error: 'No pudimos consultar la cotización sugerida. Podés cargar el valor a mano.' }, 502)
   }
   const sugerencia = leerSugerencia(cuerpo)
@@ -66,4 +67,12 @@ export async function manejar(req: Request, { getUser, caller, leerFuente }: Dep
     return response({ error: 'La fuente devolvió un valor que no se puede usar. Podés cargar el valor a mano.' }, 502)
   }
   return response(sugerencia)
+}
+
+/** `manejar` sin dejar escapar una excepción (caída de red, de Auth o de la RPC): 502 y en el log solo el nombre y el código del error. */
+export function manejarSinCaida(req: Request, deps: Deps): Promise<Response> {
+  return manejar(req, deps).catch((error) => {
+    console.error('cotizacion-sugerida: falla inesperada', textoDeError(error))
+    return response({ error: 'No se pudo verificar tu permiso.' }, 502)
+  })
 }

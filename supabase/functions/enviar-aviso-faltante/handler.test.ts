@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { asuntoAviso, cuerpoAviso, MENSAJE_MAX, neutralizarPuntos, sanearMensaje } from './contenido.ts'
-import { CORREO_VALIDO, MAX_INTENTOS, esErrorDeEsquemaFaltante, PRESUPUESTO_BARRIDO_MS, codigoDeError, manejar, type Deps, type Tomado } from './handler.ts'
+import { CORREO_VALIDO, MAX_INTENTOS, esErrorDeEsquemaFaltante, PRESUPUESTO_BARRIDO_MS, codigoDeError, manejar, procesarCliente, type Deps, type Tomado } from './handler.ts'
 import { lineaSegura } from '../_shared/texto.ts'
 import { conTimeout } from '../_shared/timeout.ts'
 import { enviarConLimites, sondearConexion, TIMEOUT_CIERRE_MS, TIMEOUT_CONEXION_MS, TIMEOUT_SMTP_MS } from '../_shared/envio.ts'
@@ -12,6 +12,7 @@ import { armarDeps, armarDepsDesdeEntorno, opcionesClienteServicio } from './ser
 import { armarEnvio, armarEnvioDesdeEntorno, ConfiguracionSmtpError, configDesdeEntorno, opcionesDenomailer, validarConfigSmtp, armarCorreoSmtp, asuntoRfc2047, cuerpoBase64 } from '../_shared/smtp.ts'
 import { CODIGOS_ERROR_BASE } from './codigos.ts'
 import { readFileSync } from 'node:fs'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 
 const ID = '11111111-1111-4111-8111-111111111111'
 const TOKEN = 'secreto-de-prueba'
@@ -1211,5 +1212,67 @@ describe('cuerpo y asunto del correo: codificación sin corrupción (bug de deno
       const lineas = `Subject: ${asuntoRfc2047(asunto)}`.split('\r\n')
       for (const linea of lineas) assert.ok(linea.length <= 78, `línea de ${linea.length}`)
     }
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  it('un fallo de SMTP deja el código de clasificación y el nombre del error, sin mensaje, cause ni URL', { timeout: 10_000 }, async () => {
+    const { deps } = montar()
+    deps.enviar = async () => { throw errorHostil() }
+    const { resultado, lineas } = await capturarLog(() => procesarCliente(ID, deps))
+    assert.equal(resultado, 'fallido')
+    assert.deepEqual(lineas, [`enviar-aviso-faltante: falló el envío ${ID} smtp_conexion Error`])
+  })
+
+  it('un error de la base al cerrar, al sondear y al listar deja el código y no el mensaje', { timeout: 10_000 }, async () => {
+    const lineasDe = (lineas: string[]) => {
+      assert.equal(lineas.length, 1)
+      assert.doesNotMatch(lineas[0], /sk-secreta|db\.example\.com/)
+      return lineas[0]
+    }
+    const cierre = montar()
+    cierre.deps.datos.cerrar = async () => ({ data: null, error: ERROR_BASE_HOSTIL })
+    const a = await capturarLog(() => procesarCliente(ID, cierre.deps))
+    assert.equal(a.resultado, 'enviado')
+    assert.match(lineasDe(a.lineas), new RegExp(`^enviar-aviso-faltante: el correo salió pero no se pudo cerrar el aviso ${ID} 42501 `))
+
+    const sonda = montar()
+    sonda.deps.sonda = async () => ({ data: null, error: ERROR_BASE_HOSTIL })
+    const b = await capturarLog(() => pedir(sonda.deps, { cliente_id: ID }))
+    assert.equal(b.resultado.status, 502)
+    assert.match(lineasDe(b.lineas), /^enviar-aviso-faltante: no se pudo verificar la base 42501 /)
+
+    const listar = montar()
+    listar.deps.datos.pendientes = async () => ({ data: null, error: ERROR_BASE_HOSTIL })
+    const c = await capturarLog(() => pedir(listar.deps, { barrer: true }))
+    assert.equal(c.resultado.status, 502)
+    assert.match(lineasDe(c.lineas), /^enviar-aviso-faltante: no se pudo listar los pendientes 42501 /)
+  })
+
+  it('un error al tomar el aviso o una excepción hostil del individual y del barrido dejan nombre y código', { timeout: 10_000 }, async () => {
+    const tomar = montar({ pendientes: [ID] })
+    tomar.deps.datos.tomar = async () => ({ data: null, error: ERROR_BASE_HOSTIL })
+    const barrido = await capturarLog(() => pedir(tomar.deps, { barrer: true }))
+    assert.equal(barrido.resultado.status, 502)
+    assert.deepEqual(barrido.lineas, [`enviar-aviso-faltante: aviso con error ${ID} Error 42501`])
+
+    const individual = montar()
+    individual.deps.datos.tomar = async () => { throw errorHostil() }
+    const r = await capturarLog(() => pedir(individual.deps, { cliente_id: ID }))
+    assert.equal(r.resultado.status, 502)
+    assert.deepEqual(r.lineas, ['enviar-aviso-faltante: error inesperado Error'])
+  })
+
+  it('una configuración SMTP inválida redacta lo que traiga y un error inesperado del validador solo deja su nombre', { timeout: 10_000 }, async () => {
+    const { deps } = montar()
+    deps.validarConfiguracion = () => { throw new ConfiguracionSmtpError('Configuración SMTP inválida: usuario sk-secreta-0123456789 en https://smtp.example.com/x') }
+    const a = await capturarLog(() => pedir(deps, { cliente_id: ID }))
+    assert.equal(a.resultado.status, 503)
+    assert.deepEqual(a.lineas, ['enviar-aviso-faltante: configuración SMTP inválida Configuración SMTP inválida: usuario [clave] en [url]'])
+
+    deps.validarConfiguracion = () => { throw errorHostil() }
+    const b = await capturarLog(() => pedir(deps, { cliente_id: ID }))
+    assert.equal(b.resultado.status, 500)
+    assert.deepEqual(b.lineas, ['enviar-aviso-faltante: error inesperado al validar la configuración SMTP Error'])
   })
 })

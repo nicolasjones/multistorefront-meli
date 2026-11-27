@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { FUENTE_URL, manejar, TIEMPO_MAXIMO_MS, type Deps } from './handler.ts'
+import { FUENTE_URL, manejarSinCaida, TIEMPO_MAXIMO_MS, type Deps } from './handler.ts'
 
 // Adaptador explícito: cada método real se envuelve para cumplir `Deps`. Solo se usa la clave anónima
 // con el JWT de quien llama (RLS manda); no hay service-role.
@@ -25,12 +25,6 @@ Deno.serve((req) => {
     if (!respuesta.ok) throw new Error(`la fuente respondió ${respuesta.status}`)
     return await respuesta.json()
   }
-  // Una caída de Supabase (red, Auth o RPC) lanza en vez de devolver `error`: se responde 502 en vez de dejar un 500 sin cuerpo.
-  return manejar(req, { getUser, caller, leerFuente }).catch((error) => {
-    console.error('cotizacion-sugerida: falla inesperada', error instanceof Error ? error.message : error)
-    return new Response(JSON.stringify({ error: 'No se pudo verificar tu permiso.' }), {
-      status: 502,
-      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
-    })
-  })
+  // Una caída de Supabase (red, Auth o RPC) lanza en vez de devolver `error`: `manejarSinCaida` responde 502 en vez de dejar un 500 sin cuerpo.
+  return manejarSinCaida(req, { getUser, caller, leerFuente })
 })

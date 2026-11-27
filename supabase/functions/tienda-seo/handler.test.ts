@@ -3,6 +3,7 @@
 // genéricos. Corre con `node --test` (`pnpm test:edge:tienda-seo`); el handler no importa nada de Deno.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import { capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 import { manejar, sitemapVacio, type Deps } from './handler.ts'
 
 const MAPA = {
@@ -137,5 +138,20 @@ describe('tienda-seo · errores', () => {
     assert.equal((await manejar(pedir('/robots.txt', 'a.com', 'POST'), deps)).status, 405)
     assert.equal((await manejar(pedir('/otra.txt', 'a.com'), deps)).status, 404)
     assert.equal((await manejar(pedir('/robots.txt', 'a.com', 'HEAD'), deps)).status, 200)
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  it('un fallo de la base o una excepción hostil deja solo el nombre y el código', async () => {
+    const lanza = montar()
+    lanza.deps.rpc = async () => { throw errorHostil() }
+    const a = await capturarLog(() => manejar(pedir('/sitemap.xml', 'tienda-a.ejemplo.com'), lanza.deps))
+    assert.equal(a.resultado.status, 500)
+    assert.deepEqual(a.lineas, ['tienda-seo: no se pudo leer la tienda Error'])
+
+    const baseRechaza = montar({ falla: true })
+    const b = await capturarLog(() => manejar(pedir('/sitemap.xml', 'tienda-a.ejemplo.com'), baseRechaza.deps))
+    assert.equal(b.resultado.status, 500)
+    assert.deepEqual(b.lineas, ['tienda-seo: no se pudo leer la tienda Error'])
   })
 })

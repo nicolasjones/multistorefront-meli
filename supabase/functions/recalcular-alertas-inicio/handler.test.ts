@@ -3,6 +3,7 @@
 // Verifica FR-022: el token protege la función, el barrido recalcula cada organización y un fallo no frena a las demás.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 import { manejar, procesarOrganizacion, type Deps } from './handler.ts'
 
 const ORG_1 = '11111111-1111-4111-8111-111111111111'
@@ -99,5 +100,30 @@ describe('recalcular-alertas-inicio', () => {
   it('procesarOrganizacion falla si la base devuelve error', async () => {
     const { deps } = armar({ fallan: [ORG_1] })
     await assert.rejects(procesarOrganizacion(ORG_1, deps), /No se pudo recalcular/)
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  it('un error de la base al listar deja el código y no el mensaje', async () => {
+    const { deps } = armar()
+    deps.datos.organizaciones = async () => ({ data: null, error: ERROR_BASE_HOSTIL })
+    const { resultado, lineas } = await capturarLog(() => manejar(pedido({ barrer: true }), deps))
+    assert.equal(resultado.status, 502)
+    assert.equal(lineas.length, 1)
+    assert.match(lineas[0], /^recalcular-alertas-inicio: no se pudo listar las organizaciones 42501 /)
+    assert.doesNotMatch(lineas[0], /sk-secreta|db\.example\.com/)
+  })
+
+  it('un error de la base al recalcular o una excepción hostil dejan nombre y código', async () => {
+    const { deps } = armar({ organizaciones: [ORG_1] })
+    deps.datos.recalcular = async () => ({ data: null, error: ERROR_BASE_HOSTIL })
+    const base = await capturarLog(() => manejar(pedido({ barrer: true }), deps))
+    assert.equal(base.resultado.status, 502)
+    assert.deepEqual(base.lineas, [`recalcular-alertas-inicio: organización con error ${ORG_1} Error 42501`])
+
+    deps.datos.recalcular = async () => { throw errorHostil() }
+    const red = await capturarLog(() => manejar(pedido({ barrer: true }), deps))
+    assert.equal(red.resultado.status, 502)
+    assert.deepEqual(red.lineas, [`recalcular-alertas-inicio: organización con error ${ORG_1} Error`])
   })
 })

@@ -1,6 +1,7 @@
 // Pruebas de `consultar-estado-reparacion` (F-SVC-22, SC-007): 404 uniforme, 429 con Retry-After, cabeceras,
 // lista blanca, IP hasheada y nunca en claro. Corre con `node --test` (`pnpm test:edge:consultar-estado-reparacion`).
 import assert from 'node:assert/strict'
+import { ERROR_BASE_HOSTIL, capturarLog } from '../_shared/capturar-log.ts'
 import { describe, it } from 'node:test'
 import { LIMITE_CONSULTAS, SALTOS_PROXY_CONFIABLES, VENTANA_SEG, ipDelPedido, manejar, type Deps, type Limite } from './handler.ts'
 
@@ -188,5 +189,27 @@ describe('consultar-estado-reparacion', () => {
     const get = await pedir(deps, { metodo: 'GET' })
     assert.equal(get.status, 405)
     cabecerasOk(get)
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  it('un error de la base al contar o al consultar deja el código y no el mensaje', async () => {
+    const limite = montar()
+    limite.deps.datos.registrarConsulta = async () => ({ data: null, error: ERROR_BASE_HOSTIL })
+    const a = await capturarLog(() => pedir(limite.deps))
+    a.lineas = a.lineas.filter((l) => !l.includes('x-forwarded-for')) // el aviso de proxy es ajeno a este caso
+    assert.equal(a.resultado.status, 500)
+    assert.equal(a.lineas.length, 1)
+    assert.match(a.lineas[0], /^consultar-estado-reparacion: no se pudo registrar la consulta 42501 /)
+    assert.doesNotMatch(a.lineas[0], /sk-secreta|db\.example\.com/)
+
+    const consulta = montar()
+    consulta.deps.datos.estadoPublico = async () => ({ data: null, error: ERROR_BASE_HOSTIL })
+    const b = await capturarLog(() => pedir(consulta.deps))
+    b.lineas = b.lineas.filter((l) => !l.includes('x-forwarded-for'))
+    assert.equal(b.resultado.status, 500)
+    assert.equal(b.lineas.length, 1)
+    assert.match(b.lineas[0], /^consultar-estado-reparacion: no se pudo consultar 42501 /)
+    assert.doesNotMatch(b.lineas[0], /sk-secreta|db\.example\.com/)
   })
 })
