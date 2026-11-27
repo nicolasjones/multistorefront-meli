@@ -15,6 +15,8 @@ import type { TipoCliente } from '../../lib/clientes'
 import { rutaEtiquetas } from '../../lib/etiquetasCliente'
 import { DialogoCorreoSeleccionados } from '../../components/clientes/DialogoCorreoSeleccionados'
 import { DialogoMarcarAceptacion } from '../../components/clientes/DialogoMarcarAceptacion'
+import { DialogoAsignarListaMasiva } from '../../components/clientes/DialogoAsignarListaMasiva'
+import { textoResultadoMasivo } from '../../lib/listasPrecios'
 import { textoAceptacionMarcada } from '../../lib/aceptacionCorreo'
 import { estadoCuentaWebListado, TEXTOS_ESTADO_CUENTA_WEB } from '../../lib/cuentasCliente'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
@@ -118,6 +120,7 @@ export function ClienteList() {
   const [avisoSeleccion, setAvisoSeleccion] = useState(false)
   const [dialogoCorreo, setDialogoCorreo] = useState(false)
   const [dialogoAceptacion, setDialogoAceptacion] = useState(false)
+  const [dialogoLista, setDialogoLista] = useState(false)
   // undefined = cerrado, null = cliente nuevo, id = editar ese cliente.
   const [clienteEnDialogo, setClienteEnDialogo] = useState<string | null | undefined>(undefined)
   const [avisoGuardado, setAvisoGuardado] = useState<string | null>(null)
@@ -126,6 +129,8 @@ export function ClienteList() {
   dialogoCorreoAbierto.current = dialogoCorreo
   const dialogoAceptacionAbierto = useRef(false)
   dialogoAceptacionAbierto.current = dialogoAceptacion
+  const dialogoListaAbierto = useRef(false)
+  dialogoListaAbierto.current = dialogoLista
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -152,6 +157,10 @@ export function ClienteList() {
     if (dialogoAceptacionAbierto.current) {
       setDialogoAceptacion(false)
       setAvisoCorreo('Cambiaste de empresa: se cerró «Marcar aceptación» y se descartó la selección.')
+    }
+    if (dialogoListaAbierto.current) {
+      setDialogoLista(false)
+      setAvisoCorreo('Cambiaste de empresa: se cerró «Asignar lista de precios» y se descartó la selección.')
     }
     if (dialogoCorreoAbierto.current) {
       setDialogoCorreo(false)
@@ -307,6 +316,11 @@ export function ClienteList() {
               </Button>
             ) : null}
             {puedeMigrar ? (
+              <Button variant="outlined" size="small" disabled={seleccion.size === 0 && (archivados || total === 0)} onClick={() => setDialogoLista(true)}>
+                {seleccion.size > 0 ? `Asignar lista de precios (${seleccion.size})` : 'Asignar lista de precios'}
+              </Button>
+            ) : null}
+            {puedeMigrar ? (
               <Button variant="outlined" size="small" disabled={seleccion.size === 0} onClick={() => setDialogoAceptacion(true)}>
                 {seleccion.size > 0 ? `Marcar aceptación (${seleccion.size})` : 'Marcar aceptación'}
               </Button>
@@ -375,6 +389,23 @@ export function ClienteList() {
           void refetch()
         }}
       />
+      {/* Se monta solo al abrir: no pide listas ni bandera mientras nadie asigna. */}
+      {dialogoLista ? (
+        <DialogoAsignarListaMasiva
+          open={dialogoLista}
+          seleccion={[...seleccion]}
+          filtro={{ texto: textoAplicado, tipo, empresaId, conCuentaWeb }}
+          totalFiltro={total}
+          mostrandoArchivados={archivados}
+          onCerrar={() => setDialogoLista(false)}
+          onAsignado={(resultado, listaNombre) => {
+            setDialogoLista(false)
+            setAvisoCorreo(textoResultadoMasivo(resultado, listaNombre))
+            setSeleccion(new Set())
+            void refetch()
+          }}
+        />
+      ) : null}
       <DialogoCorreoSeleccionados
         open={dialogoCorreo}
         clientes={[...seleccion]}

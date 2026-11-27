@@ -75,7 +75,7 @@ cargados y el catálogo de productos cargado por Catálogo).
 - Fija `productos.proveedor_id` y `productos.codigo_proveedor`. El SKU se busca sin distinguir
   mayúsculas ni espacios extremos. **No crea productos ni proveedores**: SKU inexistente, proveedor
   no cargado o proveedor desactivado es error de fila.
-- Un producto tiene un solo proveedor: el mismo SKU dos veces en el archivo → gana la primera fila.
+- El archivo asigna el proveedor **principal** del producto (un producto puede tener más proveedores, que se cargan desde la edición del producto): el mismo SKU dos veces en el archivo → gana la primera fila.
   Si el producto ya tenía proveedor, la fila lo **actualiza**; con otro proveedor y código vacío, el
   código anterior se limpia (no corresponde al proveedor nuevo).
 

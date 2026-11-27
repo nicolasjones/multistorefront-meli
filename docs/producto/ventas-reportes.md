@@ -147,3 +147,7 @@ El filtro **Tienda** sigue a la **empresa activa** de la barra superior:
 - [Consultas](consultas.md) — las consultas por WhatsApp que cuenta «Productos más consultados».
 - [Rentabilidad](rentabilidad.md) — el margen de lo vendido y los costos adicionales.
 - [Permisos por rol](../permisos-por-rol.md) — la sección Reportes de la matriz.
+
+## Ventas por lista de precios
+
+Pestaña de **Reportes de ventas** con una tabla por lista de precios para el período y la tienda elegidos: comprobantes, unidades, ventas sin IVA y ajuste otorgado estimado, más una fila «Sin lista». Las notas de crédito restan. Todavía no calcula el margen por lista. Más en [Listas de precios](listas-de-precios.md).

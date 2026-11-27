@@ -576,3 +576,7 @@ el interruptor pasa a verdadero (momento y usuario de la sesión; `por` nulo si 
   organizaciones, deja el evento de Actividad `clientes.aceptacion_correo_marcada` con la cantidad y quién, y devuelve cuántos cambiaron.
 - **Pendiente de interfaz.** El código web no llama todavía a `marcar_aceptacion_correo_clientes` ni la plantilla de «Importar clientes»
   trae la columna `acepta_correo` (el interruptor individual de la ficha y del formulario sí existe).
+
+## Lista de precios en el listado y la exportación (lote 93)
+
+El listado abre `DialogoAsignarListaMasiva` (solo administrador, RPC `asignar_lista_precios_masiva`) y la exportación pide por tanda `listas_de_clientes_para_exportar` para la columna «Lista de precios» en `lib/exportarClientes.ts`. Contratos y decisiones en [Listas de precios](../listas-de-precios.md).

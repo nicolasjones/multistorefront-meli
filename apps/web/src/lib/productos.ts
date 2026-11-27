@@ -252,6 +252,17 @@ export function esConflicto(error: unknown): boolean {
 
 // El mensaje crudo de Postgres/PostgREST puede nombrar políticas, restricciones o
 // columnas: al usuario va solo el texto en castellano y el detalle queda en consola.
+// El costo efectivo sale del proveedor principal (migración 20270512000100): la base distingue estos dos rechazos por `details`.
+export const MENSAJE_COSTO_POR_RENTABILIDAD =
+  'Ese proveedor tiene otro costo: cambiar el proveedor principal modifica el costo del producto y necesitás edición en Rentabilidad.'
+export const MENSAJE_COSTO_Y_PROVEEDOR =
+  'No se puede cambiar el proveedor principal y el costo a la vez si el proveedor ya tiene otro costo: guardá primero el proveedor y después el costo.'
+
+export const esRechazoPorRentabilidad = (error: unknown): boolean => {
+  const e = error as { code?: string; details?: string } | null
+  return e?.code === 'PT409' && e.details === 'rentabilidad'
+}
+
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, error)
   const code = (error as { code?: string } | null)?.code
@@ -261,6 +272,8 @@ export function mensajeDeError(error: unknown, porDefecto: string): string {
   // F-CAT-03: el índice único de SKU (alta o edición, también ante carreras).
   if (esSkuRepetido(error)) return MENSAJE_SKU_REPETIDO
   if (esCodigoBarrasRepetido(error)) return MENSAJE_CODIGO_BARRAS_REPETIDO
+  if (esRechazoPorRentabilidad(error)) return MENSAJE_COSTO_POR_RENTABILIDAD
+  if (code === '22023' && (error as { details?: string }).details === 'costo_y_proveedor') return MENSAJE_COSTO_Y_PROVEEDOR
   if (code === '22023' && /^El proveedor no existe/.test((error as { message?: string }).message ?? '')) {
     return 'Ese proveedor no está disponible. Elegí otro activo o dejá el campo vacío.'
   }

@@ -1,11 +1,11 @@
 -- MSF-187 / MSF-953: `dominio.comision_reglas`, `dominio.reparacion_comision_reparto` y `dominio.reparacion_comision_historial` (20270515010000) tienen `organizacion_id`: son
 -- datos de negocio de la organización y SE EXPORTAN (la prueba de completitud de `exportacion_total` lo exige).
 -- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente
--- (20270507180700_exportacion_total_identificadores_externos.sql), copiándola COMPLETA y sumando solo esas tres filas. Si otra
--- migración posterior a 20270507180700 la redefine, esta debe rebasarse sobre ella (la última en aplicarse gana).
+-- (20270512000600_exportacion_total_lote93.sql), copiándola COMPLETA y sumando solo esas tres filas. Si otra
+-- migración posterior a 20270512000600 la redefine, esta debe rebasarse sobre ella (la última en aplicarse gana).
 --
 -- Esquemas (Principio VII): sin tablas nuevas; solo una función de plataforma en `private`. Migración aditiva.
--- Reversión (migración posterior): volver a la definición de 20270507180700_exportacion_total_identificadores_externos.sql
+-- Reversión (migración posterior): volver a la definición de 20270512000600_exportacion_total_lote93.sql
 -- (la misma lista sin las tres filas nuevas).
 
 CREATE OR REPLACE FUNCTION private.conjuntos_exportacion_total()
@@ -66,6 +66,7 @@ AS $function$
     ('dominio', 'ingresos_mercaderia_lineas'),
     ('dominio', 'intereses_whatsapp'),
     ('dominio', 'listas_precios'),
+    ('dominio', 'listas_precios_tipo_cliente'),
     ('dominio', 'lotes_stock'),
     ('dominio', 'modelos_equipo'),
     ('dominio', 'motivos_movimiento'),
@@ -88,9 +89,11 @@ AS $function$
     ('dominio', 'producto_relacionados'),
     ('dominio', 'producto_variantes'),
     ('dominio', 'productos'),
+    ('dominio', 'productos_proveedores'),
     ('dominio', 'productos_tienda'),
     ('dominio', 'promociones_precio'),
     ('dominio', 'proveedores'),
+    ('dominio', 'proveedores_condiciones_compra'),
     ('dominio', 'proveedores_contactos'),
     ('dominio', 'proveedores_empresas'),
     ('dominio', 'rentabilidad_config'),

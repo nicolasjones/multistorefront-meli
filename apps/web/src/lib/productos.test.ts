@@ -109,6 +109,16 @@ describe('mensajeDeError', () => {
     expect(mensajeDeError({ code: '23505', message: 'duplicate key otra_uidx' }, 'Base')).toBe('Base')
     expect(mensajeDeError({ code: '99999', message: 'raw' }, 'Base')).toBe('Base')
   })
+
+  it('distingue los dos PT409 y el rechazo de costo y proveedor a la vez por `details`, sin filtrar el texto crudo', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(mensajeDeError({ code: 'PT409', message: 'crudo', details: 'rentabilidad' }, 'Base'))
+      .toBe('Ese proveedor tiene otro costo: cambiar el proveedor principal modifica el costo del producto y necesitás edición en Rentabilidad.')
+    expect(mensajeDeError({ code: 'PT409', message: 'crudo', details: 'proveedor_inactivo' }, 'Base')).toBe('Base')
+    expect(mensajeDeError({ code: '22023', message: 'crudo', details: 'costo_y_proveedor' }, 'Base'))
+      .toBe('No se puede cambiar el proveedor principal y el costo a la vez si el proveedor ya tiene otro costo: guardá primero el proveedor y después el costo.')
+    expect(mensajeDeError({ code: '22023', message: 'crudo', details: 'otra' }, 'Base')).toMatch(/no es válido/)
+  })
 })
 
 describe('costo vaciado en la edición', () => {

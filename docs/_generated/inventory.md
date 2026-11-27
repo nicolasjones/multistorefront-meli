@@ -2,8 +2,8 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **277**
-- Tablas en migraciones: **212**
+- Rutas del panel: **278**
+- Tablas en migraciones: **215**
 - Variables de entorno: **112**
 - Specs: **160**
 - Páginas de documentación: **349**
@@ -273,6 +273,7 @@
 - `/ventas-reportes/RankingClientes`
 - `/ventas-reportes/TableroReporte`
 - `/ventas-reportes/VentasPeriodoCanal`
+- `/ventas-reportes/VentasPorLista`
 - `/ventas/comprobante`
 - `/ventas/comprobantes`
 - `/ventas/configuracion`
@@ -363,6 +364,7 @@
 - `dominio.ingresos_mercaderia_lineas`
 - `dominio.intereses_whatsapp`
 - `dominio.listas_precios`
+- `dominio.listas_precios_tipo_cliente`
 - `dominio.lotes_stock`
 - `dominio.modelos_equipo`
 - `dominio.motivos_movimiento`
@@ -385,9 +387,11 @@
 - `dominio.producto_relacionados`
 - `dominio.producto_variantes`
 - `dominio.productos`
+- `dominio.productos_proveedores`
 - `dominio.productos_tienda`
 - `dominio.promociones_precio`
 - `dominio.proveedores`
+- `dominio.proveedores_condiciones_compra`
 - `dominio.proveedores_contactos`
 - `dominio.proveedores_empresas`
 - `dominio.rentabilidad_config`

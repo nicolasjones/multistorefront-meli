@@ -22,7 +22,7 @@ hace a un proveedor**, y nace del listado de reposición de Stock: los productos
 | `dominio.ordenes_compra_items` | Línea: producto y cantidad pedida (una por producto) |
 
 Las dos son de negocio → esquema `dominio`. El proveedor es **el del producto**
-(`dominio.productos.proveedor_id`, F-PRV-03): por eso una orden es de un solo proveedor y sus productos
+(`dominio.productos.proveedor_id`, F-PRV-03, que es el **proveedor principal**: un producto puede tener otros proveedores, pero la orden parte del principal): por eso una orden es de un solo proveedor y sus productos
 son los de ese proveedor. Un producto **sin** proveedor no entra en ninguna orden.
 
 RLS por organización y por nivel de la sección `stock`: lectura con `lectura` o `edicion`. **No hay
