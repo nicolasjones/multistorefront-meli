@@ -26,6 +26,14 @@ test('mutantes del Compose de PR: cada uno produce exactamente un hallazgo con e
     ['privileged', (t) => t.replace('    init: true\n', '    init: true\n    privileged: true\n'), /privileged/],
     ['pid host', (t) => t.replace('    init: true\n', '    init: true\n    pid: host\n'), /espacio de nombres/],
     ['cap_add', (t) => t.replace('    init: true\n', '    init: true\n    cap_add:\n      - SYS_ADMIN\n'), /cap_add/],
+    ['supervisor escribible', (t) => t.replace('    read_only: true\n', ''), /solo lectura/],
+    ['supervisor con capacidades', (t) => t.replace('    cap_drop: [ALL]\n', ''), /soltar todas las capacidades/],
+    ['supervisor sin no-new-privileges', (t) => t.replace('    security_opt: ["no-new-privileges:true"]\n', ''), /no-new-privileges/],
+    ['seccomp desactivado', (t) => t.replace('"no-new-privileges:true"]', '"no-new-privileges:true", "seccomp=unconfined"]'), /seccomp o apparmor/],
+    ['devices', (t) => t.replace('    init: true\n', '    init: true\n    devices:\n      - /dev/kvm\n'), /devices/],
+    ['sin red dedicada', (t) => t.replace(/^ {6}RUNNER_JOBS_NETWORK:.*\n/m, ''), /red DEDICADA/],
+    ['red de jobs fija a bridge', (t) => t.replace('${RUNNER_JOBS_NETWORK_PR:-platform-runner-jobs-pr}', 'bridge'), /red DEDICADA/],
+    ['sin subred fija', (t) => t.replace(/^ {6}RUNNER_JOBS_SUBNET:.*\n/m, ''), /subred fija/],
     ['sin sysbox por defecto', (t) => t.replace('${RUNNER_RUNTIME:-sysbox-runc}', '${RUNNER_RUNTIME:-runc}'), /sysbox-runc/],
     ['entrypoint distinto', (t) => t.replace('["node", "/supervisor.mjs"]', '["node", "/entrypoint.mjs"]'), /entrypoint del servicio/],
     ['sin daemon interno', (t) => t.replace('RUNNER_DOCKER_INTERNO: "1"', 'RUNNER_DOCKER_INTERNO: "0"'), /RUNNER_DOCKER_INTERNO/],
@@ -48,7 +56,6 @@ test('mutantes del Compose de deploy', () => {
     ['con platform-local', (t) => t.replace('RUNNER_LABELS: self-hosted,platform-deploy', 'RUNNER_LABELS: self-hosted,platform-deploy,platform-local'), /no puede llevar platform-local/],
     ['con platform-pr', (t) => t.replace('RUNNER_LABELS: self-hosted,platform-deploy', 'RUNNER_LABELS: self-hosted,platform-deploy,platform-pr'), /no puede llevar platform-local ni platform-pr/],
     ['sin platform-deploy', (t) => t.replace('RUNNER_LABELS: self-hosted,platform-deploy', 'RUNNER_LABELS: self-hosted'), /lleva platform-deploy/],
-    ['store sin vaciar', (t) => t.replace('RUNNER_LIMPIAR_STORE: "1"', 'RUNNER_LIMPIAR_STORE: "0"'), /vacía el store/],
   ];
   for (const [nombre, mutar, motivo] of mutantes) {
     const mutado = mutar(deploy);

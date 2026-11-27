@@ -24,6 +24,8 @@ concurrency:
 jobs:
   release-please:
     runs-on: ${{ fromJSON(vars.CI_RUNS_ON_DEPLOY || '["self-hosted","platform-local"]') }}
+    # El token propio vive como secret del Environment `release` (restringido a `main`), no como secret de repo: así lo reciben solo los jobs que corren desde `main`.
+    environment: release
     # MSF-926: tope explícito (el default de GitHub son 360 min: un job colgado ocuparía el runner self-hosted horas).
     timeout-minutes: 15
     steps:

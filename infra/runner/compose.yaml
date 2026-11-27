@@ -18,12 +18,22 @@ services:
     image: multistorefront-meli-runner:local
     entrypoint: ["node", "/supervisor.mjs"]
     init: true
+    # Endurecimiento del propio supervisor (no ejecuta código de jobs, pero tiene el socket del host): sin capacidades, sin escalada y de solo lectura.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp
     environment:
       RUNNER_ROLE: pr
       RUNNER_REPO: nicolasjones/multistorefront-meli
       RUNNER_NAME: multistorefront-meli-pr
       RUNNER_LABELS: self-hosted,platform-local,platform-pr
       RUNNER_IMAGE: multistorefront-meli-runner:local
+      # Red DEDICADA de los jobs (subred fija, sin comunicación entre contenedores): el supervisor la crea si falta y el firewall (infra/vps/firewall-docker-user.sh,
+      # --subred-jobs-pr) la aísla del host, de la tailnet y de la red interna. Nunca docker0.
+      RUNNER_JOBS_NETWORK: ${RUNNER_JOBS_NETWORK_PR:-platform-runner-jobs-pr}
+      RUNNER_JOBS_SUBNET: ${RUNNER_JOBS_SUBNET_PR:-172.29.250.0/24}
       RUNNER_RUNTIME: ${RUNNER_RUNTIME:-sysbox-runc}
       RUNNER_DOCKER_INTERNO: "1"
       # Cuántos jobs de este repo corren a la vez (una ranura = un contenedor por vez). 0 no levanta runners. Ver docs/deployment.md.
@@ -32,7 +42,6 @@ services:
       RUNNER_MEMORY_LIMIT: ${RUNNER_MEMORY_LIMIT:-6g}
       RUNNER_CPU_LIMIT: ${RUNNER_CPU_LIMIT:-2}
       RUNNER_PIDS_LIMIT: ${RUNNER_PIDS_LIMIT:-4096}
-      RUNNER_LIMPIAR_STORE: ${RUNNER_LIMPIAR_STORE:-0}
       RUNNER_PNPM_NETWORK_CONCURRENCY: ${RUNNER_PNPM_NETWORK_CONCURRENCY:-16}
       RUNNER_PAT_FILE: /run/secrets/gh_runner_pat
     volumes:

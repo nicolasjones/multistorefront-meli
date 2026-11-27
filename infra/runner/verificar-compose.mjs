@@ -48,6 +48,13 @@ export function analizarCompose(nombre, texto, rol) {
   regla(/^\s*privileged:\s*true/m.test(todo), 'privileged: true.');
   regla(/^\s*(pid|network_mode|ipc|userns_mode):\s*["']?host/m.test(todo), 'comparte un espacio de nombres con el host.');
   regla(/^\s*cap_add:/m.test(todo), 'cap_add: capacidades extra.');
+  regla(/^\s*devices:/m.test(todo), 'devices: el supervisor no necesita dispositivos del host.');
+  regla(/(seccomp|apparmor)[=:]\s*unconfined/.test(todo), 'desactiva seccomp o apparmor.');
+  regla(!/^ {4}read_only:\s*true\s*$/m.test(dentro), 'el supervisor debe ser de solo lectura (read_only: true).');
+  regla(!/^ {4}cap_drop:\s*\[ALL\]\s*$/m.test(dentro), 'el supervisor debe soltar todas las capacidades (cap_drop: [ALL]).');
+  regla(!/no-new-privileges:true/.test(dentro), 'el supervisor debe llevar no-new-privileges:true.');
+  regla(!/^ {6}RUNNER_JOBS_NETWORK:\s*\$\{RUNNER_JOBS_NETWORK_[A-Z]+:-platform-runner-jobs-(pr|deploy)\}\s*$/m.test(dentro), 'falta la red DEDICADA de los jobs (RUNNER_JOBS_NETWORK con por defecto platform-runner-jobs-<rol>): nunca docker0.');
+  regla(!/^ {6}RUNNER_JOBS_SUBNET:\s*\$\{RUNNER_JOBS_SUBNET_[A-Z]+:-172\.29\.25[01]\.0\/24\}\s*$/m.test(dentro), 'falta la subred fija de los jobs (RUNNER_JOBS_SUBNET).');
   regla(valorDe(lineas, 'entrypoint') !== '["node", "/supervisor.mjs"]', 'el entrypoint del servicio debe ser el supervisor.');
   regla(valorDe(lineas, 'RUNNER_RUNTIME') !== '${RUNNER_RUNTIME:-sysbox-runc}', 'RUNNER_RUNTIME debe tener por defecto sysbox-runc (sin sysbox no hay modo inseguro).');
   regla(valorDe(lineas, 'RUNNER_DOCKER_INTERNO') !== '1', 'RUNNER_DOCKER_INTERNO debe ser "1" (el job usa su propio daemon, no el del host).');
@@ -61,7 +68,6 @@ export function analizarCompose(nombre, texto, rol) {
   } else {
     regla(!etiquetas.includes('platform-deploy'), 'el pool de deploy lleva platform-deploy.');
     regla(etiquetas.includes('platform-local') || etiquetas.includes('platform-pr'), 'el pool de deploy no puede llevar platform-local ni platform-pr: un job de PR caería en él (MSF-704).');
-    regla(valorDe(lineas, 'RUNNER_LIMPIAR_STORE') !== '1', 'el pool de deploy vacía el store entre jobs (RUNNER_LIMPIAR_STORE=1).');
   }
   return hallazgos;
 }
