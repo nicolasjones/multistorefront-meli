@@ -94,7 +94,7 @@ Las tres son `security definer` con `search_path = ''`; la persona y la organiza
 |---|---|---|
 | `public.listar_notificaciones(p_limite int default 20, p_antes_de timestamptz default null, p_antes_id uuid default null)` | `jsonb` `{ total, items[] }` con `id`, `tipo_nombre`, `datos`, `creado_en`, `leido_en`. Orden `creado_en desc, id desc`; cursor compuesto `(creado_en, id)`; `p_limite` acotado a 1..50 | `revoke … from public, anon`; `grant execute … to authenticated` |
 | `public.contar_notificaciones_sin_leer()` | `integer`: avisos propios sin leer con los mismos filtros | ídem |
-| `public.marcar_notificaciones_leidas(p_ids uuid[] default null)` | `integer`: cuántos marcó. `p_ids` nulo = todos los propios sin leer. Idempotente y **conserva el primer** `leido_en` | ídem |
+| `public.marcar_notificaciones_leidas(p_ids uuid[] default null, p_todas boolean default false)` | `integer`: cuántos marcó. «Todas» es **explícito** (`p_todas = true`, sin ids): sin ids y sin `p_todas`, o con ambos, falla con `22023` (`PARAMETRO_REQUERIDO` / `PARAMETRO_AMBIGUO`); un arreglo vacío marca 0 (MSF-817, `20270516000200`). Idempotente y **conserva el primer** `leido_en` | ídem |
 
 Filtros comunes: `estado <> 'descartado'`, `user_id = auth.uid()`, `organizacion_id = private.organizacion_id()` y el
 tipo de aviso debe seguir siendo visible (`private.nivel_seccion_de_usuario(...) <> 'ninguno'`). El acceso se evalúa
@@ -113,7 +113,7 @@ tipo de aviso debe seguir siendo visible (`private.nivel_seccion_de_usuario(...)
   (`document.visibilityState`). Un contador de generación descarta respuestas viejas: el punto rojo no reaparece
   por una respuesta que llega tarde.
 - `notificaciones.ts`: `LIMITE_TANDA = 20`, `MAXIMO_DETALLE = 140`.
-- «Marcar todas como leídas» llama `marcar_notificaciones_leidas` con `p_ids` nulo; el doble clic sobre un aviso no
+- «Marcar todas como leídas» llama `marcar_notificaciones_leidas` con `p_ids: null, p_todas: true`; el doble clic sobre un aviso no
   descuenta dos veces el contador.
 - `EncabezadoPanel.tsx`: el botón va entre `BusquedaGlobal` y `MenuCuenta`.
 
@@ -184,9 +184,11 @@ authenticated`) devuelve `proceso_id, ejecucion_id, estado, reutilizado`:
   intento.
 - **Worker**: `workers/exportar-organizacion` (`src/exportar.ts`, `csv.ts`, `zip.ts`, `infra.ts`).
   - Recorre los conjuntos con `private.conjuntos_exportacion_total()` y las filas con
-    `private.filas_exportacion_total(ejecucion, esquema, tabla, desde, limite)` en lotes de **2000** (`TAMANO_LOTE`).
+    `private.filas_exportacion_total(ejecucion, esquema, tabla, despues, limite)` en lotes de **2000** (`TAMANO_LOTE`), paginando por
+    *keyset* sobre la clave primaria: devuelve `{filas, siguiente}` y el worker pasa `siguiente` como `despues` (MSF-817).
   - Un CSV por conjunto, con nombre `<esquema>/<tabla>.csv`: separador `;`, BOM UTF-8, CRLF, comillas según RFC 4180
-    y neutralización de fórmulas (prefijo `'` ante `= + - @`).
+    y neutralización de fórmulas (prefijo `'` ante `= + - @`, salvo un texto que es solo un número con signo, como `-5.25` o
+    `+5491155551234`). `numeric` y `bigint` salen como texto exacto, sin pasar por `double`.
   - ZIP en streaming con `fflate`: cada trozo se escribe a un archivo temporal; tope de **200 MB**
     (`TOPE_BYTES`), que es una falla no reintentable (`TOPE_EXCEDIDO`, código 78).
   - Sube el ZIP a `exportaciones-organizacion/<organizacion_id>/<ejecucion_id>.zip` (idempotente, con `upsert`) y
@@ -209,8 +211,8 @@ authenticated`) devuelve `proceso_id, ejecucion_id, estado, reutilizado`:
 ### Qué entra y qué no
 
 - **Lista permitida**: `private.conjuntos_exportacion_total()` — tablas de `public` y `dominio` con datos de negocio
-  de la organización. Las columnas salen del catálogo real de la base y **se omiten las que parecen secreto**
-  (`attname !~* '(secret|token|password|passwd|api_?key|vault|credencial|private_key)'`).
+  de la organización. Las columnas salen de una **lista blanca por columna** (`private.exportacion_total_columnas`, `exportar = true`):
+  una columna nueva sin decisión **no sale** y el pgTAP obliga a decidirla (MSF-817, `20270516000100`).
 - **Exclusiones**: `private.exclusiones_exportacion_total()`, cada una con su motivo (colas internas de avisos y
   correo, registros operativos y de monitoreo, procesos masivos, credenciales y conexiones, datos derivados).
 - **Completitud**: el pgTAP `exportacion_total.test.sql` falla si una tabla con `organizacion_id` de `public` o
@@ -319,19 +321,21 @@ se citan por su tarea (T0xx).
 
 ## Límites y deuda
 
-- **Deuda trazada** en la historia **MSF-817** («Endurecer la exportación total y cerrar huecos de pruebas»): lista
-  negra de columnas secretas en vez de lista blanca por tabla; casos negativos del aislamiento del worker con un
-  worker real de otra organización; paginación por *keyset* en vez de `offset` sin snapshot; reintentos del
-  flow de Kestra (el candado de ejecución en curso ya está: `concurrency` con límite 1); caducidad del ZIP en el bucket; neutralización de fórmulas que altera teléfonos (`+549…`);
-  `marcar_notificaciones_leidas` con `p_ids` ausente equivale a «marcar todas»; desempate por `id` del cursor sin probar.
+- **Deuda de MSF-817 (lote 101)**: resuelta la lista blanca por columna, la paginación por *keyset*, el candado y los topes del
+  flow de Kestra, el vencimiento del ZIP (con la limitación de abajo), la neutralización de fórmulas sobre números con signo, el
+  parámetro explícito de `marcar_notificaciones_leidas` y los pgTAP del cursor compuesto y del aislamiento. **Sigue pendiente**: el
+  aislamiento con un **worker real** de otra organización (el rol de conexión del CI no es superusuario y no puede iniciar sesión
+  como `worker_<org>`; se prueba con administrador de otra organización, un miembro sin rol y una sesión `authenticated`) y el
+  guard BUG-182 del Revisor (es del orquestador).
 - **Sin captura de pantalla** de la campanita, del panel de ayuda ni del bloque de exportación.
   `TODO (Documentación · Owner: agente Documentador)`: generarlas con `pnpm --filter @platform/web pantallas:capturar`
   contra una app levantada con datos de demostración y dejarlas en `docs/producto/img/notificaciones/`,
   `docs/producto/img/ayuda/` y `docs/producto/img/importaciones/`.
 - **Sin ERD interactivo (Archify)** de la épica: el grafo afectado es una sola columna alterada
   (`avisos_pendientes.leido_en`) y ninguna tabla nueva. `TODO (Documentación · Owner: agente Documentador)`.
-- La exportación total **no expira**: el archivo anterior se borra al completar la siguiente, pero no hay limpieza
-  programada (ver MSF-817, punto 5).
+- **Vencimiento del ZIP (MSF-817)**: al terminar bien, el worker borra los ZIP de **cualquier** organización con más de 7 días
+  (`VIGENCIA_ZIP_MS`, `limpiarVencidos`). Limitación: corre solo cuando alguna organización exporta; si ninguna lo hace, un ZIP viejo
+  queda hasta la próxima exportación. Una tarea programada que lo ejecute a diario queda como seguimiento.
 
 ## Reversión
 

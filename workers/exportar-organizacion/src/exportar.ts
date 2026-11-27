@@ -9,6 +9,8 @@ import { TopeExcedido, type ArchivoZip, type EscritorZip } from './zip.js';
 export const SALIDA_OK = 0;
 export const SALIDA_NO_REINTENTABLE = 78;
 export const TAMANO_LOTE = 2000;
+/** Plazo para descargar el ZIP: 7 días (MSF-817). */
+export const VIGENCIA_ZIP_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface Conjunto {
   esquema: string;
@@ -22,12 +24,21 @@ export interface DatosExportacion {
   conjuntos: number;
 }
 
+export type ClaveContinuacion = Record<string, unknown>;
+
+export interface PaginaFilas {
+  filas: Record<string, unknown>[];
+  /** Clave primaria de la última fila de la página (`null` si no hubo filas). */
+  siguiente: ClaveContinuacion | null;
+}
+
 /** Todo lo que el worker necesita del exterior: facilita probarlo sin base, disco ni Storage. */
 export interface Puertos {
   enCurso(ejecucionId: string): Promise<boolean>;
   datos(ejecucionId: string): Promise<DatosExportacion>;
   conjuntos(): Promise<Conjunto[]>;
-  filas(ejecucionId: string, esquema: string, tabla: string, desde: number, limite: number): Promise<Record<string, unknown>[]>;
+  /** Página por keyset (MSF-817): `despues` es la clave de continuación que devolvió la página anterior (`null` = desde el principio). */
+  filas(ejecucionId: string, esquema: string, tabla: string, despues: ClaveContinuacion | null, limite: number): Promise<PaginaFilas>;
   progreso(procesoId: string, procesados: number, total: number): Promise<void>;
   errorConjunto(procesoId: string, indice: number, referencia: string, motivo: string): Promise<void>;
   cancelado(procesoId: string): Promise<boolean>;
@@ -39,6 +50,11 @@ export interface Puertos {
   borrar(destino: string): Promise<void>;
   /** Borra los ZIP anteriores de la organización (misma carpeta), conservando `conservar`. */
   limpiarAnteriores(carpeta: string, conservar: string): Promise<void>;
+  /**
+   * Borra los ZIP de cualquier organización con más de `maxEdadMs` (el ZIP lleva datos personales y no debe quedar publicado
+   * para siempre; la persona tiene ese plazo para descargarlo). Mejor esfuerzo.
+   */
+  limpiarVencidos(maxEdadMs: number): Promise<void>;
   cerrarEjecucion(ejecucionId: string, estado: 'exitosa' | 'fallida', motivo: string, detalle: Record<string, unknown>): Promise<void>;
   evento(etapa: string, estado: 'iniciada' | 'completada' | 'fallida', mensaje?: string): void;
 }
@@ -61,7 +77,8 @@ function leeme(conjuntos: { nombre: string; filas: number; error: boolean }[], g
     'Cada archivo .csv trae un conjunto de datos (carpeta = esquema). Separador «;», codificación UTF-8.',
     'No incluye credenciales, tokens ni datos de autenticación.',
     'Los textos que empiezan con = + - @ llevan un apóstrofo delante (protección contra fórmulas en hojas de cálculo):',
-    'al reimportar, quitelo (por ejemplo en un teléfono «\'+54911…»). Los números se escriben tal como los entrega la base.',
+    'al reimportar, quitelo (por ejemplo en un teléfono con espacios «\'+54 9 11…»). Un valor que es solo un número con signo',
+    '(«-5.25», «+5491155551234») va sin apóstrofo. Los números se escriben tal como los entrega la base, sin perder precisión.',
     '',
     'Conjuntos y cantidad de filas:',
     ...conjuntos.map((c) => `- ${c.nombre}: ${c.filas}${c.error ? ' (INCOMPLETO: no se pudo leer completo)' : ''}`),
@@ -118,18 +135,20 @@ export async function exportarOrganizacion(ejecucionId: string, organizacionId: 
       let filas = 0;
       let fallo = false;
       try {
-        for (let desde = 0; ; desde += tamanoLote) {
-          if (desde > 0 && (await puertos.cancelado(procesoId))) {
+        let despues: ClaveContinuacion | null = null;
+        for (let pagina = 0; ; pagina++) {
+          if (pagina > 0 && (await puertos.cancelado(procesoId))) {
             entrada.terminar();
             puertos.evento('lectura', 'fallida', 'Cancelada por la persona que la pidió');
             await abortar('cancelado', 'CANCELADA');
             return { codigo: SALIDA_OK };
           }
-          const pagina = await puertos.filas(ejecucionId, conjunto.esquema, conjunto.tabla, desde, tamanoLote);
-          if (pagina.length === 0) break;
-          filas += pagina.length;
-          entrada.escribir(cuerpoCsv(conjunto.columnas, pagina));
-          if (pagina.length < tamanoLote) break;
+          const lote: PaginaFilas = await puertos.filas(ejecucionId, conjunto.esquema, conjunto.tabla, despues, tamanoLote);
+          if (lote.filas.length === 0) break;
+          filas += lote.filas.length;
+          entrada.escribir(cuerpoCsv(conjunto.columnas, lote.filas));
+          if (lote.filas.length < tamanoLote || lote.siguiente === null) break;
+          despues = lote.siguiente;
         }
       } catch (error) {
         // El tope del ZIP y las fallas de disco no son un problema del conjunto: cortan todo.
@@ -202,6 +221,12 @@ export async function exportarOrganizacion(ejecucionId: string, organizacionId: 
     await puertos.limpiarAnteriores(`${organizacionId}/`, destino);
   } catch {
     puertos.evento('limpieza', 'fallida', 'No se pudo borrar el ZIP anterior');
+  }
+  // Vencimiento (MSF-817): ningún ZIP de ninguna organización sobrevive más de VIGENCIA_ZIP_MS. También de mejor esfuerzo.
+  try {
+    await puertos.limpiarVencidos(VIGENCIA_ZIP_MS);
+  } catch {
+    puertos.evento('limpieza', 'fallida', 'No se pudieron borrar los ZIP vencidos');
   }
   await puertos.cerrarProceso(procesoId, errores > 0 ? 'con_errores' : 'completado', '');
   await puertos.cerrarEjecucion(ejecucionId, 'exitosa', `EXPORTADOS:${total - errores}`, { conjuntos: total, errores, archivo: destino, bytes: archivo.bytes });

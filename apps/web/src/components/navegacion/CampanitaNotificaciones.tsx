@@ -25,7 +25,7 @@ export function CampanitaNotificaciones() {
 
   const marcar = async (ids: string[] | null) => {
     setFalloMarcar(false)
-    const { error } = await supabaseClient.rpc('marcar_notificaciones_leidas', { p_ids: ids })
+    const { error } = await supabaseClient.rpc('marcar_notificaciones_leidas', ids === null ? { p_ids: null, p_todas: true } : { p_ids: ids })
     if (error) {
       setFalloMarcar(true)
       void refrescar()

@@ -54,10 +54,13 @@ tasks:
             username: "{{ outputs.resolver_conexion[parent.taskrun.value].row.usuario_ssh }}"
             authMethod: PUBLIC_KEY
             privateKey: "{{ secret('ORQUESTACION_SSH_PRIVATE_KEY') }}"
-            timeout: PT30M
+            # MSF-817: el lease de la orden es de 3600 s (`reclamar_despachos_capacidad(..., 3600)`) y la solicitud reutiliza un proceso
+            # abierto por 3600 s. Peor caso de esta tarea: 2 intentos x 25 min + espera <= 52 min < 3600 s (antes 3 x 30 min = 90 min:
+            # un segundo reclamo podía lanzar otro worker sobre la misma exportación).
+            timeout: PT25M
             retry:
               type: exponential
-              maxAttempts: 3
+              maxAttempts: 2
               interval: PT30S
               maxInterval: PT2M
             commands:
@@ -76,9 +79,22 @@ tasks:
                 # El worker escribe el ZIP en el bucket privado con la service-role
                 # que vive solo en worker.env del servidor; el flow transmite los
                 # nombres, nunca los valores.
+                # MSF-817: candado por ejecución. Un contenedor vivo con este nombre es un intento anterior (el timeout de SSH no
+                # mata lo remoto): no se lanza otro sobre la misma exportación, se informa YA_EN_CURSO (no reintentable).
+                CONTENEDOR="exportar-org-{{ fromJson(parent.taskrun.value).ejecucion_id }}"
+                if [ -n "$(docker ps -q --filter "name=^${CONTENEDOR}$")" ]; then
+                  echo "YA_EN_CURSO:{{ fromJson(parent.taskrun.value).ejecucion_id }}" >&2
+                  printf '::{"outputs":{"no_reintentable":"YA_EN_CURSO"}}::\n'
+                  exit 0
+                fi
                 WORKER_STDERR=$(mktemp)
                 WORKER_RC=0
+                # Vigilante: si el worker se pasa de 24 min se detiene el contenedor (`--rm` lo borra), en vez de quedar vivo cuando
+                # SSH corta la sesión a los 25 min. Se cancela apenas el worker termina.
+                ( sleep 1440 && docker stop -t 30 "$CONTENEDOR" >/dev/null 2>&1 ) &
+                VIGILANTE=$!
                 docker run --rm \
+                  --name "$CONTENEDOR" \
                   --init \
                   --pids-limit "${WORKER_PIDS:-1024}" \
                   --read-only \
@@ -96,6 +112,7 @@ tasks:
                   -e EJECUCION_ID="{{ fromJson(parent.taskrun.value).ejecucion_id }}" \
                   -e KESTRA_EJECUCION_ID="{{ execution.id }}" \
                   {{ envs.exportar_organizacion_imagen }} 2>"$WORKER_STDERR" || WORKER_RC=$?
+                kill "$VIGILANTE" 2>/dev/null || true
                 # Fallas no reintentables (workers/CONTRATO.md): 78 con un
                 # motivo contractual. Kestra no condiciona retry por código:
                 # se termina en 0 con el motivo como output y el flow resuelve

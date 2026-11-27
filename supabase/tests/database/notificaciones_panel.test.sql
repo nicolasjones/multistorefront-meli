@@ -3,7 +3,7 @@
 -- request.jwt.claims. Dos organizaciones y avisos propios, ajenos, descartados y de una sección sin acceso.
 begin;
 
-select plan(23);
+select plan(34);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -51,7 +51,7 @@ select is(
 set local role anon;
 select throws_ok($$select public.listar_notificaciones()$$, '42501', null, 'anon no lista notificaciones');
 select throws_ok($$select public.contar_notificaciones_sin_leer()$$, '42501', null, 'anon no cuenta notificaciones');
-select throws_ok($$select public.marcar_notificaciones_leidas()$$, '42501', null, 'anon no marca notificaciones');
+select throws_ok($$select public.marcar_notificaciones_leidas(null, true)$$, '42501', null, 'anon no marca notificaciones');
 reset role;
 
 -- Persona 1 de la organización 1.
@@ -127,7 +127,7 @@ select is(
 select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
 set local role authenticated;
 
-select is(public.marcar_notificaciones_leidas(), 2, 'sin ids marca todos los propios sin leer');
+select is(public.marcar_notificaciones_leidas(null, true), 2, 'p_todas = true marca todos los propios sin leer');
 select is(public.contar_notificaciones_sin_leer(), 0, 'no quedan sin leer');
 
 -- Persona 2 de la organización 2: solo ve lo suyo.
@@ -138,6 +138,54 @@ select is(
   (public.listar_notificaciones()->'items'->0->'datos'->>'cliente'), 'Otra org',
   'otra organización solo ve sus propios avisos'
 );
+
+-- MSF-817 (hallazgo 7): «todas» es explícito. Sin ids y sin p_todas (un cliente que envía undefined) falla en vez de marcar todo.
+reset role;
+update public.avisos_pendientes set leido_en = null where user_id = 'a1000000-0000-0000-0000-000000000001';
+select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select throws_ok($$select public.marcar_notificaciones_leidas()$$, '22023',
+  'PARAMETRO_REQUERIDO: indicar los ids a marcar o p_todas = true', 'sin ids y sin p_todas falla');
+select throws_ok($$select public.marcar_notificaciones_leidas(null, false)$$, '22023',
+  'PARAMETRO_REQUERIDO: indicar los ids a marcar o p_todas = true', 'ids nulos con p_todas = false falla');
+select throws_ok($$select public.marcar_notificaciones_leidas(array['b0000000-0000-0000-0000-000000000001']::uuid[], true)$$, '22023',
+  'PARAMETRO_AMBIGUO: pasar ids o p_todas, no ambos', 'ids junto con p_todas es ambiguo');
+select is(public.contar_notificaciones_sin_leer(), 3, 'los pedidos rechazados no marcaron nada');
+select is(public.marcar_notificaciones_leidas(array[]::uuid[]), 0, 'un arreglo de ids vacío marca 0');
+select is(public.marcar_notificaciones_leidas(null, true), 3, 'p_todas = true marca los 3 vigentes sin leer');
+
+-- Desempate por id del cursor compuesto (creado_en, id): dos avisos con el MISMO creado_en.
+reset role;
+insert into public.avisos_pendientes (id, organizacion_id, user_id, tipo_aviso, grupo_id, datos, estado, creado_en) values
+  ('b0000000-0000-0000-0000-000000000011', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001',
+   'consulta_nueva', gen_random_uuid(), '{"cliente":"Empate A"}', 'pendiente', '2030-01-01 00:00:00+00'),
+  ('b0000000-0000-0000-0000-000000000012', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001',
+   'consulta_nueva', gen_random_uuid(), '{"cliente":"Empate B"}', 'pendiente', '2030-01-01 00:00:00+00');
+select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select is(
+  public.listar_notificaciones(1)->'items'->0->>'id', 'b0000000-0000-0000-0000-000000000012',
+  'con el mismo creado_en la primera página trae el id mayor');
+select is(
+  public.listar_notificaciones(1, '2030-01-01 00:00:00+00', 'b0000000-0000-0000-0000-000000000012')->'items'->0->>'id',
+  'b0000000-0000-0000-0000-000000000011',
+  'el cursor (creado_en, id) continúa con el otro aviso del empate: no lo salta ni lo repite');
+select is(
+  (select jsonb_array_length(public.listar_notificaciones(5, '2030-01-01 00:00:00+00', 'b0000000-0000-0000-0000-000000000011')->'items')),
+  3, 'después del último del empate siguen solo los 3 anteriores (Cami, Beto, Ana)');
+
+-- Otra organización: se miran TODOS los ítems, no solo el primero. La persona 2 tiene además un aviso de la organización Uno
+-- (membresía vieja): no debe verlo.
+reset role;
+insert into public.avisos_pendientes (id, organizacion_id, user_id, tipo_aviso, grupo_id, datos, estado, creado_en) values
+  ('b0000000-0000-0000-0000-000000000021', '11111111-1111-1111-1111-111111111111', 'a2000000-0000-0000-0000-000000000001',
+   'consulta_nueva', gen_random_uuid(), '{"cliente":"De la Uno"}', 'pendiente', now() + interval '1 hour');
+select set_config('request.jwt.claims', json_build_object('sub', 'a2000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select is(
+  (select count(*)::int from jsonb_array_elements(public.listar_notificaciones()->'items') i where i->'datos'->>'cliente' = 'De la Uno'),
+  0, 'la persona 2 no ve ningún aviso de la organización Uno (se revisan todos los ítems)');
+select is((public.listar_notificaciones()->>'total')::int, 1, 'y el total solo cuenta lo de su organización');
 
 select * from finish();
 rollback;

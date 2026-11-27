@@ -4,7 +4,7 @@ import { createReadStream, statSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import pg from 'pg';
 import { crearEscritorZip } from './zip.js';
-import type { Conjunto, DatosExportacion, Puertos } from './exportar.js';
+import type { Conjunto, DatosExportacion, PaginaFilas, Puertos } from './exportar.js';
 
 const BUCKET = 'exportaciones-organizacion';
 
@@ -50,12 +50,12 @@ export function crearPuertos(env: Record<string, string | undefined>): { puertos
       const r = await pool.query<Conjunto>('select esquema, tabla, columnas from private.conjuntos_exportacion_total()');
       return r.rows;
     },
-    async filas(id, esquema, tabla, desde, limite) {
-      const r = await pool.query<{ filas: Record<string, unknown>[] }>(
-        'select private.filas_exportacion_total($1::uuid, $2::text, $3::text, $4::int, $5::int) as filas',
-        [id, esquema, tabla, desde, limite],
+    async filas(id, esquema, tabla, despues, limite) {
+      const r = await pool.query<{ pagina: PaginaFilas }>(
+        'select private.filas_exportacion_total($1::uuid, $2::text, $3::text, $4::jsonb, $5::int) as pagina',
+        [id, esquema, tabla, despues === null ? null : JSON.stringify(despues), limite],
       );
-      return r.rows[0]?.filas ?? [];
+      return r.rows[0]?.pagina ?? { filas: [], siguiente: null };
     },
     async progreso(proceso, procesados, total) {
       await pool.query('select public.actualizar_progreso_proceso_masivo($1::uuid, $2::int, $3::int)', [proceso, procesados, total]);
@@ -121,6 +121,34 @@ export function crearPuertos(env: Record<string, string | undefined>): { puertos
         method: 'DELETE',
         headers: cabeceras,
         body: JSON.stringify({ prefixes: viejos }),
+      });
+      if (!borrado.ok) throw new Error(`BORRADO_FALLIDO:${borrado.status}`);
+    },
+    async limpiarVencidos(maxEdadMs) {
+      const cabeceras = { apikey: clave, Authorization: `Bearer ${clave}`, 'Content-Type': 'application/json' };
+      const listar = async (prefix: string): Promise<{ name: string; id: string | null; created_at?: string }[]> => {
+        const r = await fetch(`${baseUrl}/storage/v1/object/list/${BUCKET}`, {
+          method: 'POST',
+          headers: cabeceras,
+          body: JSON.stringify({ prefix, limit: 1000 }),
+        });
+        if (!r.ok) throw new Error(`LISTADO_FALLIDO:${r.status}`);
+        return (await r.json()) as { name: string; id: string | null; created_at?: string }[];
+      };
+      const limite = Date.now() - maxEdadMs;
+      // La raíz del bucket trae una «carpeta» (id nulo) por organización.
+      const vencidos: string[] = [];
+      for (const carpeta of (await listar('')).filter((o) => o.id === null)) {
+        for (const o of await listar(carpeta.name)) {
+          const creado = o.created_at ? Date.parse(o.created_at) : Number.NaN;
+          if (o.name.endsWith('.zip') && Number.isFinite(creado) && creado < limite) vencidos.push(`${carpeta.name}/${o.name}`);
+        }
+      }
+      if (vencidos.length === 0) return;
+      const borrado = await fetch(`${baseUrl}/storage/v1/object/${BUCKET}`, {
+        method: 'DELETE',
+        headers: cabeceras,
+        body: JSON.stringify({ prefixes: vencidos }),
       });
       if (!borrado.ok) throw new Error(`BORRADO_FALLIDO:${borrado.status}`);
     },

@@ -6,7 +6,7 @@
 -- worker se hacen como dueño con el JWT de un administrador (lo que `autorizar_llamante_ciclo` acepta).
 begin;
 
-select plan(50);
+select plan(66);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -75,8 +75,8 @@ select ok(
 select ok(
   not has_function_privilege('authenticated', 'private.datos_exportacion_total(uuid)', 'execute')
   and not has_function_privilege('anon', 'private.datos_exportacion_total(uuid)', 'execute')
-  and not has_function_privilege('authenticated', 'private.filas_exportacion_total(uuid, text, text, integer, integer)', 'execute')
-  and not has_function_privilege('anon', 'private.filas_exportacion_total(uuid, text, text, integer, integer)', 'execute')
+  and not has_function_privilege('authenticated', 'private.filas_exportacion_total(uuid, text, text, jsonb, integer)', 'execute')
+  and not has_function_privilege('anon', 'private.filas_exportacion_total(uuid, text, text, jsonb, integer)', 'execute')
   and not has_function_privilege('authenticated', 'private.conjuntos_exportacion_total()', 'execute')
   and not has_function_privilege('anon', 'private.conjuntos_exportacion_total()', 'execute'),
   'las funciones de lectura de la exportación total no las ejecuta ni authenticated ni anon'
@@ -84,7 +84,7 @@ select ok(
 
 select ok(
   has_function_privilege('workers_orquestacion', 'private.datos_exportacion_total(uuid)', 'execute')
-  and has_function_privilege('workers_orquestacion', 'private.filas_exportacion_total(uuid, text, text, integer, integer)', 'execute')
+  and has_function_privilege('workers_orquestacion', 'private.filas_exportacion_total(uuid, text, text, jsonb, integer)', 'execute')
   and has_function_privilege('workers_orquestacion', 'private.conjuntos_exportacion_total()', 'execute'),
   'los workers ejecutan las funciones de lectura de la exportación total'
 );
@@ -183,10 +183,50 @@ select is(
     where tabla in ('conexiones', 'conexiones_oauth', 'credenciales_mcp', 'ejecuciones_worker', 'despachos_ejecucion', 'avisos_pendientes', 'procesos_masivos')),
   0, 'no incluye credenciales, colas internas ni registros operativos'
 );
+-- MSF-817: lista blanca por columna. Las listas de abajo son LITERALES e independientes de la migración (no repiten la regex).
 select is(
-  (select count(*)::int from private.conjuntos_exportacion_total() c, unnest(c.columnas) col
-    where col ~* '(secret|token|password|passwd|api_?key|vault|credencial|private_key)'),
-  0, 'ninguna columna exportada parece un secreto o un token'
+  (select coalesce(string_agg(esquema || '.' || tabla || '.' || columna, ', ' order by esquema, tabla, columna), '')
+     from private.exportacion_total_columnas where not exportar),
+  'dominio.campana_correo_destinatarios.token_hashes, dominio.newsletter_suscriptores.confirmacion_hash, dominio.tiendas.token_verificacion',
+  'las columnas decididas como NO exportables son exactamente estas tres'
+);
+select is(
+  (select count(*)::int
+     from private.conjuntos_exportacion_total() c, unnest(c.columnas) col
+    where c.esquema || '.' || c.tabla || '.' || col in (
+      'dominio.campana_correo_destinatarios.token_hashes', 'dominio.newsletter_suscriptores.confirmacion_hash',
+      'dominio.tiendas.token_verificacion', 'dominio.reparacion_enlaces_consulta.token', 'public.api_claves.hash',
+      'public.credenciales_mcp.hash', 'public.conexiones.credencial_vault_id')),
+  0, 'ninguna de las columnas sensibles conocidas sale en el volcado'
+);
+select is(
+  (select count(*)::int from private.exportacion_total_columnas where not exportar and (motivo is null or btrim(motivo) = '')),
+  0, 'toda columna no exportable documenta su motivo'
+);
+-- Falla cerrada: una columna nueva sin decisión NO sale; y la prueba de completitud la detecta.
+alter table dominio.empresas add column contrasena_smtp text;
+select is(
+  (select count(*)::int from private.conjuntos_exportacion_total() c where c.esquema = 'dominio' and c.tabla = 'empresas' and 'contrasena_smtp' = any (c.columnas)),
+  0, 'una columna futura sin decisión (contrasena_smtp) no se exporta'
+);
+select is(
+  (select coalesce(string_agg(c.tabla || '.' || a.attname, ', '), '')
+     from private.conjuntos_exportacion_total() c
+     join pg_catalog.pg_attribute a on a.attrelid = (c.esquema || '.' || c.tabla)::regclass and a.attnum > 0 and not a.attisdropped
+    where not exists (select 1 from private.exportacion_total_columnas d where d.esquema = c.esquema and d.tabla = c.tabla and d.columna = a.attname)),
+  'empresas.contrasena_smtp', 'la comprobación de completitud detecta la columna sin decisión'
+);
+alter table dominio.empresas drop column contrasena_smtp;
+select is(
+  (select coalesce(string_agg(c.tabla || '.' || a.attname, ', '), '')
+     from private.conjuntos_exportacion_total() c
+     join pg_catalog.pg_attribute a on a.attrelid = (c.esquema || '.' || c.tabla)::regclass and a.attnum > 0 and not a.attisdropped
+    where not exists (select 1 from private.exportacion_total_columnas d where d.esquema = c.esquema and d.tabla = c.tabla and d.columna = a.attname)),
+  '', 'toda columna de un conjunto exportado tiene su decisión en la tabla (completitud)'
+);
+select ok(
+  (select prosrc from pg_proc where oid = 'private.conjuntos_exportacion_total()'::regprocedure) ~ 'exportacion_total_columnas',
+  'conjuntos_exportacion_total lee la tabla de decisiones (si otra migración la redefine con lista negra, esto falla)'
 );
 select ok(
   exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'dominio' and tabla = 'listas_precios')
@@ -277,38 +317,103 @@ select ok(
   (select bool_and((f->>'organizacion_id')::uuid = '11111111-1111-1111-1111-111111111111')
           and count(*) filter (where f->>'nombre' = 'Tienda Total Uno') = 1
           and count(*) filter (where f->>'nombre' = 'Tienda Total Dos') = 0
-     from jsonb_array_elements(private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'empresas', 0, 100)) f),
+     from jsonb_array_elements(private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'empresas', null, 100)->'filas') f),
   'las filas son solo de la organización de la ejecución (no entra la empresa de la Dos)'
 );
 select is(
-  jsonb_typeof(private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'empresas', 0, 100)),
-  'array', 'la página es un arreglo de filas'
+  jsonb_typeof(private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'empresas', null, 100)->'filas'),
+  'array', 'la página trae sus filas en un arreglo'
 );
+-- Keyset: se recorre un conjunto grande (los permisos de la organización Uno) de a 7 filas, sin repetir ni perder ninguna.
+create temp table pg_temp.recorrido (n integer, clave text);
+do $recorrer$
+declare
+  v_pag jsonb;
+  v_desp jsonb := null;
+  v_n integer := 0;
+  v_vueltas integer := 0;
+begin
+  loop
+    v_pag := private.filas_exportacion_total(pg_temp.ejecucion(), 'public', 'permisos_rol', v_desp, 7);
+    insert into pg_temp.recorrido
+      select v_vueltas, f->>'rol_id' || '/' || (f->>'seccion') from jsonb_array_elements(v_pag->'filas') f;
+    v_n := v_n + jsonb_array_length(v_pag->'filas');
+    v_vueltas := v_vueltas + 1;
+    exit when jsonb_array_length(v_pag->'filas') < 7 or v_vueltas > 1000;
+    v_desp := v_pag->'siguiente';
+  end loop;
+end
+$recorrer$;
 select is(
-  jsonb_array_length(private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'empresas', 100000, 100)),
-  0, 'una página más allá del final viene vacía'
+  (select count(*)::int from pg_temp.recorrido),
+  (select count(*)::int from public.permisos_rol where organizacion_id = '11111111-1111-1111-1111-111111111111'),
+  'el keyset recorre todas las filas de la organización'
 );
+select is((select count(distinct clave)::int from pg_temp.recorrido), (select count(*)::int from pg_temp.recorrido),
+  'el keyset no repite ninguna fila');
+select is(
+  (select count(*)::int from pg_temp.recorrido r where n > 0 and r.clave < (select max(clave) from pg_temp.recorrido r0 where r0.n = r.n - 1)),
+  0, 'cada página continúa después de la anterior (orden por clave primaria)'
+);
+-- Frontera del tope de lote: n-1 / n / n+1 (5000 es el máximo).
+select lives_ok(format($f$select private.filas_exportacion_total(%L, 'dominio', 'empresas', null, 1)$f$, pg_temp.ejecucion()), 'lote de 1 (mínimo) válido');
+select lives_ok(format($f$select private.filas_exportacion_total(%L, 'dominio', 'empresas', null, 5000)$f$, pg_temp.ejecucion()), 'lote de 5000 (máximo) válido');
+select throws_ok(format($f$select private.filas_exportacion_total(%L, 'dominio', 'empresas', null, 0)$f$, pg_temp.ejecucion()),
+  '22023', 'LOTE_INVALIDO: límite entre 1 y 5000', 'lote de 0 rechazado');
+select throws_ok(format($f$select private.filas_exportacion_total(%L, 'dominio', 'empresas', '[]'::jsonb, 10)$f$, pg_temp.ejecucion()),
+  '22023', 'LOTE_INVALIDO: la clave de continuación debe ser un objeto', 'una clave de continuación que no es objeto se rechaza');
 select is(
   (select f->>'nombre'
-     from jsonb_array_elements(private.filas_exportacion_total(pg_temp.ejecucion(), 'public', 'organizaciones', 0, 10)) f),
+     from jsonb_array_elements(private.filas_exportacion_total(pg_temp.ejecucion(), 'public', 'organizaciones', null, 10)->'filas') f),
   'Organización Uno', 'la propia organización se exporta por su id'
 );
 select throws_ok(
-  format($f$select private.filas_exportacion_total(%L, 'public', 'conexiones', 0, 10)$f$, pg_temp.ejecucion()),
+  format($f$select private.filas_exportacion_total(%L, 'public', 'conexiones', null, 10)$f$, pg_temp.ejecucion()),
   '22023', null, 'un conjunto fuera de la lista (conexiones) se rechaza'
 );
 select throws_ok(
-  format($f$select private.filas_exportacion_total(%L, 'auth', 'users', 0, 10)$f$, pg_temp.ejecucion()),
+  format($f$select private.filas_exportacion_total(%L, 'auth', 'users', null, 10)$f$, pg_temp.ejecucion()),
   '22023', null, 'tampoco se lee auth.users'
 );
 select throws_ok(
-  format($f$select private.filas_exportacion_total(%L, 'dominio', 'empresas', 0, 5001)$f$, pg_temp.ejecucion()),
-  '22023', null, 'el lote tiene un tope'
+  format($f$select private.filas_exportacion_total(%L, 'dominio', 'empresas', null, 5001)$f$, pg_temp.ejecucion()),
+  '22023', 'LOTE_INVALIDO: límite entre 1 y 5000', 'lote de 5001 rechazado (tope)'
 );
 select throws_ok(
   $$select * from private.datos_exportacion_total('99999999-9999-4999-8999-999999999999')$$,
   'P0001', null, 'una ejecución desconocida se rechaza'
 );
+
+-- MSF-817 (aislamiento, casos negativos): ni el administrador de otra organización ni un miembro sin rol de administrador
+-- leen los datos de la exportación de la organización Uno, y una sesión de aplicación (rol authenticated) tampoco.
+select set_config('request.jwt.claims',
+  json_build_object('sub', 'd2000000-0000-0000-0000-000000000011', 'role', 'authenticated')::text, true);
+select throws_ok(
+  format($f$select * from private.datos_exportacion_total(%L)$f$, pg_temp.ejecucion()),
+  'P0001', 'NO_AUTORIZADO: se requiere ser administrador de la organización 11111111-1111-1111-1111-111111111111',
+  'el administrador de la organización Dos no lee los datos de la exportación de la Uno'
+);
+select throws_ok(
+  format($f$select private.filas_exportacion_total(%L, 'dominio', 'empresas', null, 10)$f$, pg_temp.ejecucion()),
+  'P0001', 'NO_AUTORIZADO: se requiere ser administrador de la organización 11111111-1111-1111-1111-111111111111',
+  'ni sus filas (empresas de la Uno) con la ejecución de la Uno'
+);
+select set_config('request.jwt.claims',
+  json_build_object('sub', 'd1000000-0000-0000-0000-000000000012', 'role', 'authenticated')::text, true);
+select throws_ok(
+  format($f$select * from private.datos_exportacion_total(%L)$f$, pg_temp.ejecucion()),
+  'P0001', 'NO_AUTORIZADO: se requiere ser administrador de la organización 11111111-1111-1111-1111-111111111111',
+  'un miembro de la Uno que no es administrador tampoco'
+);
+set local role authenticated;
+select throws_ok(
+  format($f$select * from private.datos_exportacion_total(%L)$f$, pg_temp.ejecucion()),
+  '42501', 'permission denied for function datos_exportacion_total',
+  'una sesión de aplicación (rol authenticated) no ejecuta la lectura del worker'
+);
+reset role;
+select set_config('request.jwt.claims',
+  json_build_object('sub', 'd1000000-0000-0000-0000-000000000011', 'role', 'authenticated')::text, true);
 
 -- Una ejecución de otra capacidad (aunque sea de la misma organización) no sirve para exportar.
 select pg_temp.como('d1000000-0000-0000-0000-000000000011');

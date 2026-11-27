@@ -31,7 +31,7 @@ describe('Marcar notificaciones leídas (FR-008)', () => {
     const todas = await screen.findByRole('button', { name: 'Marcar todas como leídas' })
     expect(todas).toBeEnabled()
     fireEvent.click(todas)
-    expect(rpc).toHaveBeenCalledWith('marcar_notificaciones_leidas', { p_ids: null })
+    expect(rpc).toHaveBeenCalledWith('marcar_notificaciones_leidas', { p_ids: null, p_todas: true })
     await waitFor(() => expect(screen.getByRole('button', { name: 'Marcar todas como leídas' })).toBeDisabled())
   })
 

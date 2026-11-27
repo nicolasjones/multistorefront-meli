@@ -113,7 +113,8 @@ export function revisarVariablesPsql({ pruebas }) {
 // T4: tabla nueva con `organizacion_id` => debe estar en `conjuntos_exportacion_total()` o en `exclusiones_exportacion_total()`.
 export function revisarExportacionTotal({ migracionesDiff }) {
   const problemas = [];
-  const redefinen = migracionesDiff.filter((m) => /(conjuntos|exclusiones)_exportacion_total/i.test(m.sql));
+  // MSF-817: una tabla también entra a la exportación con filas en `private.exportacion_total_columnas` (lista blanca por columna).
+  const redefinen = migracionesDiff.filter((m) => /(conjuntos|exclusiones)_exportacion_total|exportacion_total_columnas/i.test(m.sql));
   for (const m of migracionesDiff) {
     for (const t of tablasCreadas(m.sql)) {
       if (!/(?<![a-z0-9_])organizacion_id(?![a-z0-9_])/i.test(t.cuerpo)) continue;
@@ -145,6 +146,12 @@ export function filasConjuntosExportacion(sqlOriginal) {
   return new Set([...cuerpo.matchAll(fila)].map((m) => `${m[1].toLowerCase()}.${m[2].toLowerCase()}`));
 }
 
+// MSF-817: desde `20270516000100` `conjuntos_exportacion_total()` lee la tabla de decisiones por columna en vez de llevar su propia
+// lista de tablas. Una definición así no tiene filas `values` que comparar.
+export function leeListaBlanca(sqlOriginal) {
+  return /private\.exportacion_total_columnas/i.test(sinComentarios(sqlOriginal));
+}
+
 // Pérdidas declaradas con `-- exportacion-total: se quita <esquema>.<tabla> (motivo)`; el motivo no puede ir vacío.
 export function perdidasDeclaradas(sqlOriginal) {
   return new Set([...sqlOriginal.matchAll(/--\s*exportacion-total:\s*se\s+quita\s+([a-z0-9_]+)\.([a-z0-9_]+)\s*\([^)\n]*\S[^)\n]*\)/gi)].map((m) => `${m[1].toLowerCase()}.${m[2].toLowerCase()}`));
@@ -155,7 +162,7 @@ export function perdidasDeclaradas(sqlOriginal) {
 export function revisarSupersetExportacion({ migracionesDiff, todasMigraciones }) {
   const problemas = [];
   const definen = todasMigraciones
-    .map((m) => ({ ...m, version: versionDe(m.ruta), filas: filasConjuntosExportacion(m.sql) }))
+    .map((m) => ({ ...m, version: versionDe(m.ruta), filas: filasConjuntosExportacion(m.sql), listaBlanca: leeListaBlanca(m.sql) }))
     .filter((m) => m.filas)
     // Orden determinista aunque `todasMigraciones` llegue desordenada o haya dos migraciones con la misma versión.
     .sort((a, b) => (a.version < b.version ? -1 : a.version > b.version ? 1 : path.basename(a.ruta) < path.basename(b.ruta) ? -1 : path.basename(a.ruta) > path.basename(b.ruta) ? 1 : 0));
@@ -163,6 +170,17 @@ export function revisarSupersetExportacion({ migracionesDiff, todasMigraciones }
   for (const [i, m] of definen.entries()) {
     if (!enDiff.has(m.ruta)) continue;
     const previa = i > 0 ? definen[i - 1] : null;
+    // Una definición que lee la tabla de decisiones no lleva lista de tablas: no hay filas que conservar. Pero una redefinición
+    // POSTERIOR con la lista negra (values + filtro por nombre) pisaría la lista blanca y dejaría de leer la tabla.
+    if (m.listaBlanca) continue;
+    if (previa?.listaBlanca) {
+      problemas.push(
+        `${m.ruta} redefine private.conjuntos_exportacion_total() con una lista propia de tablas, pero la versión vigente (${path.basename(previa.ruta)}) `
+        + 'lee private.exportacion_total_columnas (lista blanca por columna). No la pises: insertá una fila por columna de tu tabla en esa tabla '
+        + '(exportar = true, o false con motivo) y dejá la función como está (docs/exportacion-total.md, «Agregar un conjunto»).',
+      );
+      continue;
+    }
     // Si la función existe pero no se extrajo ninguna fila, el parseo no entendió la forma del `values`: fallar, no pasar.
     const sinFilas = [m, previa].filter((x) => x && x.filas.size === 0);
     if (sinFilas.length) {

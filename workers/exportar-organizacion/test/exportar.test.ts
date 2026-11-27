@@ -34,13 +34,17 @@ function armar(datosPorTabla: Record<string, Record<string, unknown>[]>, sobre: 
   const pedidos: unknown[][] = [];
   const limpiezas: string[][] = [];
   const borrados: string[] = [];
+  const vencimientos: number[] = [];
   const puertos: Puertos = {
     enCurso: async () => true,
     datos: async () => ({ organizacion_id: ORG, proceso_id: PROCESO, conjuntos: conjuntos.length }),
     conjuntos: async () => conjuntos,
-    filas: async (_id, esquema, tabla, desde, limite) => {
-      pedidos.push([esquema, tabla, desde, limite]);
-      return (datosPorTabla[`${esquema}.${tabla}`] ?? []).slice(desde, desde + limite);
+    // Simula el keyset: la clave de continuación es {i: índice de la última fila entregada}.
+    filas: async (_id, esquema, tabla, despues, limite) => {
+      pedidos.push([esquema, tabla, despues, limite]);
+      const desde = despues === null ? 0 : Number(despues.i) + 1;
+      const filas = (datosPorTabla[`${esquema}.${tabla}`] ?? []).slice(desde, desde + limite);
+      return { filas, siguiente: filas.length === 0 ? null : { i: desde + filas.length - 1 } };
     },
     progreso: async (_p, procesados, total) => { progresos.push([procesados, total]); },
     errorConjunto: async (...args) => { errores.push(args); },
@@ -50,11 +54,12 @@ function armar(datosPorTabla: Record<string, Record<string, unknown>[]>, sobre: 
     subir: async (archivo, destino) => { subidas.push({ destino, zip: new Uint8Array(readFileSync(archivo.ruta)) }); },
     borrar: async (destino) => { borrados.push(destino); },
     limpiarAnteriores: async (carpeta, conservar) => { limpiezas.push([carpeta, conservar]); },
+    limpiarVencidos: async (maxEdadMs) => { vencimientos.push(maxEdadMs); },
     cerrarEjecucion: async (...args) => { cierresEjecucion.push(args); },
     evento: () => {},
     ...sobre,
   };
-  return { puertos, subidas, cierresProceso, cierresEjecucion, progresos, errores, pedidos, limpiezas, borrados };
+  return { puertos, subidas, cierresProceso, cierresEjecucion, progresos, errores, pedidos, limpiezas, borrados, vencimientos };
 }
 
 // strFromU8 descarta el BOM: se decodifica conservándolo para verificarlo.
@@ -92,7 +97,8 @@ describe('ZIP con un CSV por conjunto (FR-033)', () => {
   it('lee por lotes sin cargar el conjunto entero', async () => {
     const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes });
     await exportarOrganizacion(EJEC, ORG, t.puertos, { tamanoLote: 2 });
-    expect(t.pedidos.filter((p) => p[1] === 'productos').map((p) => [p[2], p[3]])).toEqual([[0, 2], [2, 2], [4, 2]]);
+    // 5 filas de a 2: la tercera página trae 1 (< lote) y corta sin pedir una cuarta.
+    expect(t.pedidos.filter((p) => p[1] === 'productos').map((p) => [p[2], p[3]])).toEqual([[null, 2], [{ i: 1 }, 2], [{ i: 3 }, 2]]);
     const csv = strFromU8(unzipSync(t.subidas[0].zip)['dominio/productos.csv']);
     expect(csv.trim().split('\r\n')).toHaveLength(6);
   });
@@ -115,7 +121,7 @@ describe('errores por conjunto (FR-034)', () => {
     const t = armar({ 'dominio.clientes': clientes }, {
       filas: async (_id, esquema, tabla) => {
         if (tabla === 'productos') throw new Error('relation "dominio.productos" secreto interno');
-        return tabla === 'clientes' ? clientes : [];
+        return { filas: tabla === 'clientes' ? clientes : [], siguiente: null };
       },
     });
     const s = await exportarOrganizacion(EJEC, ORG, t.puertos);
@@ -283,6 +289,40 @@ describe('retención del archivo anterior (FR-037)', () => {
   });
 });
 
+describe('vencimiento del ZIP y paginación (MSF-817)', () => {
+  it('al terminar bien pide borrar los ZIP de más de 7 días', async () => {
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes });
+    await exportarOrganizacion(EJEC, ORG, t.puertos);
+    expect(t.vencimientos).toEqual([604_800_000]);
+  });
+
+  it('si el vencimiento falla, la exportación igual termina bien', async () => {
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes }, { limpiarVencidos: async () => { throw new Error('storage caído'); } });
+    const s = await exportarOrganizacion(EJEC, ORG, t.puertos);
+    expect(s.codigo).toBe(0);
+    expect(t.cierresProceso).toEqual([[PROCESO, 'completado', '']]);
+  });
+
+  it('una exportación cancelada o fallida no corre el vencimiento', async () => {
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes }, { cancelado: async () => true });
+    await exportarOrganizacion(EJEC, ORG, t.puertos);
+    expect(t.vencimientos).toEqual([]);
+  });
+
+  it('frontera del lote: con exactamente un lote de filas pide una página más (vacía) y corta', async () => {
+    const t = armar({ 'dominio.productos': productos.slice(0, 4), 'dominio.clientes': clientes });
+    await exportarOrganizacion(EJEC, ORG, t.puertos, { tamanoLote: 2 });
+    expect(t.pedidos.filter((p) => p[1] === 'productos').map((p) => p[2])).toEqual([null, { i: 1 }, { i: 3 }]);
+    expect(strFromU8(unzipSync(t.subidas[0].zip)['dominio/productos.csv']).trim().split('\r\n')).toHaveLength(5);
+  });
+
+  it('sin clave de continuación (siguiente nulo) corta aunque la página venga llena', async () => {
+    const t = armar({}, { filas: async () => ({ filas: [{ id: 'x', nombre: 'a', precio: 1 }, { id: 'y', nombre: 'b', precio: 2 }], siguiente: null }) });
+    await exportarOrganizacion(EJEC, ORG, t.puertos, { tamanoLote: 2 });
+    expect(strFromU8(unzipSync(t.subidas[0].zip)['dominio/productos.csv']).trim().split('\r\n')).toHaveLength(3);
+  });
+});
+
 describe('CSV', () => {
   it('cita comillas, separador y saltos de línea', () => {
     expect(celdaTexto('a;b')).toBe('"a;b"');
@@ -292,10 +332,22 @@ describe('CSV', () => {
 
   it('neutraliza fórmulas en texto pero no en números', () => {
     expect(celdaTexto('=1+1')).toBe("'=1+1");
-    expect(celdaTexto('+54911')).toBe("'+54911");
+    expect(celdaTexto('+54 911 5555')).toBe("'+54 911 5555");
+    expect(celdaTexto('+54911+1')).toBe("'+54911+1");
     expect(celdaTexto('-cmd')).toBe("'-cmd");
     expect(celdaTexto('@SUMA(A1)')).toBe("'@SUMA(A1)");
     expect(celda(-5.25)).toBe('-5.25');
+  });
+
+  // MSF-817 (6): un número con signo que llega como texto (numeric/bigint salen como texto) y un teléfono solo de dígitos no se corrompen.
+  it('un texto que es solo un número con signo no lleva apóstrofo', () => {
+    expect(celdaTexto('-5.25')).toBe('-5.25');
+    expect(celdaTexto('+5491155551234')).toBe('+5491155551234');
+    expect(celdaTexto('-9007199254740993')).toBe('-9007199254740993');
+    // Fronteras del patrón: sin dígitos, con dos signos, con exponente, con coma o con texto detrás siguen siendo sospechosos.
+    for (const valor of ['-', '+', '--5', '-5e3', '-5,5', '-5.', '-.5', '-5a', '+5=1']) {
+      expect(celdaTexto(valor)).toBe(`'${valor}`);
+    }
   });
 
   // MSF-176 (B1, T042, amenaza 1.5): el nombre, la nota y la descripción de un ítem de un pedido de la tienda los escribe cualquier visitante.
