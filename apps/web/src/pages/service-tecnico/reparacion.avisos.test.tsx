@@ -27,6 +27,8 @@ vi.mock('../../hooks/useOrganizacionDeTrabajo', () => ({ useOrganizacionDeTrabaj
 vi.mock('../../components/service/AdjuntosReparacion', () => ({ AdjuntosReparacion: () => null }))
 // F-SVC-21: los vínculos de garantía tienen su propio test; acá se aíslan por el mismo motivo.
 vi.mock('../../components/service/VinculosGarantia', () => ({ VinculosGarantia: () => null }))
+// Comisión de técnicos (MSF-953): tiene su propio test (RepartoComision.test.tsx); acá se aísla para que su «Reintentar» no se confunda con el de esta pantalla.
+vi.mock('../../components/service/RepartoComision', () => ({ RepartoComision: () => null }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 vi.mock('../../lib/serviceTecnico', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/serviceTecnico')>()),

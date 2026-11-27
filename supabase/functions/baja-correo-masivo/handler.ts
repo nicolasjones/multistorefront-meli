@@ -1,6 +1,11 @@
 // Lógica de `baja-correo-masivo` (F-CLI-12, FR-019, SC-004) con dependencias inyectadas para poder probarla sin Deno
 // ni Supabase (handler.test.ts). `index.ts` solo cablea el cliente real.
 //
+// Rate limit (MSF-980): ANTES de leer el cuerpo se consume el cupo persistente de la IP (60 por hora, `public.consumir_cupo_baja_correo`: la base guarda solo su
+// HMAC con el secreto del entorno). Sin cupo: 429 con `Retry-After`; si no se puede contar: 503 (falla cerrado). Ambas respuestas dependen solo del origen,
+// nunca del token ni de si existe: la baja no se puede usar para enumerar. Un OPTIONS o un método no soportado no gastan cupo. Sin CAPTCHA ni contador en
+// memoria (cada instancia tiene el suyo): ver docs/newsletter.md.
+//
 // Es anónima: la abre quien recibe el correo desde el enlace de baja. El enlace trae un token aleatorio (≥ 128 bits);
 // la base solo guarda su hash SHA-256, así que acá se calcula el hash y se llama a `dar_de_baja_correo_masivo`
 // (solo `service_role`). La respuesta es SIEMPRE `{ ok: true }` exista o no el token y se repita o no la baja
@@ -20,12 +25,19 @@ const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-
 const preflightHeaders = { ...corsHeaders, 'Access-Control-Max-Age': '86400' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
+import { cadenaProxy, ipDelCliente, SIN_IP } from '../_shared/ip-cliente.ts'
+import { TEXTO_CUPO_NO_VERIFICABLE, type RechazoCupo } from './cupo.ts'
+
 type DbError = { message: string; code?: string }
 type Resultado<T = unknown> = Promise<{ data: T; error: DbError | null }>
 
 export type Deps = {
   // Solo `dar_de_baja_correo_masivo` (restringida a service_role).
   admin: { rpc(nombre: string, args: Record<string, unknown>): Resultado<unknown> }
+  // Cupo por IP (cupo.ts): `null` deja pasar; un rechazo trae el estado (429 o 503) y, en el 429, la espera.
+  cupo: (ip: string) => Promise<RechazoCupo | null>
+  // Saltos de proxy de confianza de `x-forwarded-for` (variable BAJA_PROXY_SALTOS; 0 por defecto).
+  saltosProxy: number
 }
 
 // Los tokens son hexadecimales de 64 caracteres; un largo mayor es basura y no se hashea.
@@ -37,9 +49,31 @@ async function sha256Hex(texto: string): Promise<string> {
   return Array.from(new Uint8Array(resumen), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
-export async function manejar(req: Request, { admin }: Deps): Promise<Response> {
+// Estado del aviso de cadena inesperada: una vez por instancia. `reiniciarAviso` es solo para las pruebas.
+let avisoEmitido = false
+export function reiniciarAviso(): void { avisoEmitido = false }
+
+export async function manejar(req: Request, { admin, cupo, saltosProxy }: Deps): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: preflightHeaders })
   if (req.method !== 'POST') return response({ error: 'Método no soportado.' }, 405)
+
+  // Si la cadena no tiene la longitud esperada, el pedido cae en el cupo compartido `sin-ip` (cadena corta) o usa la IP de un proxy (cadena larga): en ambos
+  // casos todos los clientes detrás comparten 60 bajas por hora. Se avisa, sin IP, para fijar BAJA_PROXY_SALTOS (docs/newsletter.md, paso de despliegue).
+  const largoCadena = cadenaProxy(req.headers).length
+  const ip = ipDelCliente(req.headers, saltosProxy)
+  if ((ip === SIN_IP || largoCadena > saltosProxy + 1) && !avisoEmitido) {
+    // Una sola vez por instancia: el aviso por pedido inundaría el log (cada baja vendría con el mismo texto).
+    avisoEmitido = true
+    console.warn(`baja-correo-masivo: x-forwarded-for trae ${largoCadena} valores y se esperaban ${saltosProxy + 1}; ${ip === SIN_IP ? 'las bajas comparten el cupo sin-ip' : 'la IP resuelta puede ser la de un proxy y compartir cupo'}: revisá BAJA_PROXY_SALTOS`)
+  }
+  // Defensa en profundidad: `cupo` ya no lanza, pero si lo hiciera tampoco se deja pasar sin contar (falla cerrado).
+  const rechazo = await cupo(ip).catch((): RechazoCupo => ({ status: 503, error: TEXTO_CUPO_NO_VERIFICABLE }))
+  if (rechazo) {
+    return new Response(JSON.stringify({ error: rechazo.error }), {
+      status: rechazo.status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', ...(rechazo.retryAfter === undefined ? {} : { 'Retry-After': String(rechazo.retryAfter) }) },
+    })
+  }
 
   const body = await req.json().catch(() => null) as { token?: unknown } | null
   const token = typeof body?.token === 'string' ? body.token.trim() : ''

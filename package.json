@@ -41,7 +41,7 @@
     "correo:verificar-salida": "node scripts/verificar-salida-correo.mjs",
     "test:correo:verificar-salida": "node --test scripts/verificar-salida-correo.test.mjs",
     "test:edge:tienda-seo": "node --test supabase/functions/tienda-seo/handler.test.ts supabase/functions/tienda-seo/nginx.test.ts",
-    "test:edge:baja-correo-masivo": "node --test supabase/functions/baja-correo-masivo/handler.test.ts",
+    "test:edge:baja-correo-masivo": "node --test supabase/functions/baja-correo-masivo/handler.test.ts supabase/functions/baja-correo-masivo/cupo.test.ts supabase/functions/baja-correo-masivo/cableado.test.ts supabase/functions/_shared/ip-cliente.test.ts",
     "test:edge:solicitar-acceso": "node --test supabase/functions/solicitar-acceso/handler.test.ts",
     "test:edge:crear-organizacion": "node --test supabase/functions/crear-organizacion/handler.test.ts",
     "test:edge:cotizacion-sugerida": "node --test supabase/functions/cotizacion-sugerida/handler.test.ts",

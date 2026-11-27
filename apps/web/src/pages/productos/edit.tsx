@@ -28,6 +28,7 @@ import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoP
 import { EscalasPrecio } from '../../components/productos/EscalasPrecio'
 import { PrecioPropioEmpresas } from '../../components/precios/PrecioPropioEmpresas'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
+import { ProveedoresDelProducto } from '../../components/productos/ProveedoresDelProducto'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -537,6 +538,15 @@ export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'I
             onCancelar={onCancelar}
             onGuardar={guardar}
             onRecargar={() => void cargar()}
+          />
+          <ProveedoresDelProducto
+            key={producto.id}
+            productoId={producto.id}
+            moneda={producto.moneda}
+            puedeEditar={nivel === 'edicion'}
+            veCosto={veCosto}
+            editaCosto={editaCosto}
+            onCambiado={() => void cargar()}
           />
           <EscalasPrecio productoId={producto.id} />
           <PrecioPropioEmpresas key={producto.id} productoId={producto.id} empresaIds={carga?.empresaIds ?? []} soloLectura={nivel !== 'edicion'} />

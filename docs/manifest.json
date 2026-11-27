@@ -55,9 +55,9 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "dfab3a28408328987a55bac4447bdb3d28445ed4df1660d699f5f94804208965",
-      "sourceHash": "6970c48c6c70b0572943f8c69eea12f2e6ffe80f440ad976e26c196b894c53b1",
-      "sourceAt": "656cd661d",
+      "pageHash": "fdf511f58ceeef0062a5c1f7c1c3f92448dd87742cfbf7ff38ca82ab228832ae",
+      "sourceHash": "9fa2136cb8cf19e95f06790dac8bf93eee87e1b7f137365c6162abf1a13cb69d",
+      "sourceAt": "10f3ad9f7",
       "sources": [
         "specs/20261016-120000-actividad-y-ambientes",
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
@@ -80,7 +80,7 @@
         "supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql"
       ],
       "owner": "producto",
-      "commit": "656cd661d"
+      "commit": "10f3ad9f7"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -516,9 +516,9 @@
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
-      "pageHash": "6cd66680ff8cae889a309afcae00f5f72c0b92974bd91083d084b25bfeaf6f91",
-      "sourceHash": "4079def07221fe4f5a18bf74824430086ae3493e4ff1effb4830004ffa050d8a",
-      "sourceAt": "f0b452fd9",
+      "pageHash": "5a65f03994b2b739ece434ea8946cb3d0e1938e3614198307be1ebd7c2fc602c",
+      "sourceHash": "f82e61b92fb0775aa324aa786a4c1448582c455252a1e0ca2638835aa30bff4d",
+      "sourceAt": "f9747ff05",
       "sources": [
         "specs/20261017-120000-catalogo-alta-y-edicion",
         "specs/20261020-120000-catalogo-listado-y-categorias",
@@ -529,6 +529,8 @@
         "apps/web/src/pages/productos/list.tsx",
         "apps/web/src/pages/productos/create.tsx",
         "apps/web/src/pages/productos/edit.tsx",
+        "apps/web/src/components/productos/ProveedoresDelProducto.tsx",
+        "supabase/migrations/20270512000100_productos_proveedores.sql",
         "apps/web/src/components/productos/DialogoProducto.tsx",
         "apps/web/src/lib/productosListado.ts",
         "apps/web/src/lib/productos.ts",
@@ -537,7 +539,7 @@
         "supabase/tests/database/catalogo_edicion_masiva.test.sql"
       ],
       "owner": "producto",
-      "commit": "f0b452fd9"
+      "commit": "f9747ff05"
     },
     "docs/changelog.md": {
       "title": "Changelog",
@@ -562,9 +564,9 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "91d9cee15bcefb3bf018a895dc3ffe9831072dd8f8200a65fcc3a8d5301399ce",
-      "sourceHash": "2592c8ca04bdcc14f2e7e3cb37940e3ab1b5ee9bf7d8a20dbac9527617704292",
-      "sourceAt": "46f833ec2",
+      "pageHash": "b9d8fc18d83355b3edf97c0731af6efc71c893bc6e09db699e1882cc6ebe4df5",
+      "sourceHash": "df627cddb04234e7ec5576fd35ac66faf1bcd5f0f12819806c58e82add5d4727",
+      "sourceAt": "f9747ff05",
       "sources": [
         "specs/20261016-130000-clientes-alta-y-busqueda",
         "specs/20261023-120000-migracion-inicial-de-datos",
@@ -575,6 +577,10 @@
         "apps/web/src/pages/clientes/list.tsx",
         "apps/web/src/pages/clientes/show.tsx",
         "apps/web/src/pages/clientes/create.tsx",
+        "apps/web/src/components/clientes/DialogoAsignarListaMasiva.tsx",
+        "apps/web/src/lib/exportarClientes.ts",
+        "supabase/migrations/20270512000200_listas_precios_asignacion_masiva.sql",
+        "supabase/migrations/20270512000400_listas_de_clientes_para_exportar.sql",
         "apps/web/src/pages/clientes/edit.tsx",
         "apps/web/src/pages/migracion/entidades/clientes.ts",
         "apps/web/src/components/clientes/ImportarClientes.tsx",
@@ -606,7 +612,7 @@
         "supabase/migrations/20270507180100_revertir_cobro.sql"
       ],
       "owner": "producto",
-      "commit": "46f833ec2"
+      "commit": "f9747ff05"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -1087,9 +1093,9 @@
     },
     "docs/errores-negocio-postgrest.md": {
       "title": "Errores de negocio de las RPC y su respuesta HTTP",
-      "pageHash": "facbd2bc9d1eb7d272a9020495b49af87cd66e1c33e46412e68dbc6d05f82f1d",
-      "sourceHash": "e2fddfb04c0b2bb7cc4cbdd54529e472457c66e41a397c18df52c990372eedcf",
-      "sourceAt": "f0b452fd9",
+      "pageHash": "f695afe2ed57fc099e67d628e5cb7d994c5ee4e61fc28fe48f23290ae51a735a",
+      "sourceHash": "2a2c2d87b9c19fabaa7efd511bfe64a2654ff551519d0c68b22978cf87ce25b2",
+      "sourceAt": "f7d69de3c",
       "sources": [
         "apps/web/src/lib/mensajeErrorBase.ts",
         "apps/web/src/lib/ventasPresupuestos.ts",
@@ -1112,6 +1118,14 @@
         "supabase/migrations/20270507480000_tienda_api_documentos_presupuestos_correo_y_fusion_responden_404.sql",
         "supabase/migrations/20270507490000_catalogo_presupuestos_conexiones_reportes_responden_404.sql",
         "supabase/migrations/20270507500000_migracion_organizaciones_y_otras_responden_4xx.sql",
+        "supabase/migrations/20270512000000_proveedores_condiciones_compra.sql",
+        "supabase/migrations/20270512000100_productos_proveedores.sql",
+        "supabase/migrations/20270512000200_listas_precios_asignacion_masiva.sql",
+        "supabase/migrations/20270512000300_listas_precios_por_tipo_cliente.sql",
+        "supabase/migrations/20270512000500_ventas_por_lista_precios.sql",
+        "apps/web/src/lib/condicionesCompra.ts",
+        "apps/web/src/lib/productosProveedores.ts",
+        "apps/web/src/lib/ventasPorLista.ts",
         "apps/web/src/lib/ventasDespacho.ts",
         "apps/web/src/lib/ventasEnvio.ts",
         "apps/web/src/lib/ventasFaltantes.ts",
@@ -1138,7 +1152,7 @@
         "apps/web/src/lib/opiniones.ts"
       ],
       "owner": "tecnico",
-      "commit": "f0b452fd9"
+      "commit": "f7d69de3c"
     },
     "docs/exportacion-total.md": {
       "title": "Exportar todos los datos (F-OPS-06, MSF-396)",
@@ -1163,9 +1177,9 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "fe1ca9f7ce34887032c201881e9416d193cc2e4140aec36f61739ffdf313b0e6",
-      "sourceHash": "a165267abef69e9e0cd1959c6d8e5675d4e228e0974daa9d02b964b61680a1dd",
-      "sourceAt": "77fa094a1",
+      "pageHash": "9222a896741662e563102114e244e44d6ad2b7dd27300e89c2a330db85ced64c",
+      "sourceHash": "eb3f096c620e3613deae8842b4ecc2aed39938781c1699d2f859815957270b49",
+      "sourceAt": "8e0e9442e",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/chat-ia-responder/handler.ts",
@@ -1179,6 +1193,7 @@
         "supabase/functions/_shared/embeddings.ts",
         "supabase/functions/_shared/fetch-ia.ts",
         "supabase/functions/_shared/cupo-ia.ts",
+        "supabase/functions/baja-correo-masivo/handler.ts",
         "supabase/functions/_shared/log-seguro.ts",
         "supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql",
         "supabase/migrations/20270508000000_registro_de_envios_de_correo_a_proveedores.sql",
@@ -1214,7 +1229,7 @@
         "supabase/functions/verificar-dominio-tienda/handler.ts"
       ],
       "owner": "plataforma",
-      "commit": "77fa094a1"
+      "commit": "8e0e9442e"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",
@@ -1270,9 +1285,9 @@
     },
     "docs/higiene-base-datos.md": {
       "title": "Higiene y endurecimiento de la base de datos (lote 33)",
-      "pageHash": "813c83b0e4483206b7193ead8f0bfb6d45d38fced5834c7a85552a0487d51c9c",
-      "sourceHash": "3e7d8e9fea8b59ecb89ef6e4beaf62d2df41320b73f14443627e43e4c0247774",
-      "sourceAt": "0d7cae91d",
+      "pageHash": "554cee481dc4460276a97a4486a99f573f46f5c29ff4c3860ecdd03e44816947",
+      "sourceHash": "eb285a2350aeb6c323b4918f14130771ac8efcfce6cf131482cef53fdcf0fb74",
+      "sourceAt": "b2231e0ee",
       "sources": [
         "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
         "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
@@ -1294,7 +1309,7 @@
         "scripts/analizar-definer-search-path.mjs"
       ],
       "owner": "plataforma",
-      "commit": "0d7cae91d"
+      "commit": "b2231e0ee"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
@@ -1347,7 +1362,7 @@
     "docs/inicio-y-alertas.md": {
       "title": "Inicio y alertas",
       "pageHash": "ce87920e06eb5e07ceb94872e955953ecb34d83a643353e4c5f6bc6f43fb9835",
-      "sourceHash": "2e96f0647bf539d897d40737ba951f010b7825ca54d1f4dad0b81cd1fa1efb34",
+      "sourceHash": "e06675d2e040c7e9b89fdf63de8c594715d491a2226e8ce8db4d18ca3dac9034",
       "sourceAt": "fd7e28864",
       "sources": [
         "specs/20261030-100000-inicio-y-alertas",
@@ -1431,9 +1446,9 @@
     },
     "docs/listas-de-precios.md": {
       "title": "Listas de precios por cliente (F-PRE-14 y F-CLI-21)",
-      "pageHash": "738308b58ab3b6e978d60b482c2eaa9d3004e568bcab85e87c2859242295474b",
-      "sourceHash": "66a3b264d97fbd9e818b8d51cd774817291c24909606c854f93d9ba957d617e7",
-      "sourceAt": "da68ec33",
+      "pageHash": "773312cc3782b10fc57818cc135e397f3c9fd940120c9986de4962b1240074be",
+      "sourceHash": "0b19d4ba805a36ca9d0b143341a87e1461677929ee018a4459fdc29e4a91479b",
+      "sourceAt": "f9747ff05",
       "sources": [
         "specs/20270327-100000-listas-de-precios-por-cliente",
         "supabase/migrations/20270340000000_listas_precios.sql",
@@ -1446,23 +1461,31 @@
         "supabase/migrations/20270348000200_ventas_usan_lista_precios.sql",
         "supabase/migrations/20270348000300_tienda_precios_lista_cliente.sql",
         "supabase/migrations/20270507110000_lista_pedido_precio_de_la_lista_del_cliente.sql",
+        "supabase/migrations/20270512000200_listas_precios_asignacion_masiva.sql",
+        "supabase/migrations/20270512000300_listas_precios_por_tipo_cliente.sql",
+        "supabase/migrations/20270512000400_listas_de_clientes_para_exportar.sql",
+        "supabase/migrations/20270512000500_ventas_por_lista_precios.sql",
+        "apps/web/src/components/clientes/DialogoAsignarListaMasiva.tsx",
+        "apps/web/src/components/listasPrecios/ListasPorTipoCliente.tsx",
+        "apps/web/src/pages/ventas-reportes/VentasPorLista.tsx",
+        "apps/web/src/lib/ventasPorLista.ts",
         "apps/web/src/lib/listasPrecios.ts",
         "apps/web/src/pages/productos/listas-de-precios.tsx",
         "apps/web/e2e/listas-de-precios-recorrido.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "da68ec33"
+      "commit": "f9747ff05"
     },
     "docs/migracion-datos.md": {
       "title": "Migración inicial de datos",
-      "pageHash": "17445e7e526b779babb130fe3b8ea507c9b8ad33810521f515a6e1ecff145b8f",
+      "pageHash": "3b58cfdec21f0fe337f47ff433c318b16ff2ecd965a3d06141172044f0b0b24e",
       "sourceHash": "24cd1dca0a1e99b9646de46adffae3f1db8c0f25f992f4d31d522b7d5cccab23",
-      "sourceAt": "3d8efbc2",
+      "sourceAt": "fc0bd38ac",
       "sources": [
         "supabase/migrations/20261201110000_proveedores_id_externo.sql"
       ],
       "owner": "tecnico",
-      "commit": "3d8efbc2"
+      "commit": "fc0bd38ac"
     },
     "docs/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos · ensayo, conciliación y plan de corte",
@@ -1511,9 +1534,9 @@
     },
     "docs/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
-      "pageHash": "19da75cf360f9883d80db7873105cc400162c1531b3438034130b306475dc310",
-      "sourceHash": "e7de3bb1704a186f45fe88c36c74472fcecc9090c326eb53a3142c7394054f1b",
-      "sourceAt": "e1e6da5b9",
+      "pageHash": "684afb09622ab2de3890ebf3b884ee7c472ef56b8bfdb7b0ff1cbd04a87b9922",
+      "sourceHash": "ff6d96f779f78114d567565303bbd27bad96f54c52055777c6c4dd4ff450c3df",
+      "sourceAt": "7f5cf1650",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -1527,6 +1550,11 @@
         "supabase/migrations/20270420000400_newsletter_envio.sql",
         "supabase/migrations/20270420000500_newsletter_lote.sql",
         "supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql",
+        "supabase/migrations/20270513000000_cupo_persistente_por_ip_newsletter_y_baja.sql",
+        "supabase/migrations/20270513000100_newsletter_imagenes_publicas.sql",
+        "supabase/functions/baja-correo-masivo",
+        "supabase/functions/_shared/ip-cliente.ts",
+        "apps/web/src/lib/newsletterImagenes.ts",
         "infra/kestra/flows/correo-masivo.yml",
         "apps/web/src/pages/clientes/newsletter",
         "apps/web/src/lib/newsletter.ts",
@@ -1538,7 +1566,7 @@
         "apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx"
       ],
       "owner": "tecnico",
-      "commit": "e1e6da5b9"
+      "commit": "7f5cf1650"
     },
     "docs/notificaciones-en-panel.md": {
       "title": "Centro de notificaciones en el panel (MSF-378 · F-NOT-02)",
@@ -1600,9 +1628,9 @@
     },
     "docs/ordenes-compra.md": {
       "title": "Stock · Órdenes de compra a proveedores (F-PRV-09, MSF-454)",
-      "pageHash": "66682ca48d0827e415b118c7f4f0d26a0629f1d06863d0f5c76fa9cfb743b0c1",
+      "pageHash": "c5d0f27f76274cf8fc09cb259b25079336962420da2e0babd2e1222664c2dd53",
       "sourceHash": "af75354b4205e1cd31b38aa1f348f4a7d5f0729cd77e8333c9891c6ac044d250",
-      "sourceAt": "202e8b34",
+      "sourceAt": "fc0bd38ac",
       "sources": [
         "specs/20261109-103000-ordenes-de-compra-a-proveedores",
         "supabase/migrations/20270334000000_ordenes_compra_tablas.sql",
@@ -1611,7 +1639,7 @@
         "apps/web/src/lib/ordenesCompra.ts"
       ],
       "owner": "tecnico",
-      "commit": "202e8b34"
+      "commit": "fc0bd38ac"
     },
     "docs/pagos-conciliacion.md": {
       "title": "Ventas · Pagos (conciliación) (F-VTA-13)",
@@ -1650,9 +1678,9 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "843465f32da454bb54dc1c95da52b87c5f3a943a3435bbbd7d18881adff60b27",
-      "sourceHash": "d4b5eb0c35148feadea3b5e0a1c79ee6289ae2e0ceb1e5bca8e8459ab2106667",
-      "sourceAt": "2807e6acc",
+      "pageHash": "96d39fefca9b205a314cd0fba3688fb572905460c0010da299ab9bd7e7c8ec81",
+      "sourceHash": "65858f3a769ec3d5117207bae9e76391e176b12772a1fc27cf329637a9debbb9",
+      "sourceAt": "671156248",
       "sources": [
         "specs/20261013-120000-usuarios-y-roles",
         "specs/20261016-140000-permisos-por-empresa",
@@ -1665,6 +1693,12 @@
         "supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql",
         "supabase/migrations/20270507180100_revertir_cobro.sql",
         "supabase/migrations/20270507180400_documentos_escritura_excluye_consulta.sql",
+        "supabase/migrations/20270512000000_proveedores_condiciones_compra.sql",
+        "supabase/migrations/20270512000100_productos_proveedores.sql",
+        "supabase/migrations/20270512000200_listas_precios_asignacion_masiva.sql",
+        "supabase/migrations/20270512000300_listas_precios_por_tipo_cliente.sql",
+        "supabase/migrations/20270512000400_listas_de_clientes_para_exportar.sql",
+        "supabase/migrations/20270512000500_ventas_por_lista_precios.sql",
         "supabase/migrations/20270507180600_categorias_lectura_para_stock.sql",
         "supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql",
         "supabase/migrations/20270507240200_rls_ventas_nivel_por_empresa.sql",
@@ -1681,7 +1715,7 @@
         "apps/web/src/lib/rolActual.ts"
       ],
       "owner": "producto",
-      "commit": "2807e6acc"
+      "commit": "671156248"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
@@ -1922,9 +1956,9 @@
     },
     "docs/producto/clientes.md": {
       "title": "Clientes",
-      "pageHash": "f8e4c1b11afcdb648a9329c27a5c9f2c5127785fc8c8ddc150cec8512dd97dd5",
-      "sourceHash": "1f8b742204114109578eb3e14b8a3bbdd5bac24be71354eb805bcb1213cdaac3",
-      "sourceAt": "eedac66a",
+      "pageHash": "4429064f03613e829583748321ca63cb4f7722b5dbe1b45984bf1053673f3501",
+      "sourceHash": "582af23a82e991ec2703013c0387705f16a403e715d4e8237bce692282484f5a",
+      "sourceAt": "eedac66aa",
       "sources": [
         "apps/web/src/pages/clientes/list.tsx",
         "apps/web/src/pages/clientes/create.tsx",
@@ -1935,7 +1969,7 @@
         "supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql"
       ],
       "owner": "producto",
-      "commit": "eedac66a"
+      "commit": "eedac66aa"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas online",
@@ -2068,14 +2102,17 @@
     },
     "docs/producto/listas-de-precios.md": {
       "title": "Listas de precios por cliente",
-      "pageHash": "3490efcde28de5bebfd212971c7b6e04a72d4d326a95f59166161460832cc870",
-      "sourceHash": "4eb9d5dc11aa7e6f618d0604cf00c0cfc02f6e0b99c7a79c8f5fa00dc024e22f",
-      "sourceAt": "7065a0171",
+      "pageHash": "cf0adcf368b1d4b385c49ba580f99069521564aa66600382696cc9a845feef73",
+      "sourceHash": "7016631a270b6bfba056a7dce9cc100bfa68265a631c4397262dcccca04dd252",
+      "sourceAt": "b0d85ac6e",
       "sources": [
-        "apps/web/src/pages/productos/listas-de-precios.tsx"
+        "apps/web/src/pages/productos/listas-de-precios.tsx",
+        "apps/web/src/components/clientes/DialogoAsignarListaMasiva.tsx",
+        "apps/web/src/components/listasPrecios/ListasPorTipoCliente.tsx",
+        "apps/web/src/pages/ventas-reportes/VentasPorLista.tsx"
       ],
       "owner": "producto",
-      "commit": "7065a0171"
+      "commit": "b0d85ac6e"
     },
     "docs/producto/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos",
@@ -2216,14 +2253,16 @@
     },
     "docs/producto/proveedores.md": {
       "title": "Proveedores",
-      "pageHash": "3f664197a851b5eb4ba0a6ad4d46dc15e5ef8356e9f69dfbf147482cdea15c67",
-      "sourceHash": "cab5e6df42f03395b8213552ed6230236346e526505d9f1b96f7e17a0c698353",
-      "sourceAt": "656cd661d",
+      "pageHash": "154886a4d52cea812cfbdc600e3690a1e62edcb590244ee013c0673c25b19506",
+      "sourceHash": "7b7140267cfe6cebcb75c94c9087b2e59dcf459bc3543e3677f7eba41d6da778",
+      "sourceAt": "f7d69de3c",
       "sources": [
-        "apps/web/src/pages/proveedores"
+        "apps/web/src/pages/proveedores",
+        "apps/web/src/components/proveedores/CondicionesDeCompra.tsx",
+        "apps/web/src/components/productos/ProveedoresDelProducto.tsx"
       ],
       "owner": "producto",
-      "commit": "656cd661d"
+      "commit": "f7d69de3c"
     },
     "docs/producto/ranking-avanzado-de-clientes.md": {
       "title": "Clientes · ranking avanzado de clientes (MSF-171)",
@@ -2320,6 +2359,20 @@
       ],
       "owner": "producto",
       "commit": "eef6fc0df"
+    },
+    "docs/producto/service-comisiones.md": {
+      "title": "Service técnico: comisiones de los técnicos",
+      "pageHash": "a5e8b94bd84db347c25a3f274c8bc476d69208be85431050d43964852b39299b",
+      "sourceHash": "451a335cf1ff14e2990ea3e2c94b9b4374a52ded395541c1531a01f17382a0e7",
+      "sourceAt": "10f3ad9f7",
+      "sources": [
+        "apps/web/src/pages/service-tecnico/comisiones.tsx",
+        "apps/web/src/components/service/RepartoComision.tsx",
+        "apps/web/src/pages/roles/list.tsx",
+        "supabase/migrations/20270515020000_comisiones_rpc.sql"
+      ],
+      "owner": "producto",
+      "commit": "10f3ad9f7"
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: registrar y seguir las reparaciones",
@@ -2716,14 +2769,14 @@
     },
     "docs/producto/ventas-reportes.md": {
       "title": "Reportes de ventas",
-      "pageHash": "432d2c7b6540d1fa10758e10b4e20353dd0bb68d673103d353b7290aab8e845c",
-      "sourceHash": "76dfbf14b83cc46831dfe457e603ec565d5b4d02fc0173196e37d4d3021612e0",
-      "sourceAt": "1e94e2ad",
+      "pageHash": "22a7d551f6e61d311b3e1fec13f9b1fe10f841d9e5bd6962d69ceedfdb6f0925",
+      "sourceHash": "77680dd6dd5612bd4c48a3ae29b3cc8a43ca9dffa0a545bb42145a712e5cc365",
+      "sourceAt": "fb6a5c7a1",
       "sources": [
         "apps/web/src/pages/ventas-reportes"
       ],
       "owner": "producto",
-      "commit": "1e94e2ad"
+      "commit": "fb6a5c7a1"
     },
     "docs/producto/ventas-rma-devoluciones.md": {
       "title": "Registrar y resolver devoluciones y reclamos (RMA)",
@@ -2784,9 +2837,9 @@
     },
     "docs/proveedores.md": {
       "title": "Proveedores",
-      "pageHash": "a2fe294538d8c501ad3cb3dd9c5783e87298c03aa04128379e148de8bc714a40",
-      "sourceHash": "c767327c0db6073780d83d53139b521fa1f646c7925b31942df7743340f7467a",
-      "sourceAt": "e7a004bc1",
+      "pageHash": "bd4731600c57c6779932618595200747d608d5626bfce1ac9b45d411af79c583",
+      "sourceHash": "03e0bdefc5d4a96ebe8e58725ed5fa3ae8b0b44e62f8536ae4705518f498b803",
+      "sourceAt": "f7d69de3c",
       "sources": [
         "specs/20261018-170000-empresas-accesibles-y-filtro",
         "specs/20261018-190000-proveedores-y-productos",
@@ -2797,11 +2850,17 @@
         "supabase/migrations/20261018190001_proveedores_tabla.sql",
         "supabase/migrations/20261018190100_proveedores_rpc.sql",
         "supabase/migrations/20270508000000_registro_de_envios_de_correo_a_proveedores.sql",
+        "supabase/migrations/20270512000000_proveedores_condiciones_compra.sql",
+        "supabase/migrations/20270512000100_productos_proveedores.sql",
+        "apps/web/src/lib/condicionesCompra.ts",
+        "apps/web/src/lib/productosProveedores.ts",
+        "apps/web/src/components/proveedores/CondicionesDeCompra.tsx",
+        "apps/web/src/components/productos/ProveedoresDelProducto.tsx",
         "supabase/functions/enviar-correo-proveedor/handler.ts",
         "supabase/functions/enviar-correo-proveedor/index.ts"
       ],
       "owner": "tecnico",
-      "commit": "e7a004bc1"
+      "commit": "f7d69de3c"
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
@@ -2900,7 +2959,7 @@
     "docs/resumen-semanal-correo.md": {
       "title": "Resumen semanal por correo (F-REP-08)",
       "pageHash": "cc29c77ad43effaa9e6024d114c256e6c02158ba247f4bae64759c25f8dc7bc0",
-      "sourceHash": "265305ad8a086907fba8543cd79ee5b58e05ec2837264425a1b97733e2699e46",
+      "sourceHash": "90f422802dbcdf59fe0fec39c4127bc730378d86501952daa7c9585760bee81d",
       "sourceAt": "0d7cae91d",
       "sources": [
         "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
@@ -2917,7 +2976,7 @@
     "docs/revision-seguridad-analitica-avanzada.md": {
       "title": "Revisión de seguridad integral: analítica avanzada y resumen por correo (MSF-265)",
       "pageHash": "15963e4564f5c5d3771dbcd853bffc54121f67bc26237250731ecec751cb74ae",
-      "sourceHash": "5b6114edc044fee282e8f6a55cfc8a8786560f35c532e0143b81087c7fd601f1",
+      "sourceHash": "1c7f82c0dfda14f1b75080f4ba1ec5c24cd6d49224a1de1cd83473c69be093e5",
       "sourceAt": "0d7cae91d",
       "sources": [
         "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
@@ -3689,7 +3748,7 @@
     "docs/system-design/tiendas.md": {
       "title": "Tiendas y vitrinas",
       "pageHash": "a1ee415174e336720331ffe3727c5b024a36d3ef7d8834ec863d9295bc877a2c",
-      "sourceHash": "ee62d444c83dfa2bb0c7af9a8eab871655787d5fb650303b6f67a2979d9576a0",
+      "sourceHash": "8634a7312e502ba3e814c26284eb0a5b27af46e694713eb836fd94ab93124bbd",
       "sourceAt": "b208a8779",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
@@ -3817,7 +3876,7 @@
     "docs/tecnico/api.md": {
       "title": "API y RPC",
       "pageHash": "b165a0997dc24d811848bbf01c29a8e651da70c14533144cb7377ab02ff013d2",
-      "sourceHash": "d5581fd890bdf80a76d2be412ba87886f02132433e209cbf1aa543c4f5132648",
+      "sourceHash": "d33e763533d79133168559ff1b171ea4ead9d4e3254b65ea86b161d89eef7341",
       "sourceAt": "b50cda2d5",
       "sources": [
         "supabase/migrations"
@@ -4056,9 +4115,9 @@
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "1a44cf55de621de66dda2b1d04dca0da3eb7bdd60e93aede4548590405c5f55a",
-      "sourceHash": "966d040e25977209f63789110850ff3b99f9aff53bc881b808392d02c6b2c68f",
-      "sourceAt": "63051148",
+      "pageHash": "055b49b977fbdd9945487b58eb55a6e24b5a89311f1e3fd2d29680817a4dabcc",
+      "sourceHash": "e5a01230d463d448a3fca9a68db8119eccf6145bbf4f031ca9c8f3890e90fb20",
+      "sourceAt": "630511488",
       "sources": [
         "specs/20261016-130000-clientes-alta-y-busqueda",
         "apps/web/src/lib/clientes.ts",
@@ -4092,7 +4151,7 @@
         "supabase/migrations/20270507200000_clientes_condicion_iva_largo_central.sql"
       ],
       "owner": "tecnico",
-      "commit": "63051148"
+      "commit": "630511488"
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",
@@ -4643,9 +4702,9 @@
     },
     "docs/tecnico/newsletter.md": {
       "title": "Newsletter de la tienda (MSF-468)",
-      "pageHash": "319c04fcc64c40b5cd6e6fefc98825671a71cc9283d58ea792da9c26521baa34",
-      "sourceHash": "3d1ff2378a47c81a236e926e7c9fead8ed33cdcc0532cad291caa7c406359793",
-      "sourceAt": "5800b0d79",
+      "pageHash": "e2f41583cbb92dcd14a71349cc7a2a73b48a674855943b8b35e5e071c046f3e9",
+      "sourceHash": "2c4e78b2f9adbebae6c53e334cd13ae859b838c86380819cd1b1f2a24ec181d6",
+      "sourceAt": "7f5cf1650",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -4659,6 +4718,11 @@
         "supabase/migrations/20270420000400_newsletter_envio.sql",
         "supabase/migrations/20270420000500_newsletter_lote.sql",
         "supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql",
+        "supabase/migrations/20270513000000_cupo_persistente_por_ip_newsletter_y_baja.sql",
+        "supabase/migrations/20270513000100_newsletter_imagenes_publicas.sql",
+        "supabase/functions/baja-correo-masivo",
+        "supabase/functions/_shared/ip-cliente.ts",
+        "apps/web/src/lib/newsletterImagenes.ts",
         "infra/kestra/flows/newsletter-confirmaciones.yml",
         "apps/web/src/pages/clientes/newsletter",
         "apps/web/src/pages/tienda-publica/newsletter",
@@ -4666,12 +4730,12 @@
         "design/pantallas/Newsletter.inventory.json"
       ],
       "owner": "tecnico",
-      "commit": "5800b0d79"
+      "commit": "7f5cf1650"
     },
     "docs/tecnico/notificaciones-ayuda-y-exportacion-total.md": {
       "title": "Notificaciones, ayuda y exportación total (MSF-224)",
       "pageHash": "173f47bf14b42262bb75acc743cee80e3e229c2edc7f11656f4a7065e3af8033",
-      "sourceHash": "846dad75832e02ad7208093ae258fb2ef27ba3100141ad09c9d4a63afd5d57dd",
+      "sourceHash": "d2b0851abcf26359a4f557e8e05f5027f43ea79383bc1cc5d36abdf008f96bff",
       "sourceAt": "b50cda2d5",
       "sources": [
         "specs/20270215-100000-notificaciones-ayuda-y-exportacion-total",
@@ -4941,9 +5005,9 @@
     },
     "docs/tecnico/proveedores.md": {
       "title": "Proveedores: modelo, RPC y pantallas (MSF-205)",
-      "pageHash": "d2a0fc2d2022c97c937e6b88cf3574b1c7d877ba9d6b67b842f87c1fe0c9624d",
-      "sourceHash": "f0ebe9f2ed05b4388bd784b0d49a2e6b55a79a1f3e7a1331db72e6c145b7f27c",
-      "sourceAt": "46f833ec2",
+      "pageHash": "e93fa723b29727423ebfe72484895e037b17012a32e53753e8c878adef5c82d6",
+      "sourceHash": "8a2ddaa9fc3f82ccc19538ebb869aa37c5ca85b3792f80f6648ad552c1ab3847",
+      "sourceAt": "f9747ff05",
       "sources": [
         "specs/20261018-190000-proveedores-y-productos",
         "apps/web/src/components/proveedores/ProductosDelProveedor.tsx",
@@ -4962,10 +5026,14 @@
         "supabase/migrations/20261018190400_productos_proveedor.sql",
         "supabase/migrations/20261018190500_proveedores_basico.sql",
         "supabase/migrations/20261018190600_productos_proveedor_rpc.sql",
-        "supabase/migrations/20261018190700_productos_de_proveedor.sql"
+        "supabase/migrations/20261018190700_productos_de_proveedor.sql",
+        "supabase/migrations/20270512000000_proveedores_condiciones_compra.sql",
+        "supabase/migrations/20270512000100_productos_proveedores.sql",
+        "apps/web/src/lib/condicionesCompra.ts",
+        "apps/web/src/lib/productosProveedores.ts"
       ],
       "owner": "tecnico",
-      "commit": "46f833ec2"
+      "commit": "f9747ff05"
     },
     "docs/tecnico/ranking-avanzado-de-clientes.md": {
       "title": "Ranking avanzado de clientes: RPC y pantallas (MSF-171)",
@@ -5268,6 +5336,33 @@
       "owner": "tecnico",
       "commit": "c9dc27818"
     },
+    "docs/tecnico/service-comisiones.md": {
+      "title": "Service técnico · Comisiones de técnicos (MSF-187, MSF-953, MSF-954, MSF-957)",
+      "pageHash": "f0805a43cfb815f3eacade953f5d08191d4fc489ed3b2ca91fd61820a13a8372",
+      "sourceHash": "e6ae66ad37fe2bc9761690ac5da834a4e88f44ce649c15753062109a44151378",
+      "sourceAt": "10f3ad9f7",
+      "sources": [
+        "supabase/migrations/20270515000000_acciones_ver_comisiones.sql",
+        "supabase/migrations/20270515010000_comisiones_reglas_y_reparto.sql",
+        "supabase/migrations/20270515020000_comisiones_rpc.sql",
+        "supabase/migrations/20270515030000_exportacion_total_comisiones.sql",
+        "supabase/tests/database/service_comisiones.test.sql",
+        "apps/web/src/lib/comisiones.ts",
+        "apps/web/src/lib/comisiones.test.ts",
+        "apps/web/src/hooks/useCargaComisiones.ts",
+        "apps/web/src/components/service/MisComisiones.tsx",
+        "apps/web/src/components/service/ComisionesEquipo.tsx",
+        "apps/web/src/components/service/ReglasComision.tsx",
+        "apps/web/src/components/service/TablaComisiones.tsx",
+        "apps/web/src/components/service/RepartoComision.tsx",
+        "apps/web/src/components/service/RepartoComision.test.tsx",
+        "apps/web/src/components/service/comisiones.test.tsx",
+        "apps/web/src/pages/service-tecnico/comisiones.tsx",
+        "apps/web/src/pages/service-tecnico/comisiones.test.tsx"
+      ],
+      "owner": "tecnico",
+      "commit": "10f3ad9f7"
+    },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
       "pageHash": "0abae92ddf7a00329089f8626d2e0ba3c84160513a440a62f295e865cc522d4f",
@@ -5526,7 +5621,7 @@
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
       "pageHash": "c9a88a61c376e90a52c507172d88eee8c46dfdd69027b9742c09eb53e325c571",
-      "sourceHash": "4cb202b303655a7c2f427dd0d9927f75562322e71ef6fa326f8a698bb078b0a4",
+      "sourceHash": "fb850a9325b39919559acd4a8765bc0d4539c23ecb4339a5e731bf844945b1b1",
       "sourceAt": "b208a8779",
       "sources": [
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -6181,9 +6276,9 @@
     },
     "docs/tecnico/ventas-reportes.md": {
       "title": "Ventas · reportes (técnico, MSF-338, MSF-192)",
-      "pageHash": "e6795cff34adfaf47c6642a3a36d48eb78493f3e92738367edfe868e72e7be2e",
-      "sourceHash": "dc910f661ecdb21482e7e280c905ba3c6209bb73b20007a04c2d0adee466e777",
-      "sourceAt": "5ac918aa",
+      "pageHash": "2004130a2c5aaa07b73ba836796cb9f64a866bfd64a65a27f4df7681990f7299",
+      "sourceHash": "99d787223c286217e36de4c833f9e6ee463714e257594a2f8d8018f77e7173e7",
+      "sourceAt": "5ac918aa0",
       "sources": [
         "specs/20270104-100000-ventas-reportes-basicos",
         "specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas",
@@ -6200,7 +6295,7 @@
         "supabase/migrations/20270202201007_analitica_rentabilidad_ventas_real.sql"
       ],
       "owner": "tecnico",
-      "commit": "5ac918aa"
+      "commit": "5ac918aa0"
     },
     "docs/tecnico/ventas-rma-devoluciones.md": {
       "title": "Ventas · devoluciones (RMA), técnico (MSF-178)",
@@ -6601,17 +6696,19 @@
     },
     "docs/ventas-reportes.md": {
       "title": "Ventas · Reportes (épica MSF-338)",
-      "pageHash": "b6e9461eb9c71d234ae9ceb126a78bd30ef07d409bd8c48f0d94dc2e74e13dfa",
-      "sourceHash": "e80abd55fe785a14429e43a7437fad34975f4fcace2090c9ae1c6d32e89fe046",
-      "sourceAt": "775b35f04",
+      "pageHash": "f45686cfd5f1aec2bab6cc0c040c25964b62e9f4380005f3022c5180835d5c72",
+      "sourceHash": "0f6795121290f674239b068043977e23384378c768aec70a123e6c26729f1825",
+      "sourceAt": "f9747ff05",
       "sources": [
         "specs/20270104-100000-ventas-reportes-basicos",
         "infra/superset/dashboards/consultas-reportes",
         "infra/superset/dashboards/ventas-periodo-canal",
-        "infra/superset/dashboards/ventas-reportes"
+        "infra/superset/dashboards/ventas-reportes",
+        "supabase/migrations/20270512000500_ventas_por_lista_precios.sql",
+        "apps/web/src/pages/ventas-reportes/VentasPorLista.tsx"
       ],
       "owner": "datos",
-      "commit": "775b35f04"
+      "commit": "f9747ff05"
     },
     "docs/ventas-rma-devoluciones.md": {
       "title": "Ventas · Devoluciones (RMA)",

@@ -1,7 +1,7 @@
 import { Link as RouterLink } from 'react-router'
 import { Tab, Tabs } from '@mui/material'
 
-export type PestanaService = 'reparaciones' | 'modelos' | 'estados' | 'reportes'
+export type PestanaService = 'reparaciones' | 'modelos' | 'estados' | 'reportes' | 'comisiones'
 
 // Tira «Reparaciones · Modelos · Estados de reparación» del prototipo (FR-009) más «Reportes» (F-SVC-23, FR-064). La pestaña activa la decide
 // quien la renderiza; cada una disponible es un enlace real, así que funciona con teclado y lector de pantalla.
@@ -12,6 +12,7 @@ export function PestanasService({ activa }: { activa: PestanaService }) {
       <Tab value="modelos" label="Modelos" component={RouterLink} to="/service-tecnico/modelos" />
       <Tab value="estados" label="Estados de reparación" component={RouterLink} to="/service-tecnico/estados" />
       <Tab value="reportes" label="Reportes" component={RouterLink} to="/service-tecnico/reportes" />
+      <Tab value="comisiones" label="Comisiones" component={RouterLink} to="/service-tecnico/comisiones" />
     </Tabs>
   )
 }

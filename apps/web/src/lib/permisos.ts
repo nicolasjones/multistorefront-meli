@@ -1,7 +1,7 @@
 import { supabaseClient } from './supabase'
 
 export type NivelSeccion = 'edicion' | 'lectura' | 'ninguno'
-export type AccionPermiso = 'eliminar' | 'exportar' | 'ver_costos'
+export type AccionPermiso = 'eliminar' | 'exportar' | 'ver_costos' | 'ver_comisiones'
 
 export type PermisoSeccion = {
   seccion: string
@@ -9,6 +9,9 @@ export type PermisoSeccion = {
   eliminar: boolean
   exportar: boolean
   ver_costos: boolean
+  // MSF-957: ver las comisiones de todos los técnicos (independiente de ver_costos). Solo existe en service_tecnico.
+  // Opcional: una base que todavía no aplicó 20270515000000 no la devuelve (se toma como `false`).
+  ver_comisiones?: boolean
 }
 
 // Recurso de Refine → sección de la matriz de permisos (F-ROL-01, FR-005).
@@ -34,6 +37,7 @@ export const SECCION_POR_RECURSO: Readonly<Record<string, string>> = {
   'service-tecnico-modelos': 'service_tecnico',
   'service-tecnico-estados': 'service_tecnico',
   'service-tecnico-reportes': 'service_tecnico',
+  'service-tecnico-comisiones': 'service_tecnico',
   'ventas-comprobantes': 'ventas',
   'ventas-presupuestos': 'ventas',
   'ventas-devoluciones': 'ventas',
@@ -153,10 +157,12 @@ export const SECCIONES_MATRIZ: ReadonlyArray<{ clave: string; etiqueta: string }
   { clave: 'service_tecnico', etiqueta: 'Servicio técnico' },
 ]
 
-export const ACCIONES_MATRIZ: ReadonlyArray<{ clave: AccionPermiso; etiqueta: string }> = [
+// `secciones`: la acción solo existe en esas secciones (la base solo la siembra ahí); sin ella, vale en toda sección.
+export const ACCIONES_MATRIZ: ReadonlyArray<{ clave: AccionPermiso; etiqueta: string; secciones?: readonly string[] }> = [
   { clave: 'eliminar', etiqueta: 'Eliminar' },
   { clave: 'exportar', etiqueta: 'Exportar' },
   { clave: 'ver_costos', etiqueta: 'Ver costos' },
+  { clave: 'ver_comisiones', etiqueta: 'Ver comisiones', secciones: ['service_tecnico'] },
 ]
 
 export const ETIQUETAS_NIVEL: Readonly<Record<NivelSeccion, string>> = {

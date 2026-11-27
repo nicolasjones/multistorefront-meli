@@ -12,6 +12,12 @@ sources:
   - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
   - supabase/migrations/20270507180100_revertir_cobro.sql
   - supabase/migrations/20270507180400_documentos_escritura_excluye_consulta.sql
+  - supabase/migrations/20270512000000_proveedores_condiciones_compra.sql
+  - supabase/migrations/20270512000100_productos_proveedores.sql
+  - supabase/migrations/20270512000200_listas_precios_asignacion_masiva.sql
+  - supabase/migrations/20270512000300_listas_precios_por_tipo_cliente.sql
+  - supabase/migrations/20270512000400_listas_de_clientes_para_exportar.sql
+  - supabase/migrations/20270512000500_ventas_por_lista_precios.sql
   - supabase/migrations/20270507180600_categorias_lectura_para_stock.sql
   - supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql
   - supabase/migrations/20270507240200_rls_ventas_nivel_por_empresa.sql
@@ -43,7 +49,7 @@ contrato en sus políticas RLS en vez de `private.puede_escribir()`.
 |---|---|---|
 | `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion`, `tecnico` (MSF-182) y `miembro` (template). |
 | `permisos_rol` | `public` | Organización × rol × sección → `edicion` / `lectura` / `ninguno`. |
-| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`, `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) → permitido. |
+| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`, `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`, `ver_comisiones`) → permitido. |
 
 Son mecanismos de acceso transversales (Principio VII), por eso viven en `public`. Cada
 organización tiene su propia matriz, sembrada al crearla (trigger sobre `organizaciones`) con los
@@ -61,7 +67,9 @@ Secciones (clave → nombre): `inicio`, `productos`, `categorias`, `stock`, `cot
   la matriz inicial; sin membresía o sección desconocida devuelve `'ninguno'` (nunca acceso total).
   Un superadmin con organización activa equivale a administrador.
 - `private.puede_accion(seccion text, accion text) returns boolean`. `eliminar` exige `edicion`;
-  `exportar` y `ver_costos` exigen al menos `lectura`; una acción desconocida es `false`.
+  `exportar`, `ver_costos` y `ver_comisiones` exigen al menos `lectura`; una acción desconocida es `false`.
+  `ver_comisiones` (MSF-957) existe solo en `service_tecnico`, se siembra en `true` para Administrador y Administración y es
+  **independiente** de `ver_costos` (ninguna implica la otra); ver `docs/tecnico/service-comisiones.md`.
 - Exportar la actividad (F-AUD-03) exige la acción `exportar` **y** el nivel `edicion` en `actividad` (por defecto solo el
   Administrador); ver `docs/actividad.md`. Operador y Administración tienen la acción `exportar` por defecto pero solo
   lectura en Actividad, así que no exportan (el spec de MSF-170 se alineó con el código).
@@ -147,6 +155,18 @@ relaciones por empresa) usan este contrato:
   ve los proveedores por la vista aunque no lea la tabla. La ficha
   llama `productos_de_proveedor`, que exige `proveedores` y `productos`. Detalle en `docs/proveedores.md`.
 - **Exportar proveedores (MSF-526):** `exportar_proveedores` exige la acción `exportar` en `proveedores`, que a su vez pide al menos `lectura` en la sección: con la matriz inicial, quien además tiene la acción (Administrador, Administración) la ejerce; un rol sin acceso a Proveedores no exporta aunque tenga la acción.
+- **Condiciones de compra y varios proveedores por producto (lote 93, MSF-523 y MSF-530):** las condiciones del proveedor siguen la sección
+  `proveedores` (lectura o edición leen; solo edición guarda). Los proveedores de un producto siguen la sección `productos` (lectura o
+  edición leen; solo edición agrega, quita y marca principal) y el **costo** del vínculo se ve con `rentabilidad` en lectura/edición y se
+  carga solo con edición en `rentabilidad`. Detalle en `docs/proveedores.md`.
+  El **costo efectivo** del producto (`producto_costos`) también cambia al promover un proveedor con otro costo: exige edición en
+  `rentabilidad` (`PT409` con `details = 'rentabilidad'` si no); sin ella, el camino viejo conserva al principal anterior como secundario.
+  Los procesos sin sesión de persona (la importación de productos que corre en el worker con `auth.uid()` nulo, `service_role`,
+  mantenimiento) **no se restringen** por este permiso: hoy la importación solo la solicita el Administrador, que tiene Rentabilidad.
+- **Listas de precios (lote 93, MSF-973, MSF-974, MSF-975 y MSF-976):** asignar una lista en masa o a un tipo de cliente es solo del
+  Administrador (como asignarla a un cliente). La lista de cada cliente en la exportación de clientes exige la acción `exportar` de
+  `clientes`; las ventas por lista de precios, `ventas` en lectura o edición (y por tienda, el nivel de ventas de cada una). Detalle en
+  `docs/listas-de-precios.md`.
 - **`dominio.proveedores_contactos` (F-PRV-08, MSF-449):** lectura con `nivel_seccion('proveedores')` en `lectura`/`edicion`;
   escritura solo por `agregar_contacto_proveedor` y `marcar_contacto_principal` (exigen `edicion`, `42501` si no); sin
   `DELETE` directo; `anon` sin acceso. Detalle en `docs/proveedores.md`.
@@ -247,7 +267,7 @@ iniciales son los de la spec (*Decisiones abiertas* 1: roles a confirmar con el 
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
   a las secciones reservadas a Administrador/Administración (nunca gana acceso que no tenía).
 - Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`,
-  `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) son una
+  `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`, `ver_comisiones`) son una
   **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02. Excepción confirmada: `ver_costos`
   en **Stock** también es del Operador (reportes de inventario, migración `20270438000000`); los demás roles sin ella ven solo cantidades.
 - **Suspendidos (resuelto):** `usuarios_organizacion.estado` existe (`20261012140100`) y la resolución de

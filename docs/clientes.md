@@ -10,6 +10,10 @@ sources:
   - apps/web/src/pages/clientes/list.tsx
   - apps/web/src/pages/clientes/show.tsx
   - apps/web/src/pages/clientes/create.tsx
+  - apps/web/src/components/clientes/DialogoAsignarListaMasiva.tsx
+  - apps/web/src/lib/exportarClientes.ts
+  - supabase/migrations/20270512000200_listas_precios_asignacion_masiva.sql
+  - supabase/migrations/20270512000400_listas_de_clientes_para_exportar.sql
   - apps/web/src/pages/clientes/edit.tsx
   - apps/web/src/pages/migracion/entidades/clientes.ts
   - apps/web/src/components/clientes/ImportarClientes.tsx
@@ -274,6 +278,14 @@ recrear las tres con su firma previa (sin `p_empresa_id`): `buscar_clientes` com
   hoy muestra el estado real (épica MSF-237, ver «Cuenta web del cliente»).
 - **Pruebas**: pgTAP (expreso: round-trip, tope, grants) + Vitest (columnas Contacto/Expreso en
   `pages/clientes/list.test.tsx`; fixtures con `expreso_preferido`).
+
+## Lista de precios en el listado y la planilla (lote 93, MSF-973 y MSF-974)
+
+El listado suma, solo para el Administrador, **Asignar lista de precios**: asigna (o quita) una lista a los clientes marcados o a todos los
+que coinciden con la búsqueda y los filtros (`public.asignar_lista_precios_masiva`; tope de 5000, el Consumidor final y los archivados se
+omiten). La **exportación** a Excel suma la columna **Lista de precios** (la propia o la heredada de su tipo, con la marca «por tipo de
+cliente») leída por tanda con `public.listas_de_clientes_para_exportar`; la importación no lee esa columna. Detalle y decisiones en
+[Listas de precios](listas-de-precios.md).
 
 ## Ranking de clientes por facturación (F-CLI-08, MSF-238 · épica MSF-126)
 

@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **277**
-- Tablas en migraciones: **211**
+- Rutas del panel: **279**
+- Tablas en migraciones: **219**
 - Variables de entorno: **112**
 - Specs: **160**
-- Páginas de documentación: **347**
+- Páginas de documentación: **349**
 
 ## Rutas del panel
 
@@ -153,6 +153,7 @@
 - `/reportes/Tableros`
 - `/roles/list`
 - `/seguimiento`
+- `/service-tecnico/comisiones`
 - `/service-tecnico/estados`
 - `/service-tecnico/etiqueta`
 - `/service-tecnico/modelos`
@@ -273,6 +274,7 @@
 - `/ventas-reportes/RankingClientes`
 - `/ventas-reportes/TableroReporte`
 - `/ventas-reportes/VentasPeriodoCanal`
+- `/ventas-reportes/VentasPorLista`
 - `/ventas/comprobante`
 - `/ventas/comprobantes`
 - `/ventas/configuracion`
@@ -317,6 +319,7 @@
 - `dominio.categorias_empresa`
 - `dominio.categorias_tienda`
 - `dominio.cobros_comprobante`
+- `dominio.comision_reglas`
 - `dominio.comprobante_documentos`
 - `dominio.comprobante_envios_correo`
 - `dominio.comprobante_impresiones`
@@ -362,6 +365,7 @@
 - `dominio.ingresos_mercaderia_lineas`
 - `dominio.intereses_whatsapp`
 - `dominio.listas_precios`
+- `dominio.listas_precios_tipo_cliente`
 - `dominio.lotes_stock`
 - `dominio.modelos_equipo`
 - `dominio.motivos_movimiento`
@@ -384,14 +388,18 @@
 - `dominio.producto_relacionados`
 - `dominio.producto_variantes`
 - `dominio.productos`
+- `dominio.productos_proveedores`
 - `dominio.productos_tienda`
 - `dominio.promociones_precio`
 - `dominio.proveedores`
+- `dominio.proveedores_condiciones_compra`
 - `dominio.proveedores_contactos`
 - `dominio.proveedores_empresas`
 - `dominio.rentabilidad_config`
 - `dominio.reparacion_adjuntos`
 - `dominio.reparacion_avisos`
+- `dominio.reparacion_comision_historial`
+- `dominio.reparacion_comision_reparto`
 - `dominio.reparacion_enlaces_consulta`
 - `dominio.reparacion_historial`
 - `dominio.reparacion_items`
@@ -434,9 +442,11 @@
 - `private.clientes_exportaciones_entregas`
 - `private.clientes_exportaciones_ventana`
 - `private.correo_proveedor_envios`
+- `private.cupo_publico_ip`
 - `private.exportacion_total_columnas`
 - `private.exportaciones_actividad`
 - `private.ia_cupo_uso`
+- `private.newsletter_imagenes`
 - `private.uso_indices_acumulado`
 - `programacion_ejecucion`
 - `public.alertas_monitoreo`

@@ -45,4 +45,15 @@ export const ayudaService: AyudaPorDestino = {
       'Para bajar el detalle, exportá el listado desde Reparaciones con «Exportar».',
     ],
   },
+  'service-tecnico-comisiones': {
+    titulo: 'Comisiones',
+    resumen:
+      'Lo que corresponde a cada técnico por la mano de obra (sin IVA) de las reparaciones entregadas en el mes. «Mis comisiones» muestra solo lo tuyo, sin costos ni márgenes. Con el permiso «Ver comisiones» (que no depende de «Ver costos») también ves a todo el equipo y las reglas de comisión. Es una estimación para liquidar: no registra pagos.',
+    pasos: [
+      'Elegí el mes: ves tu total y el detalle por reparación.',
+      'Si una reparación figura «Sin regla», no había una regla de comisión vigente a su fecha de entrega.',
+      'Con «Ver comisiones»: usá «Equipo» para ver a cada técnico y su detalle, y «Reglas» para cargar un porcentaje por técnico o general.',
+      'El reparto entre varios técnicos se define en cada reparación, en «Comisión de técnicos».',
+    ],
+  },
 }
