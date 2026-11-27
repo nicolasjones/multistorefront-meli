@@ -13,10 +13,6 @@ ver `docs/control-ci.md`). Por eso los jobs de `validate.yml` que instalan depen
 VM limpia y la caché evita reinstalar todo. En un runner self-hosted el store persistente de abajo es el que evita
 la descarga.
 
-En el runner self-hosted, todas las réplicas del runner usan un store de pnpm persistente
-en un volumen Docker local (`platform-runner-pnpm-store` por defecto),
-compartible con los runners de otros productos de la misma máquina. Una
-dependencia se descarga una vez por máquina y sobrevive a la recreación de
-los contenedores. Operación, seguridad del acceso concurrente y limpieza:
-`docs/deployment.md` (sección "Réplicas, memoria, red y store de pnpm del
-runner").
+En el runner self-hosted, cada contenedor del runner tiene su propio store y caché de pnpm (dentro del contenedor, sin volumen compartido: MSF-704); sobreviven entre los
+jobs del mismo contenedor y se pierden al recrearlo. Operación: `docs/deployment.md` (sección "Réplicas, memoria, red y store de pnpm del runner") y
+`docs/endurecimiento-infra.md`.

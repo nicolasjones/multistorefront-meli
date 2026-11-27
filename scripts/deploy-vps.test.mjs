@@ -210,3 +210,25 @@ test('VPS_ESTRICTO=1 también se lee del `.env.dev` (misma fuente que las demás
   assert.notEqual(r.code, 0);
   assert.match(r.stderr, /Falta definir/);
 });
+
+// --- Valores por defecto públicos en el .env del ambiente (MSF-649, MSF-705) ---
+
+test('(e) un valor por defecto público cuenta como faltante: bloquea en staging/production y advierte en dev; solo nombres', async () => {
+  const sucio = `${envCompleto().replace(`KESTRA_DB_PASSWORD=${SECRETO}`, 'KESTRA_DB_PASSWORD=change-me-local')}\nGOTRUE_JWT_SECRET=super-secret-jwt-token-with-at-least-32-characters-long\n`;
+  for (const entorno of ['staging', 'production']) {
+    const r = await correrDeploy(entorno, sucio);
+    assert.notEqual(r.code, 0, entorno);
+    assert.match(r.stderr, /KESTRA_DB_PASSWORD: contraseña o secreto por defecto/, entorno);
+    assert.match(r.stderr, /GOTRUE_JWT_SECRET: secreto JWT público/, entorno);
+    assert.equal(r.docker, '', 'no llegó a Docker');
+    assert.doesNotMatch(`${r.stdout}${r.stderr}`, /change-me-local|super-secret-jwt/, 'no imprime valores');
+  }
+  const dev = await correrDeploy('dev', sucio);
+  assert.equal(dev.code, 0, dev.stderr);
+  assert.match(dev.stderr, /MODO TRANSICIONAL \(dev\)[\s\S]*KESTRA_DB_PASSWORD/);
+  const devEstricto = await correrDeploy('dev', sucio, { VPS_ESTRICTO: '1' });
+  assert.notEqual(devEstricto.code, 0);
+  // Mutante que debe pasar: el mismo .env sin los dos valores por defecto.
+  const limpio = await correrDeploy('staging', envCompleto());
+  assert.equal(limpio.code, 0, limpio.stderr);
+});

@@ -324,6 +324,10 @@ para pasar dev a estricto: `docs/deployment.md`, «Pasar dev a modo estricto». 
 
 ### Pendientes del lote 36 que necesitan acción de Nicolás (no son código del repo)
 
+> **Actualización lote 99.** MSF-648, MSF-649, MSF-703, MSF-704 y MSF-680 tienen ahora código, guards y runbooks en el repo; lo que sigue requiriendo
+> acción de Nicolás (servidor y ajustes de GitHub), con comandos exactos, está en `docs/endurecimiento-infra.md` («ACCIONES DE NICOLÁS»). Los puntos de abajo
+> se conservan como historia: la propuesta de runners (efímeros, sin socket, store aislado) ya se implementó.
+
 Propuestas exactas; ninguna se aplicó.
 
 - **MSF-755 · cola de merge del ruleset `dokploy-integracion-protegida`.** Activar la regla «Merge queue» del ruleset

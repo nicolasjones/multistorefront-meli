@@ -30,7 +30,7 @@ jobs:
   disparar:
     # Solo en el repo propio: un fork (si el schedule llegara a habilitarse allí) no gasta runners ni dispara nada.
     if: github.repository == 'nicolasjones/multistorefront-meli'
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PR || '["self-hosted","platform-local"]') }}
     timeout-minutes: 10
     steps:
       - name: Disparar Validate sobre dokploy

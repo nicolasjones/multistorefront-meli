@@ -201,10 +201,12 @@
     },
     {
       "id": "local-ci-runners",
-      "version": "1.0.3",
-      "title": "Runners self-hosted locales con store de pnpm compartido y topes",
+      "version": "1.1.0",
+      "title": "Runners self-hosted locales endurecidos (no root, efímeros, sin socket del host, store propio) con topes",
       "paths": [
-        "infra/runner/compose.yaml"
+        "infra/runner/compose.yaml",
+        "infra/runner/compose.deploy.yaml",
+        "infra/runner/config-runner.mjs"
       ]
     },
     {

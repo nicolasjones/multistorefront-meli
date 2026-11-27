@@ -57,10 +57,15 @@ permissions:
 jobs:
   staging:
     if: github.event_name == 'push'
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_DEPLOY || '["self-hosted","platform-local"]') }}
     # MSF-926: tope explícito (el default de GitHub son 360 min: un job colgado ocuparía el runner self-hosted horas).
     timeout-minutes: 20
     environment: migraciones-cloud-staging
+    # MSF-680: el gate de staging falló desde el 21/10 sin que nadie lo viera; si falla, el último paso abre/actualiza un issue `alerta-ci`.
+    permissions:
+      contents: read
+      actions: read
+      issues: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -73,16 +78,23 @@ jobs:
       - run: pnpm db:validar:aditivas
       - name: Instalar Supabase CLI
         run: |
-          curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+          bash scripts/instalar-binario-verificado.sh https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz 5b3031cb297d51b25be4c284e4c852254460ec722ec221d3b81b07d55acfd158 supabase "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          export PATH="$RUNNER_TEMP/bin:$PATH"
           supabase --version
       - run: pnpm db:migrar:cloud -- --entorno staging
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           SUPERSET_ANALITICA_DB_PASSWORD: ${{ secrets.SUPERSET_ANALITICA_DB_PASSWORD }}
+      - name: Abrir una alerta si el gate de staging falló
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/abrir-issue-alerta.mjs --titulo "Falla: migraciones a staging (gate de promoción)" --detalle "job staging de Migraciones cloud"
 
   production:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_DEPLOY || '["self-hosted","platform-local"]') }}
     # MSF-926: tope explícito (el default de GitHub son 360 min: un job colgado ocuparía el runner self-hosted horas).
     timeout-minutes: 20
     environment: migraciones-cloud-production
@@ -102,7 +114,9 @@ jobs:
       - run: pnpm db:validar:aditivas
       - name: Instalar Supabase CLI
         run: |
-          curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+          bash scripts/instalar-binario-verificado.sh https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz 5b3031cb297d51b25be4c284e4c852254460ec722ec221d3b81b07d55acfd158 supabase "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          export PATH="$RUNNER_TEMP/bin:$PATH"
           supabase --version
       - run: pnpm db:migrar:cloud -- --entorno production
         env:

@@ -1,0 +1,43 @@
+name: multistorefront-meli-runner-deploy
+
+# Pool de runners para los jobs con `environment:` (deploy de infraestructura, migraciones cloud, publicación de flows y de imágenes) y el
+# release (MSF-704). Etiqueta `platform-deploy` y NUNCA `platform-local`: un job de PR no puede caer acá y estos jobs no caen en el pool de PR.
+# Mismo hardening que compose.yaml (usuario no root, sin socket del host, efímero, PAT en archivo 0400) y además:
+#   - SIN ningún volumen compartido: store, caché, ~/.ssh y ~/.docker se vacían entre jobs (RUNNER_LIMPIAR_STORE=1 y limpieza del entrypoint);
+#   - una sola réplica por defecto (los deploys no se paralelizan).
+# El workflow elige este pool con la variable de repo CI_RUNS_ON_DEPLOY = ["self-hosted","platform-deploy"]. Runbook: docs/endurecimiento-infra.md.
+services:
+  runner:
+    build: .
+    init: true
+    runtime: ${RUNNER_RUNTIME:-sysbox-runc}
+    deploy:
+      replicas: ${RUNNER_DEPLOY_REPLICAS:-1}
+      resources:
+        limits:
+          memory: ${RUNNER_DEPLOY_MEMORY_LIMIT:-4g}
+          cpus: ${RUNNER_DEPLOY_CPU_LIMIT:-2}
+          pids: ${RUNNER_PIDS_LIMIT:-4096}
+    environment:
+      RUNNER_ROLE: deploy
+      RUNNER_REPO: nicolasjones/multistorefront-meli
+      RUNNER_NAME: multistorefront-meli-deploy
+      RUNNER_LABELS: self-hosted,platform-deploy
+      # Daemon interno solo para construir las imágenes de los workers (worker-images.yml); el deploy al VPS usa DOCKER_HOST=ssh://.
+      RUNNER_DOCKER_INTERNO: "1"
+      RUNNER_EPHEMERAL: "1"
+      RUNNER_LIMPIAR_STORE: "1"
+      RUNNER_PAT_FILE: /run/secrets/gh_runner_pat
+      RUNNER_DISABLE_AUTO_UPDATE: "1"
+      pnpm_config_store_dir: /home/runner/.pnpm-store
+      pnpm_config_cache_dir: /home/runner/.cache/pnpm
+      pnpm_config_network_concurrency: ${RUNNER_PNPM_NETWORK_CONCURRENCY:-16}
+      pnpm_config_fetch_retries: 5
+      pnpm_config_fetch_timeout: 600000
+    secrets:
+      - gh_runner_pat
+    restart: unless-stopped
+
+secrets:
+  gh_runner_pat:
+    file: ${GH_RUNNER_PAT_FILE:-/etc/platform-runner/gh_runner_pat}

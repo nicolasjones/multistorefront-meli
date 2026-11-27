@@ -288,6 +288,8 @@ La bandeja de consultas carga por tandas de 25 desde `consultas_bandeja` al lleg
 
 ## Privilegios de `publico.crear_consulta_publica` y `publico.registrar_interes_whatsapp` (MSF-653, MSF-657)
 
+Desde el lote 99 la migración `20270514000000` reafirma ese ACL con una función reaplicable (`private.reafirmar_acl_rpc_internas_de_publico`); ver `docs/higiene-base-datos.md`.
+
 El código de las migraciones ya revoca `publico.crear_consulta_publica` a `public`, `anon` y `authenticated` (`20261212120800`) y ninguna migración posterior la vuelve a otorgar; el pgTAP `consultas.test.sql` fija que `anon` y `authenticated` no la ejecutan y que `service_role` sí. Que el DEV la muestre ejecutable por `anon` es **deriva del entorno** (la migración figura aplicada pero el ACL real no coincide, síntoma de «aplicada-manual» de MSF-647): se corrige reaplicando el `revoke` en el DEV y verificando el ACL de las funciones de `publico` después de cada despliegue; no hay nada que cambiar en el código. `publico.registrar_interes_whatsapp` recibe el mismo tratamiento desde `20270507150100`.
 
 Único llamador real de `publico.registrar_interes_whatsapp` fuera de las pruebas: el sembrado del dataset demo (`scripts/demo-dataset/modulos/07-tiendas.mjs`, paso 7), que desde MSF-657 la invoca con la service-role key en vez de la anon key.

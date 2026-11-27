@@ -70,7 +70,7 @@ permissions:
 jobs:
   staging:
     if: github.event_name == 'push'
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_DEPLOY || '["self-hosted","platform-local"]') }}
     # MSF-926: tope explícito (el default de GitHub son 360 min: un job colgado ocuparía el runner self-hosted horas).
     timeout-minutes: 30
     environment: deploy-infraestructura-vps-staging
@@ -158,7 +158,7 @@ jobs:
 
   production:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_DEPLOY || '["self-hosted","platform-local"]') }}
     # MSF-926: tope explícito (el default de GitHub son 360 min: un job colgado ocuparía el runner self-hosted horas).
     timeout-minutes: 30
     environment: deploy-infraestructura-vps-production

@@ -18,3 +18,7 @@ x-variables-obligatorias:
   kestra_basic_auth_password: ${KESTRA_BASIC_AUTH_PASSWORD:?Definí KESTRA_BASIC_AUTH_PASSWORD en el .env del ambiente (contraseña de la UI/API de Kestra)}
   kestra_backups_db_password: ${KESTRA_BACKUPS_DB_PASSWORD:?Definí KESTRA_BACKUPS_DB_PASSWORD en el .env del ambiente (contraseña del rol kestra_backups)}
   kestra_orquestacion_db_password: ${KESTRA_ORQUESTACION_DB_PASSWORD:?Definí KESTRA_ORQUESTACION_DB_PASSWORD en el .env del ambiente (contraseña del rol kestra_orquestacion)}
+  # MSF-705 (lote 99): el Compose base cae a `postgres:postgres@...` (superusuario) y a `change-me-local` para el almacenamiento S3 de los respaldos.
+  kestra_backups_pgdump_url: ${KESTRA_BACKUPS_PGDUMP_URL:?Definí KESTRA_BACKUPS_PGDUMP_URL en el .env del ambiente (URL de pg_dump con la contraseña PROPIA del ambiente)}
+  respaldos_storage_access_key_id: ${RESPALDOS_STORAGE_ACCESS_KEY_ID:?Definí RESPALDOS_STORAGE_ACCESS_KEY_ID en el .env del ambiente (clave S3 del Storage de respaldos)}
+  respaldos_storage_secret_access_key: ${RESPALDOS_STORAGE_SECRET_ACCESS_KEY:?Definí RESPALDOS_STORAGE_SECRET_ACCESS_KEY en el .env del ambiente (secreto S3 del Storage de respaldos)}
