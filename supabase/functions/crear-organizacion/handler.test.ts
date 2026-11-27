@@ -4,6 +4,7 @@
 // (`pnpm test:edge:crear-organizacion`); el handler no importa nada de Deno ni de Supabase.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 import { manejar, type Deps } from './handler.ts'
 
 type Opciones = {
@@ -166,5 +167,49 @@ describe('crear-organizacion', () => {
     const res = await manejar(pedido(valido), deps)
     assert.equal(res.status, 400)
     assert.deepEqual(llamadas.invitados, [])
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  const sinSecretos = /sk-secreta|db\.example\.com|fundador@example\.com/
+
+  it('un error de Auth al invitar deja status, nombre y código, sin el correo ni el mensaje', async () => {
+    const { deps } = montar()
+    deps.admin.auth.admin.inviteUserByEmail = async () => ({ data: null, error: Object.assign(errorHostil(), { status: 502, message: 'fundador@example.com ya existe sk-secreta' }) })
+    const { resultado, lineas } = await capturarLog(() => manejar(pedido({ nombre: 'Org', email_fundador: 'fundador@example.com' }), deps))
+    assert.equal(resultado.status, 502)
+    assert.deepEqual(lineas, ['crear-organizacion: falló la invitación 502 Error'])
+    assert.doesNotMatch(lineas.join('\n'), sinSecretos)
+  })
+
+  it('errores de la base al crear, revertir y vincular dejan el código y no el mensaje', async () => {
+    const creada = montar({ insertOrgError: true })
+    const original = creada.deps.admin.from
+    creada.deps.admin.from = (tabla: string) => {
+      const t = original(tabla) as Record<string, unknown>
+      if (tabla !== 'organizaciones') return t as never
+      return { ...t, insert: () => ({ select: () => ({ single: async () => ({ data: null, error: ERROR_BASE_HOSTIL }) }) }) } as never
+    }
+    const a = await capturarLog(() => manejar(pedido({ nombre: 'Org', email_fundador: 'fundador@example.com' }), creada.deps))
+    assert.equal(a.resultado.status, 400)
+    assert.equal(a.lineas.length, 1)
+    assert.match(a.lineas[0], /^crear-organizacion: no se pudo crear la organización 42501 /)
+
+    const vinculo = montar({ membresiaError: true })
+    const base = vinculo.deps.admin.from
+    vinculo.deps.admin.from = (tabla: string) => {
+      const t = base(tabla) as Record<string, unknown>
+      if (tabla === 'organizaciones') return { ...t, delete: () => ({ eq: async () => ({ error: ERROR_BASE_HOSTIL }) }) } as never
+      if (tabla === 'usuarios_organizacion') return { insert: async () => ({ error: ERROR_BASE_HOSTIL }) } as never
+      return t as never
+    }
+    vinculo.deps.admin.auth.admin.deleteUser = async () => ({ error: errorHostil() })
+    const b = await capturarLog(() => manejar(pedido({ nombre: 'Org', email_fundador: 'fundador@example.com' }), vinculo.deps))
+    assert.equal(b.resultado.status, 400)
+    assert.equal(b.lineas.length, 3)
+    assert.match(b.lineas[0], /^crear-organizacion: no se pudo vincular al fundador 42501 /)
+    assert.match(b.lineas[1], /^crear-organizacion: no se pudo revertir la organización org-1 42501 /)
+    assert.equal(b.lineas[2], 'crear-organizacion: no se pudo borrar al usuario invitado fundador Error')
+    assert.doesNotMatch([...a.lineas, ...b.lineas].join('\n'), sinSecretos)
   })
 })

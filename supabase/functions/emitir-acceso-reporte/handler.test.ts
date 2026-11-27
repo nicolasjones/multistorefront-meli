@@ -5,6 +5,7 @@
 // (`pnpm test:edge:emitir-acceso-reporte`); el handler no importa nada de Deno ni de Supabase.
 import assert from 'node:assert/strict'
 import { describe, it, mock } from 'node:test'
+import { capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 import { listarDatasets, manejar, type Deps } from './handler.ts'
 
 const ORG_A = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
@@ -386,5 +387,23 @@ describe('listarDatasets: registra el motivo del fallo', () => {
     const { resultado, registros } = await listar(() => Response.json({ count: 1, result: [{ id: 1, table_name: 'a' }] }))
     assert.deepEqual(resultado, [{ id: 1, table_name: 'a' }])
     assert.deepEqual(registros, [])
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  it('un error capturado (RPC, lectura, empresas o red de Superset) deja solo el nombre del error, sin mensaje, cause ni URL', async () => {
+    const casos: [string, (deps: Deps) => void][] = [
+      ['resolver_organizacion', (deps) => { deps.resolverOrganizacion = async () => { throw errorHostil() } }],
+      ['leer_reporte', (deps) => { deps.reporte = async () => { throw errorHostil() } }],
+      ['empresas_accesibles', (deps) => { deps.empresasAccesibles = async () => { throw errorHostil() } }],
+      ['superset_red', (deps) => { deps.fetch = (async () => { throw errorHostil() }) as typeof fetch }],
+    ]
+    for (const [paso, preparar] of casos) {
+      const { deps } = montar()
+      preparar(deps)
+      const { resultado, lineas } = await capturarLog(() => manejar(pedir(), deps))
+      assert.equal(resultado.status, 503, paso)
+      assert.deepEqual(lineas, [`emitir-acceso-reporte: falló el paso «${paso}»: Error`], paso)
+    }
   })
 })

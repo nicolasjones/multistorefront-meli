@@ -262,6 +262,7 @@ describe('funcionalidad, cuota y política (antes de gastar crédito)', () => {
     const { res, r, json } = await llamar({ cupo: { data: [{ se_consumio: false, usos_actuales: 30, segundos_hasta_reinicio: 1234 }], error: null } })
     assert.equal(res.status, 429)
     assert.equal(res.headers.get('Retry-After'), '1234')
+    assert.equal(res.headers.get('Access-Control-Expose-Headers'), 'Retry-After', 'el navegador puede leer el Retry-After del 429')
     assert.deepEqual(json, { error: 'Superaste el límite de mensajes por hora. Probá de nuevo más tarde.' })
     assert.equal(r.pedidos.length, 0)
     assert.equal(r.inserts.length, 0)

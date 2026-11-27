@@ -253,6 +253,7 @@ describe('funcionalidad y límite por usuario (antes de gastar crédito)', () =>
     const tercera = await manejar(pedir({ pregunta: 'tres' }), deps)
     assert.equal(tercera.status, 429)
     assert.equal(tercera.headers.get('Retry-After'), '1234')
+    assert.equal(tercera.headers.get('Access-Control-Expose-Headers'), 'Retry-After', 'el navegador puede leer el Retry-After del 429')
     assert.deepEqual(await tercera.json(), { error: 'Hiciste demasiadas preguntas en poco tiempo. Probá de nuevo más tarde.' })
     assert.equal(r.embeddings.length, 2)
     assert.equal(r.pedidos.length, 2)

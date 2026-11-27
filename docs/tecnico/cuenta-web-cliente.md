@@ -407,3 +407,5 @@ pnpm --filter @platform/web test:e2e cuenta-web-cliente
 - **E2E:** `cuenta-web-cliente.e2e.ts` necesita el stack local y datos sembrados; no forma parte de
   `pnpm test` ni del CI público (misma regla que el resto de los recorridos con sesión, ver
   [Suite E2E](../e2e-app.md)).
+
+- **Cupo por cuenta (MSF-1001):** `acceso_cliente_por_dominio` y `precios_cliente_por_dominio` toman 240 llamadas por minuto y cuenta (`registrar_pedido_publico`); superado responden `{estado: limite}` (`consultarAcceso` lanza: `ingresarCliente` cierra la sesión recién abierta y `sesionActivaEnTienda` NO cierra una sesión ya activa; `leerPreciosCliente` devuelve `null`). Ver [Revisión de seguridad de la tienda](../seguridad-tienda-compra-y-cuentas.md).

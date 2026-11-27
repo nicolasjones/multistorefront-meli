@@ -8,6 +8,7 @@
 // Host desconocido, inválido, ausente o tienda desactivada: MISMA respuesta (`robots.txt` con `Disallow: /` y sitemap
 // válido sin URLs). Nunca un 404 distinto ni un mensaje que revele si el dominio existe. Un fallo de la base responde
 // 500 genérico y solo se registra en el log.
+import { errorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 
 type DbError = { message: string; code?: string }
 type Resultado<T = unknown> = Promise<{ data: T; error: DbError | null }>
@@ -84,12 +85,12 @@ export async function manejar(req: Request, { rpc }: Deps): Promise<Response> {
   try {
     if (esRobots) {
       const { data, error } = consultable ? await rpc('seo_tienda_por_dominio', { host }) : { data: null, error: null }
-      if (error) throw new Error(error.message)
+      if (error) throw errorDeBase('la base rechazó la lectura de la tienda', error)
       const dominio = (data as { dominio?: unknown } | null)?.dominio
       return respuesta(dominioValido(dominio) ? robotsAbierto(dominio) : robotsCerrado(), 'text/plain')
     }
     const { data, error } = consultable ? await rpc('sitemap_por_dominio', { host }) : { data: null, error: null }
-    if (error) throw new Error(error.message)
+    if (error) throw errorDeBase('la base rechazó la lectura de la tienda', error)
     const mapa = data as { dominio?: unknown; urls?: unknown } | null
     if (!mapa || !dominioValido(mapa.dominio) || !Array.isArray(mapa.urls)) return respuesta(sitemapVacio(), 'application/xml')
     // El tope de 50.000 URLs corta primero productos (categorías y páginas tienen prioridad): se avisa en el log.
@@ -97,7 +98,7 @@ export async function manejar(req: Request, { rpc }: Deps): Promise<Response> {
     const urls = (mapa.urls as UrlSitemap[]).filter((u) => rutaValida(u?.ruta))
     return respuesta(sitemapDe(mapa.dominio, urls), 'application/xml')
   } catch (cause) {
-    console.error('tienda-seo: no se pudo leer la tienda', cause instanceof Error ? cause.message : cause)
+    console.error('tienda-seo: no se pudo leer la tienda', textoDeError(cause))
     return new Response('No disponible.', { status: 500 })
   }
 }

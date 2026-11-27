@@ -47,3 +47,7 @@ La tienda pública muestra a un cliente con **cuenta web activa** los precios de
 ## Convivencia con las listas de precios (F-PRE-14 y F-CLI-21)
 
 La **escala cargada** (x5, x10, x50) de un cliente mayorista que compra esa cantidad **gana a la lista de precios** del cliente (paso 2 de la precedencia); la lista solo fija el precio de las líneas que no tienen escala cargada, precio propio ni precio manual. La lista no cambia el tipo de cliente ni la escala que corresponde a la cantidad. Precedencia completa en [Precios](precios.md#como-se-calcula-el-precio-con-una-lista-fases-3-y-4) y guía en [Listas de precios](listas-de-precios.md).
+
+## Cupo por cuenta (MSF-1001)
+
+`publico.precios_cliente_por_dominio` toma un cupo de 240 llamadas por minuto y cuenta; superado responde `{estado: limite}` y la tienda cae al precio público. Detalle en [Revisión de seguridad de la tienda](seguridad-tienda-compra-y-cuentas.md).

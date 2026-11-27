@@ -26,6 +26,9 @@ export type ResultadoIngreso =
 export async function consultarAcceso(host: string): Promise<AccesoCliente | null> {
   const { data, error } = await supabaseClient.schema('publico').rpc('acceso_cliente_por_dominio', { host })
   if (error) throw new Error(error.message)
+  // MSF-1001: superado el cupo por cuenta la base responde `{estado: 'limite'}`. No es un estado de la cuenta: se trata como
+  // un fallo de verificación (reintentable), nunca como «sin acceso».
+  if ((data as { estado?: string } | null)?.estado === 'limite') throw new Error('limite')
   return (data ?? null) as AccesoCliente | null
 }
 

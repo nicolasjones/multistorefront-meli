@@ -47,18 +47,18 @@ select is(has_table_privilege('authenticated', 'dominio.estados_consulta', 'DELE
 select pg_temp.como('d1000000-0000-0000-0000-000000000011');
 
 select is(
-  (select nombre from public.crear_estado_consulta('  Nueva  ')),
-  'Nueva',
+  (select nombre from public.crear_estado_consulta('  Descartada  ')),
+  'Descartada',
   'el administrador crea un estado y el nombre se guarda recortado'
 );
 select is(
-  (select activo from dominio.estados_consulta where nombre = 'Nueva'),
+  (select activo from dominio.estados_consulta where nombre = 'Descartada'),
   true,
   'el estado nuevo queda activo'
 );
 select is(
-  (select orden from public.crear_estado_consulta('En curso')),
-  2,
+  (select orden from public.crear_estado_consulta('Pendiente')),
+  1,
   'el segundo estado queda al final del orden'
 );
 
@@ -68,7 +68,7 @@ select throws_ok($$select public.crear_estado_consulta(' EN CURSO ')$$, '23505',
 
 select is(
   (select nombre from public.renombrar_estado_consulta(
-    (select id from dominio.estados_consulta where nombre = 'En curso'), 'Esperando respuesta')),
+    (select id from dominio.estados_consulta where nombre = 'Pendiente'), 'Esperando respuesta')),
   'Esperando respuesta',
   'el administrador renombra un estado'
 );
@@ -87,13 +87,13 @@ select lives_ok(
 
 -- Desactivar y reactivar sin borrar
 select is(
-  (select activo from public.cambiar_estado_estado_consulta((select id from dominio.estados_consulta where nombre = 'Nueva'), false)),
+  (select activo from public.cambiar_estado_estado_consulta((select id from dominio.estados_consulta where nombre = 'Descartada'), false)),
   false,
   'el administrador desactiva un estado'
 );
-select is((select count(*)::int from dominio.estados_consulta), 2, 'desactivar no borra la fila');
+select is((select count(*)::int from dominio.estados_consulta), 5, 'desactivar no borra la fila (los 3 de base y los 2 creados)');
 select is(
-  (select activo from public.cambiar_estado_estado_consulta((select id from dominio.estados_consulta where nombre = 'Nueva'), true)),
+  (select activo from public.cambiar_estado_estado_consulta((select id from dominio.estados_consulta where nombre = 'Descartada'), true)),
   true,
   'el administrador reactiva el estado'
 );
@@ -124,8 +124,8 @@ select throws_ok(
 
 select pg_temp.como('d2000000-0000-0000-0000-000000000011');
 
-select is((select count(*)::int from dominio.estados_consulta), 0, 'la Dos no ve los estados de la Uno');
-select is((select nombre from public.crear_estado_consulta('Nueva')), 'Nueva', 'el mismo nombre se puede usar en otra organización');
+select is((select count(*)::int from dominio.estados_consulta), 3, 'la Dos ve solo sus 3 estados de base, no los de la Uno');
+select is((select nombre from public.crear_estado_consulta('Descartada')), 'Descartada', 'el mismo nombre se puede usar en otra organización');
 select throws_ok(
   $$select public.renombrar_estado_consulta((select id from dominio.estados_consulta where organizacion_id = '11111111-1111-1111-1111-111111111111'), 'X')$$,
   'PT404', null, 'la Dos no renombra un estado de la Uno'
@@ -177,12 +177,12 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000011');
 
 select throws_ok(
   $$select public.cambiar_estado_estado_consulta('d1000000-0000-0000-0000-0000000000a1', false)$$,
-  '23514', 'El estado «Cerrada» es de sistema: lo necesita el cierre de las consultas y no se puede desactivar',
+  '23514', 'El estado «Cerrada» es de sistema: lo necesita el flujo de las consultas y no se puede desactivar',
   'un estado de sistema no se desactiva'
 );
 select throws_ok(
   $$select public.renombrar_estado_consulta('d1000000-0000-0000-0000-0000000000a1', 'Terminada')$$,
-  '23514', 'El estado «Cerrada» es de sistema: lo necesita el cierre de las consultas y no se puede renombrar',
+  '23514', 'El estado «Cerrada» es de sistema: lo necesita el flujo de las consultas y no se puede renombrar',
   'un estado de sistema no se renombra'
 );
 select throws_ok(

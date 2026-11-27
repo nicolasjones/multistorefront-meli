@@ -8,6 +8,7 @@
 //
 // El error es uniforme: `{ "error": { "codigo": "...", "mensaje": "..." } }`.
 // Los mensajes nunca incluyen el token, el hash ni detalles internos.
+import { registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 
 export type Alcance = 'productos' | 'stock' | 'precios' | 'ventas'
 
@@ -304,7 +305,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   try {
     documento = await deps.openapi()
   } catch (error) {
-    console.error('api-v1: no se pudo cargar el contrato OpenAPI', error)
+    console.error('api-v1: no se pudo cargar el contrato OpenAPI', textoDeError(error))
   }
 
   const resolucion = await resolver(req, deps, documento)
@@ -323,9 +324,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       duracion_ms: Date.now() - inicio,
       reserva_id: resolucion.reserva_id ?? null,
     })
-    if (errorAuditoria) console.error('api-v1: no se pudo auditar la llamada', errorAuditoria)
+    if (errorAuditoria) registrarErrorDeBase('api-v1: no se pudo auditar la llamada', errorAuditoria)
   } catch (error) {
-    console.error('api-v1: no se pudo auditar la llamada', error)
+    console.error('api-v1: no se pudo auditar la llamada', textoDeError(error))
   }
 
   return respuesta(resolucion.cuerpo, resolucion.estado, resolucion.cabeceras)

@@ -388,3 +388,5 @@ Revertir el merge del PR de la épica con `git revert -m 1` deshace el código; 
 - [Catálogo: listado y categorías](catalogo-listado-y-categorias.md)
 - [Catálogo: costo y disponibilidad](catalogo-costo-y-disponibilidad.md)
 - [Datos](datos.md)
+
+- **Filtro «Stock bajo» (MSF-611):** `exportar_productos` acepta `p_filtros.stock_bajo` (columna `estado_stock` de `v_productos_listado`, migración `20270510000100`); `filtrosExportacion` lo envía solo cuando está activo.
