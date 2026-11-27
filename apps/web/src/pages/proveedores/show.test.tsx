@@ -22,6 +22,12 @@ vi.mock('../../hooks/useEmpresasDeProveedor', () => ({
   guardarEmpresasDeProveedor: vi.fn(),
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+// Las condiciones de compra se prueban aparte (CondicionesDeCompra.test.tsx): acá solo se verifica cómo se monta.
+vi.mock('../../components/proveedores/CondicionesDeCompra', () => ({
+  CondicionesDeCompra: (props: { proveedorId: string; puedeEditar: boolean }) => (
+    <section aria-label="Condiciones de compra" data-proveedor={props.proveedorId} data-puede-editar={String(props.puedeEditar)} />
+  ),
+}))
 vi.mock('../../components/proveedores/ProductosDelProveedor', () => ({ ProductosDelProveedor: () => <section aria-label="Productos del proveedor" /> }))
 vi.mock('../../components/proveedores/ListaContactos', () => ({ ListaContactos: () => <section aria-label="Contactos" /> }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
@@ -53,6 +59,14 @@ describe('ProveedorShow', () => {
     mocks.useEmpresasDeProveedor.mockReturnValue({ empresas: ['e-2'], isLoading: false, isError: false, refetch: vi.fn() })
     mocks.proveedor.mockResolvedValue({ data: PROVEEDOR, error: null })
     mocks.rpc.mockResolvedValue({ data: { ...PROVEEDOR, activo: false }, error: null })
+  })
+
+  it.each([['edicion', 'true'], ['lectura', 'false']])('monta las condiciones de compra del proveedor (nivel %s: puede editar %s)', async (nivel, puedeEditar) => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel, isLoading: false })
+    abrir()
+    const seccion = await screen.findByRole('region', { name: 'Condiciones de compra' })
+    expect(seccion).toHaveAttribute('data-proveedor', 'prv-1')
+    expect(seccion).toHaveAttribute('data-puede-editar', puedeEditar)
   })
 
   it('muestra «Compra para» con los nombres de las tiendas marcadas', async () => {

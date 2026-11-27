@@ -197,6 +197,110 @@ export async function leerListaDeCliente(cliente: SupabaseClient, clienteId: str
   return data.lista_precio_id ?? null
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Asignación masiva (MSF-973, migración 20270511000200) y lista por tipo de cliente (MSF-976, migración 20270511000300).
+// ---------------------------------------------------------------------------------------------------------------------
+
+export type TipoClienteLista = 'minorista' | 'mayorista'
+
+export const TIPOS_CLIENTE_LISTA: ReadonlyArray<{ valor: TipoClienteLista; etiqueta: string }> = [
+  { valor: 'minorista', etiqueta: 'Minoristas' },
+  { valor: 'mayorista', etiqueta: 'Mayoristas' },
+]
+
+// Los mismos criterios del listado de Clientes (activos, sin Consumidor final).
+export type FiltroAsignacionMasiva = {
+  texto: string
+  tipo: TipoClienteLista | null
+  empresaId: string | null
+  conCuentaWeb: boolean
+}
+
+export type AlcanceAsignacionMasiva = { clientes: readonly string[] } | { filtro: FiltroAsignacionMasiva }
+
+export type ResultadoAsignacionMasiva = { asignados: number; sinCambios: number; omitidos: number }
+
+// Tope por llamada en la base (54000).
+export const TOPE_ASIGNACION_MASIVA = 5000
+
+// `listaId` null = quitar la lista a los clientes del alcance.
+export async function asignarListaMasiva(
+  cliente: SupabaseClient,
+  listaId: string | null,
+  alcance: AlcanceAsignacionMasiva,
+): Promise<ResultadoAsignacionMasiva> {
+  const filtro = 'filtro' in alcance ? alcance.filtro : null
+  const { data, error } = await cliente.rpc('asignar_lista_precios_masiva', {
+    p_lista: listaId,
+    p_clientes: 'clientes' in alcance ? [...alcance.clientes] : null,
+    p_texto: filtro && filtro.texto.trim() !== '' ? filtro.texto.trim() : null,
+    p_tipo: filtro?.tipo ?? null,
+    p_empresa_id: filtro?.empresaId ?? null,
+    p_con_cuenta_web: filtro?.conCuentaWeb ?? false,
+  })
+  if (error) throw error
+  const fila = ((data ?? []) as Array<{ asignados: number; sin_cambios: number; omitidos: number }>)[0]
+  if (!fila) throw new Error('La asignación masiva no devolvió resultado')
+  return { asignados: Number(fila.asignados), sinCambios: Number(fila.sin_cambios), omitidos: Number(fila.omitidos) }
+}
+
+// Texto del resultado: lo que cambió, lo que ya estaba y lo que se omitió (archivados, Consumidor final o inexistentes).
+export function textoResultadoMasivo(resultado: ResultadoAsignacionMasiva, listaNombre: string | null): string {
+  const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`
+  const partes = [
+    listaNombre === null
+      ? `Lista quitada a ${plural(resultado.asignados, 'cliente', 'clientes')}.`
+      : `Lista «${listaNombre}» asignada a ${plural(resultado.asignados, 'cliente', 'clientes')}.`,
+  ]
+  if (resultado.sinCambios > 0) partes.push(`${plural(resultado.sinCambios, 'ya estaba', 'ya estaban')} con ese valor.`)
+  if (resultado.omitidos > 0) partes.push(`${plural(resultado.omitidos, 'se omitió', 'se omitieron')} (archivados, Consumidor final o que ya no existen).`)
+  return partes.join(' ')
+}
+
+export type ListaDeTipo = {
+  tipo: TipoClienteLista
+  listaId: string
+  listaNombre: string
+  ajustePct: number
+  archivadaEn: string | null
+}
+
+type FilaTipo = { tipo: TipoClienteLista; lista_precio_id: string; lista_nombre: string; ajuste_pct: number | string; archivada_en: string | null }
+
+export async function leerListasPorTipo(cliente: SupabaseClient): Promise<ListaDeTipo[]> {
+  const { data, error } = await cliente
+    .from('listas_precios_tipo_cliente_resumen')
+    .select('tipo, lista_precio_id, lista_nombre, ajuste_pct, archivada_en')
+    .returns<FilaTipo[]>()
+  if (error) throw error
+  return (data ?? []).map((fila) => ({
+    tipo: fila.tipo,
+    listaId: fila.lista_precio_id,
+    listaNombre: fila.lista_nombre,
+    ajustePct: Number(fila.ajuste_pct),
+    archivadaEn: fila.archivada_en,
+  }))
+}
+
+// `listaId` null = quitar la lista del tipo.
+export async function asignarListaTipo(cliente: SupabaseClient, tipo: TipoClienteLista, listaId: string | null): Promise<void> {
+  const { error } = await cliente.rpc('asignar_lista_precios_tipo_cliente', { p_tipo: tipo, p_lista: listaId })
+  if (error) throw error
+}
+
+// Lista de cada cliente de una tanda para la columna «Lista de precios» de la exportación de clientes (MSF-974): el nombre de la lista
+// propia o, si no tiene, la de su tipo (con la marca «por tipo»). Los clientes sin lista no vienen.
+export async function leerListasDeClientesParaExportar(cliente: SupabaseClient, ids: readonly string[]): Promise<Map<string, string>> {
+  const resultado = new Map<string, string>()
+  if (ids.length === 0) return resultado
+  const { data, error } = await cliente.rpc('listas_de_clientes_para_exportar', { p_clientes: [...ids] })
+  if (error) throw error
+  for (const fila of (data ?? []) as Array<{ cliente_id: string; lista_nombre: string; origen: 'cliente' | 'tipo' }>) {
+    resultado.set(fila.cliente_id, fila.origen === 'tipo' ? `${fila.lista_nombre} (por tipo de cliente)` : fila.lista_nombre)
+  }
+  return resultado
+}
+
 // Traduce el código de la base (contrato en specs/…/contracts) a un texto para la persona.
 export function mensajeErrorLista(error: unknown, porDefecto: string): string {
   const e = (error ?? {}) as { code?: string; message?: string }
@@ -216,6 +320,8 @@ export function mensajeErrorLista(error: unknown, porDefecto: string): string {
     case 'P0002':
     case 'PT404':
       return 'La lista o el cliente ya no existe.'
+    case '54000':
+      return `Se pueden asignar hasta ${TOPE_ASIGNACION_MASIVA} clientes por vez: afiná la selección o el filtro.`
     case '23503':
     case '22023':
       return e.message && e.message.length < 200 ? e.message : porDefecto

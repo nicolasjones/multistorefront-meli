@@ -22,6 +22,14 @@ sources:
   - supabase/migrations/20270507480000_tienda_api_documentos_presupuestos_correo_y_fusion_responden_404.sql
   - supabase/migrations/20270507490000_catalogo_presupuestos_conexiones_reportes_responden_404.sql
   - supabase/migrations/20270507500000_migracion_organizaciones_y_otras_responden_4xx.sql
+  - supabase/migrations/20270511000000_proveedores_condiciones_compra.sql
+  - supabase/migrations/20270511000100_productos_proveedores.sql
+  - supabase/migrations/20270511000200_listas_precios_asignacion_masiva.sql
+  - supabase/migrations/20270511000300_listas_precios_por_tipo_cliente.sql
+  - supabase/migrations/20270511000500_ventas_por_lista_precios.sql
+  - apps/web/src/lib/condicionesCompra.ts
+  - apps/web/src/lib/productosProveedores.ts
+  - apps/web/src/lib/ventasPorLista.ts
   - apps/web/src/lib/ventasDespacho.ts
   - apps/web/src/lib/ventasEnvio.ts
   - apps/web/src/lib/ventasFaltantes.ts
@@ -355,6 +363,16 @@ para próximas olas» y en el encabezado de la migración.
 Efecto en el cliente: los mapeos de cargas de migración, cuentas web, ítems de reparaciones, umbral de margen, exportación de proveedores,
 opiniones y detalle de campañas aceptan el código viejo y el nuevo (`P0002` o `PT404`, `esCodigoDeConflicto`); test
 `lib/errores4xxMigracionOrganizacionesYOtras.test.ts` y pgTAP `lote78_migracion_organizaciones_y_otras_4xx.test.sql`.
+
+## Funciones nuevas del lote 93: nacen con `PT404`, `PT409` y `PT412`
+
+Las RPC que se agregan en el lote 93 (condiciones de compra del proveedor, proveedores por producto, asignación masiva y por tipo de
+las listas de precios, ventas por lista de precios) **no usan los códigos históricos para los casos que ya tienen uno nuevo**: «no existe o
+no es de tu organización» responde `PT404`, «el estado no admite la acción» (proveedor desactivado) `PT409` y el conflicto de edición
+`PT412`. Los permisos siguen en `42501`, los datos inválidos en `22023`, la bandera apagada de las listas en `55000` (como las demás
+funciones de listas, ver la duodécima ola) y los topes de lote en `54000`. Las pantallas nuevas (`lib/condicionesCompra.ts`,
+`lib/productosProveedores.ts`, `lib/ventasPorLista.ts` y `lib/listasPrecios.ts`) traducen cada código con el catálogo común
+(`mensajeDeErrorBase`) y nunca muestran el `message` del servidor. Cada función tiene su pgTAP con código y mensaje (`lote93_*.test.sql`).
 
 ## MSF-721: «Nueva devolución» no encontraba la factura
 
