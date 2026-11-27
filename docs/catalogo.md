@@ -11,7 +11,7 @@ sources:
   - apps/web/src/pages/productos/create.tsx
   - apps/web/src/pages/productos/edit.tsx
   - apps/web/src/components/productos/ProveedoresDelProducto.tsx
-  - supabase/migrations/20270511000100_productos_proveedores.sql
+  - supabase/migrations/20270512000100_productos_proveedores.sql
   - apps/web/src/components/productos/DialogoProducto.tsx
   - apps/web/src/lib/productosListado.ts
   - apps/web/src/lib/productos.ts

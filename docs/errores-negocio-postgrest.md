@@ -22,11 +22,11 @@ sources:
   - supabase/migrations/20270507480000_tienda_api_documentos_presupuestos_correo_y_fusion_responden_404.sql
   - supabase/migrations/20270507490000_catalogo_presupuestos_conexiones_reportes_responden_404.sql
   - supabase/migrations/20270507500000_migracion_organizaciones_y_otras_responden_4xx.sql
-  - supabase/migrations/20270511000000_proveedores_condiciones_compra.sql
-  - supabase/migrations/20270511000100_productos_proveedores.sql
-  - supabase/migrations/20270511000200_listas_precios_asignacion_masiva.sql
-  - supabase/migrations/20270511000300_listas_precios_por_tipo_cliente.sql
-  - supabase/migrations/20270511000500_ventas_por_lista_precios.sql
+  - supabase/migrations/20270512000000_proveedores_condiciones_compra.sql
+  - supabase/migrations/20270512000100_productos_proveedores.sql
+  - supabase/migrations/20270512000200_listas_precios_asignacion_masiva.sql
+  - supabase/migrations/20270512000300_listas_precios_por_tipo_cliente.sql
+  - supabase/migrations/20270512000500_ventas_por_lista_precios.sql
   - apps/web/src/lib/condicionesCompra.ts
   - apps/web/src/lib/productosProveedores.ts
   - apps/web/src/lib/ventasPorLista.ts

@@ -3,7 +3,7 @@ import { mensajeDeErrorBase } from './mensajeErrorBase'
 import { parsearImporte } from './productos'
 
 // Condiciones de compra del proveedor (plazo de pago, mínimo de compra, moneda y notas). La autoridad es la base
-// (migración 20270511000000): las RPC `obtener_condiciones_compra_proveedor` y `guardar_condiciones_compra_proveedor`
+// (migración 20270512000000): las RPC `obtener_condiciones_compra_proveedor` y `guardar_condiciones_compra_proveedor`
 // validan rol, organización y datos. Acá se valida lo mínimo para avisar antes de enviar y se traducen los errores.
 
 export type MonedaCondiciones = 'ARS' | 'USD'

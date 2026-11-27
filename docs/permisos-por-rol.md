@@ -12,12 +12,12 @@ sources:
   - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
   - supabase/migrations/20270507180100_revertir_cobro.sql
   - supabase/migrations/20270507180400_documentos_escritura_excluye_consulta.sql
-  - supabase/migrations/20270511000000_proveedores_condiciones_compra.sql
-  - supabase/migrations/20270511000100_productos_proveedores.sql
-  - supabase/migrations/20270511000200_listas_precios_asignacion_masiva.sql
-  - supabase/migrations/20270511000300_listas_precios_por_tipo_cliente.sql
-  - supabase/migrations/20270511000400_listas_de_clientes_para_exportar.sql
-  - supabase/migrations/20270511000500_ventas_por_lista_precios.sql
+  - supabase/migrations/20270512000000_proveedores_condiciones_compra.sql
+  - supabase/migrations/20270512000100_productos_proveedores.sql
+  - supabase/migrations/20270512000200_listas_precios_asignacion_masiva.sql
+  - supabase/migrations/20270512000300_listas_precios_por_tipo_cliente.sql
+  - supabase/migrations/20270512000400_listas_de_clientes_para_exportar.sql
+  - supabase/migrations/20270512000500_ventas_por_lista_precios.sql
   - supabase/migrations/20270507180600_categorias_lectura_para_stock.sql
   - supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql
   - supabase/migrations/20270507240200_rls_ventas_nivel_por_empresa.sql

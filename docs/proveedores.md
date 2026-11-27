@@ -10,8 +10,8 @@ sources:
   - supabase/migrations/20261018190001_proveedores_tabla.sql
   - supabase/migrations/20261018190100_proveedores_rpc.sql
   - supabase/migrations/20270508000000_registro_de_envios_de_correo_a_proveedores.sql
-  - supabase/migrations/20270511000000_proveedores_condiciones_compra.sql
-  - supabase/migrations/20270511000100_productos_proveedores.sql
+  - supabase/migrations/20270512000000_proveedores_condiciones_compra.sql
+  - supabase/migrations/20270512000100_productos_proveedores.sql
   - apps/web/src/lib/condicionesCompra.ts
   - apps/web/src/lib/productosProveedores.ts
   - apps/web/src/components/proveedores/CondicionesDeCompra.tsx
@@ -232,7 +232,7 @@ La ficha del proveedor suma la sección **Condiciones de compra**: plazo de pago
 moneda (ARS o USD) y notas (hasta 1000 caracteres). Todo es opcional; el mínimo exige moneda. **Sin historial** (decisión de producto): se
 guarda el valor vigente.
 
-- **Tabla** `dominio.proveedores_condiciones_compra` (`20270511000000_proveedores_condiciones_compra.sql`): una fila por proveedor (clave
+- **Tabla** `dominio.proveedores_condiciones_compra` (`20270512000000_proveedores_condiciones_compra.sql`): una fila por proveedor (clave
   `proveedor_id`, FK compuesta con la organización). RLS por organización y `nivel_seccion('proveedores')` (lectura o edición leen);
   escritura solo por RPC; sin `DELETE` directo; `anon` sin acceso. No se agregan columnas a `dominio.proveedores`: no se tocan sus
   lecturas, exportaciones ni grants por columna.
@@ -254,7 +254,7 @@ decisiones que el análisis dejaba abiertas (detalle en `.specify/bugs/msf-530/f
 3. **Sin rediseño del prototipo**: el selector «Proveedor» y el código del formulario siguen siendo el principal; el resto se administra en
    la sección **Proveedores del producto** de la edición (`ProveedoresDelProducto.tsx`), fuera de la matriz del prototipo.
 
-- **Tabla** `dominio.productos_proveedores` (`20270511000100_productos_proveedores.sql`): `producto_id`, `proveedor_id`, `codigo_proveedor`,
+- **Tabla** `dominio.productos_proveedores` (`20270512000100_productos_proveedores.sql`): `producto_id`, `proveedor_id`, `codigo_proveedor`,
   `costo`, `principal`; único por producto y proveedor; FK compuestas por organización. RLS por organización y sección `productos`;
   `authenticated` **no** lee la columna `costo` (se lee solo por `listar_proveedores_de_producto`, que la entrega a quien ve Rentabilidad);
   escritura solo por RPC. Rellena desde `productos.proveedor_id` (el proveedor existente queda principal, con su costo actual).
@@ -274,7 +274,7 @@ decisiones que el análisis dejaba abiertas (detalle en `.specify/bugs/msf-530/f
   `quitar_proveedor_producto`, `marcar_proveedor_principal`. Exigen edición en Productos (el costo, edición en Rentabilidad). Un proveedor
   desactivado no se asigna nuevo ni se marca principal. `productos_de_proveedor` lista ahora todos los productos donde el proveedor figura
   (principal o no) con el costo del vínculo y pasó a `security definer` (valida permisos y organización adentro).
-- Las dos tablas entran a la exportación total (`20270511000600_exportacion_total_lote93.sql`).
+- Las dos tablas entran a la exportación total (`20270512000600_exportacion_total_lote93.sql`).
 - Reversión: ver el comentario de la migración (no se borran las columnas viejas).
 
 ## Actividad

@@ -5,7 +5,7 @@ sources:
   - infra/superset/dashboards/consultas-reportes
   - infra/superset/dashboards/ventas-periodo-canal
   - infra/superset/dashboards/ventas-reportes
-  - supabase/migrations/20270511000500_ventas_por_lista_precios.sql
+  - supabase/migrations/20270512000500_ventas_por_lista_precios.sql
   - apps/web/src/pages/ventas-reportes/VentasPorLista.tsx
 ---
 
@@ -107,7 +107,7 @@ Muestra comprobantes, unidades y facturado con IVA: **nunca costo ni margen** (d
 ## Pestaña «Ventas por lista de precios» (MSF-975, lote 93)
 
 Sexta pestaña de Reportes de ventas. **No usa Superset**: es una tabla que lee `public.ventas_por_lista_precios(desde, hasta, empresa)`
-(`20270511000500_ventas_por_lista_precios.sql`), con el mismo criterio de venta que las demás (facturas suman, notas de crédito restan,
+(`20270512000500_ventas_por_lista_precios.sql`), con el mismo criterio de venta que las demás (facturas suman, notas de crédito restan,
 por tienda según el nivel de Ventas de cada una). Por lista: comprobantes, unidades, ventas netas sin IVA y el ajuste otorgado estimado frente
 al precio central (con el porcentaje que tenía la lista al vender); las líneas sin lista van en una fila «Sin lista». Sigue a la empresa
 activa y al período. **El margen por lista queda fuera**: la línea de venta no guarda el costo ni la cotización de ese momento. Detalle en

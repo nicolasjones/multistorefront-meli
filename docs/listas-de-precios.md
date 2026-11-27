@@ -12,10 +12,10 @@ sources:
   - supabase/migrations/20270348000200_ventas_usan_lista_precios.sql
   - supabase/migrations/20270348000300_tienda_precios_lista_cliente.sql
   - supabase/migrations/20270507110000_lista_pedido_precio_de_la_lista_del_cliente.sql
-  - supabase/migrations/20270511000200_listas_precios_asignacion_masiva.sql
-  - supabase/migrations/20270511000300_listas_precios_por_tipo_cliente.sql
-  - supabase/migrations/20270511000400_listas_de_clientes_para_exportar.sql
-  - supabase/migrations/20270511000500_ventas_por_lista_precios.sql
+  - supabase/migrations/20270512000200_listas_precios_asignacion_masiva.sql
+  - supabase/migrations/20270512000300_listas_precios_por_tipo_cliente.sql
+  - supabase/migrations/20270512000400_listas_de_clientes_para_exportar.sql
+  - supabase/migrations/20270512000500_ventas_por_lista_precios.sql
   - apps/web/src/components/clientes/DialogoAsignarListaMasiva.tsx
   - apps/web/src/components/listasPrecios/ListasPorTipoCliente.tsx
   - apps/web/src/pages/ventas-reportes/VentasPorLista.tsx
@@ -78,12 +78,12 @@ La bandera vive en `public.banderas_plataforma` y **nace apagada en todo entorno
 Cuatro de los seguimientos de la Fase 5 se entregaron sin tocar la precedencia de las escalas (D5 y D8). **Todo sigue detrás de la bandera
 `listas_precios`**: apagada, asignar (en masa o por tipo) responde `55000` y el motor ignora las listas; quitar sigue permitido.
 
-- **Asignación masiva (MSF-973)** · `20270511000200_listas_precios_asignacion_masiva.sql`. RPC `asignar_lista_precios_masiva`: por
+- **Asignación masiva (MSF-973)** · `20270512000200_listas_precios_asignacion_masiva.sql`. RPC `asignar_lista_precios_masiva`: por
   **selección** (los marcados del listado de Clientes) o por **filtro** (texto, tipo, tienda y cuenta web: los mismos criterios del listado
   y del correo masivo, solo activos). Solo Administrador. Selección y filtros son excluyentes: combinarlos se rechaza. Tope de 5000 clientes por llamada, en las dos formas. Devuelve asignados, sin cambios y omitidos
   (archivados, Consumidor final o inexistentes: no abortan el lote). Un solo evento de Actividad por llamada
   (`cliente.lista_precio_asignada_masiva`). En la pantalla: botón «Asignar lista de precios» del listado de Clientes (solo Administrador).
-- **Lista por tipo de cliente (MSF-976)** · `20270511000300_listas_precios_por_tipo_cliente.sql`. Tabla
+- **Lista por tipo de cliente (MSF-976)** · `20270512000300_listas_precios_por_tipo_cliente.sql`. Tabla
   `dominio.listas_precios_tipo_cliente` (una lista por tipo, minorista o mayorista, y organización) y RPC
   `asignar_lista_precios_tipo_cliente`. **Precedencia: la lista propia del cliente gana; si no tiene, rige la de su tipo.** Es el mismo
   punto único del motor (`private.lista_precios_cliente`), así que precios, ventas, tienda y el snapshot por línea siguen igual. El
@@ -91,15 +91,15 @@ Cuatro de los seguimientos de la Fase 5 se entregaron sin tocar la precedencia d
   (`private.cantidad_clientes_lista`); una lista asignada a un tipo sin clientes de ese tipo sí se puede archivar: el motor la ignora y la pantalla la muestra como archivada para elegir otra o quitarla. Pantalla: sección «Lista por tipo de cliente» en Productos → Listas de precios.
   **Por tienda queda fuera**: la lista es de toda la organización y el precio ya se ajusta por tienda con las escalas y el ajuste de la
   empresa; sumar listas por tienda necesita una spec que defina cómo convive con ese ajuste.
-- **Lista del cliente en la planilla (MSF-974)** · `20270511000400_listas_de_clientes_para_exportar.sql`. La **exportación** de clientes suma
+- **Lista del cliente en la planilla (MSF-974)** · `20270512000400_listas_de_clientes_para_exportar.sql`. La **exportación** de clientes suma
   la columna «Lista de precios» (la propia o, con la marca «por tipo de cliente», la heredada). La función `listas_de_clientes_para_exportar`
   se llama por cada tanda de la exportación y exige la misma acción `exportar` de Clientes; `exportar_clientes` (topes y auditoría) no se
   toca. La **importación no lee la columna**: asignar una lista es de Administrador y se hace desde la ficha, en masa o por tipo.
-- **Analítica de ventas por lista (MSF-975)** · `20270511000500_ventas_por_lista_precios.sql`. RPC `ventas_por_lista_precios(desde, hasta,
+- **Analítica de ventas por lista (MSF-975)** · `20270512000500_ventas_por_lista_precios.sql`. RPC `ventas_por_lista_precios(desde, hasta,
   empresa)`: por lista, comprobantes, unidades, ventas netas sin IVA y ajuste otorgado estimado (facturas suman, notas de crédito restan;
   una fila «Sin lista» para comparar). Pantalla: pestaña «Ventas por lista de precios» de Reportes de ventas, sin tablero de Superset.
   **El margen por lista queda fuera**: la línea no guarda el costo ni la cotización de cuando se vendió.
-- **Exportación total**: la tabla nueva entra a `private.conjuntos_exportacion_total()` (`20270511000600_exportacion_total_lote93.sql`).
+- **Exportación total**: la tabla nueva entra a `private.conjuntos_exportacion_total()` (`20270512000600_exportacion_total_lote93.sql`).
 - **Encendido de la bandera (MSF-977)**: es decisión de Nicolás y no se tocó. El procedimiento completo (orden dev, stg, prd, chequeo
   previo, aviso al equipo de ventas y verificación del recorrido) es el de la sección «Bandera `listas_precios` y cómo se enciende» de esta
   guía y de `docs/deployment.md`; con estas funciones, el recorrido a verificar en dev suma: asignar una lista a un tipo de cliente,
@@ -110,8 +110,8 @@ Cuatro de los seguimientos de la Fase 5 se entregaron sin tocar la precedencia d
 | Ticket | Qué queda |
 |---|---|
 | MSF-969 | **Resuelto** (migración `20270507110000_lista_pedido_precio_de_la_lista_del_cliente.sql`): la lista de pedido de la tienda («Enviar consulta») y el `precio_referencia` que guarda cada consulta usan la lista del cliente con sesión, igual que «Tu precio» (gana el más bajo contra la promoción; sin el descuento de la ficha). Las consultas ya enviadas no se recalculan. |
-| MSF-973 | **Resuelto** (Fase 6, `20270511000200`): asignación masiva por selección o filtro. |
-| MSF-974 | **Resuelto en la exportación** (Fase 6, `20270511000400`); la importación no lee la columna a propósito. |
-| MSF-975 | **Resuelto sin margen** (Fase 6, `20270511000500`): ventas y ajuste por lista; el margen exige un snapshot de costo en la línea. |
-| MSF-976 | **Resuelto por tipo de cliente** (Fase 6, `20270511000300`); por tienda queda fuera (ver arriba). |
+| MSF-973 | **Resuelto** (Fase 6, `20270512000200`): asignación masiva por selección o filtro. |
+| MSF-974 | **Resuelto en la exportación** (Fase 6, `20270512000400`); la importación no lee la columna a propósito. |
+| MSF-975 | **Resuelto sin margen** (Fase 6, `20270512000500`): ventas y ajuste por lista; el margen exige un snapshot de costo en la línea. |
+| MSF-976 | **Resuelto por tipo de cliente** (Fase 6, `20270512000300`); por tienda queda fuera (ver arriba). |
 | MSF-977 | Encendido de la bandera en dev y verificación del recorrido (decisión de Nicolás): procedimiento documentado, **sin encender**. |

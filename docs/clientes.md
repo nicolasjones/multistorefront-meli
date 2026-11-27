@@ -12,8 +12,8 @@ sources:
   - apps/web/src/pages/clientes/create.tsx
   - apps/web/src/components/clientes/DialogoAsignarListaMasiva.tsx
   - apps/web/src/lib/exportarClientes.ts
-  - supabase/migrations/20270511000200_listas_precios_asignacion_masiva.sql
-  - supabase/migrations/20270511000400_listas_de_clientes_para_exportar.sql
+  - supabase/migrations/20270512000200_listas_precios_asignacion_masiva.sql
+  - supabase/migrations/20270512000400_listas_de_clientes_para_exportar.sql
   - apps/web/src/pages/clientes/edit.tsx
   - apps/web/src/pages/migracion/entidades/clientes.ts
   - apps/web/src/components/clientes/ImportarClientes.tsx
