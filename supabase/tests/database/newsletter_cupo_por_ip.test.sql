@@ -69,7 +69,7 @@ select is(
   (select bool_or(has_function_privilege(r, f, 'execute'))
      from unnest(array['anon', 'authenticated', 'public']) r,
           unnest(array['private.consumir_cupo_ip(text,text,integer)', 'private.consumir_cupo_newsletter(uuid)', 'public.consumir_cupo_baja_correo(text)',
-                        'private.ip_cliente_publica()', 'private.red_de_ip(text)']) f),
+                        'private.ip_cliente_publica()', 'private.red_de_ip(text)', 'private.visitante_de_ip(text)', 'private.inet_de_ip(text)', 'private.ip_de_cadena(text,integer)']) f),
   false, 'anon, authenticated y public no ejecutan ninguna función del cupo');
 select is(has_function_privilege('service_role', 'public.consumir_cupo_baja_correo(text)', 'execute'), true, 'service_role ejecuta el cupo de la baja');
 select is(has_function_privilege('service_role', 'private.consumir_cupo_ip(text,text,integer)', 'execute'), false, 'service_role no ejecuta la función interna');
@@ -80,17 +80,56 @@ select is(private.limite_newsletter_visitante_hora(), 5, 'tope por visitante: 5 
 select is(private.limite_newsletter_red_hora(), 30, 'tope por red: 30 por hora');
 select is(private.limite_baja_correo_hora(), 60, 'tope de la baja: 60 por hora');
 
--- ===== Red de una IP =====
-select is(private.red_de_ip('10.1.2.3'), '10.1.2', 'IPv4: se descarta el último octeto (/24)');
-select is(private.red_de_ip('10.1.2.255'), '10.1.2', 'IPv4: el borde alto del último octeto');
-select is(private.red_de_ip('2001:db8:1:2:3:4:5:6'), '2001:db8:1:2', 'IPv6: los primeros cuatro grupos');
-select is(private.red_de_ip('2001:db8::1'), '2001:db8::1', 'IPv6 comprimida: los primeros cuatro campos del texto (incluye el vacío del ::)');
+-- ===== Red de una IP (canónica con inet) =====
+select is(private.red_de_ip('10.1.2.3'), '10.1.2.0', 'IPv4: la red /24');
+select is(private.red_de_ip('10.1.2.255'), '10.1.2.0', 'IPv4: el borde alto del último octeto');
+select is(private.red_de_ip('10.1.3.0'), '10.1.3.0', 'IPv4: otro /24 es otra red');
+select is(private.red_de_ip('2001:db8:1:2:3:4:5:6'), '2001:db8:1::', 'IPv6: la red /48');
+select is(private.red_de_ip('2001:db8:1:ffff::9'), '2001:db8:1::', 'IPv6: otro /64 del mismo /48 es la misma red');
+select is(private.red_de_ip('2001:db8:2::1'), '2001:db8:2::', 'IPv6: otro /48 es otra red');
+select is(private.red_de_ip('2001:db8::1'), '2001:db8::', 'IPv6 comprimida');
+select is(private.red_de_ip('2001:0db8:0000:0000:0000:0000:0000:0001'), private.red_de_ip('2001:db8::1'), 'IPv6 expandida y comprimida: la misma red');
+select is(private.red_de_ip('2001:DB8::1'), private.red_de_ip('2001:db8::1'), 'IPv6 en mayúsculas: la misma red');
+select is(private.red_de_ip('[2001:db8::1]:8080'), private.red_de_ip('2001:db8::1'), 'IPv6 entre corchetes y con puerto: la misma red');
+select is(private.red_de_ip('[2001:db8::1]'), private.red_de_ip('2001:db8::1'), 'IPv6 entre corchetes sin puerto');
+select is(private.red_de_ip('10.1.2.3:8080'), '10.1.2.0', 'IPv4 con puerto');
+select is(private.red_de_ip('::ffff:10.1.2.3'), '10.1.2.0', 'IPv4 mapeada en IPv6 cuenta como IPv4');
+select is(private.red_de_ip('::FFFF:0a01:0203'), '10.1.2.0', 'IPv4 mapeada en forma hexadecimal y mayúsculas');
 select is(private.red_de_ip('sin-ip'), 'sin-ip', 'sin IP: se devuelve igual');
-select is(private.red_de_ip('1.2.3'), '1.2.3', 'un texto que no es IPv4 completa se devuelve igual');
+select is(private.red_de_ip('1.2.3'), '1.2.3', 'un texto que no es IP se devuelve igual');
+select is(private.red_de_ip('10.1.2.0/24'), '10.1.2.0/24', 'una dirección con máscara no es la de un cliente: se devuelve igual');
+select is(private.red_de_ip(null), null, 'nulo');
 
--- ===== IP del cliente =====
+-- ===== Visitante canónico (IPv4 exacta o /64 en IPv6) =====
+select is(private.visitante_de_ip('10.1.2.3'), '10.1.2.3', 'IPv4 exacta');
+select is(private.visitante_de_ip('10.1.2.3:99'), '10.1.2.3', 'IPv4 con puerto');
+select is(private.visitante_de_ip('::ffff:10.1.2.3'), '10.1.2.3', 'IPv4 mapeada');
+select is(private.visitante_de_ip('2001:db8:1:2:aaaa::1'), '2001:db8:1:2::', 'IPv6: el /64');
+select is(private.visitante_de_ip('2001:DB8:1:2:bbbb::7'), private.visitante_de_ip('2001:db8:1:2:aaaa::1'), 'rotar la dirección dentro de un /64 no abre un visitante nuevo');
+select isnt(private.visitante_de_ip('2001:db8:1:3::1'), private.visitante_de_ip('2001:db8:1:2::1'), 'otro /64 es otro visitante');
+select is(private.visitante_de_ip('sin-ip'), 'sin-ip', 'sin-ip se devuelve igual');
+
+-- ===== IP de una cadena x-forwarded-for y saltos de proxy (tabla) =====
+select is(private.ip_de_cadena('1.1.1.1, 2.2.2.2, 3.3.3.3', 0), '3.3.3.3', 'saltos 0: el último');
+select is(private.ip_de_cadena('1.1.1.1, 2.2.2.2, 3.3.3.3', 1), '2.2.2.2', 'saltos 1: el anterior al último');
+select is(private.ip_de_cadena('1.1.1.1, 2.2.2.2, 3.3.3.3', 2), '1.1.1.1', 'saltos 2 (cadena de 3: justo)');
+select is(private.ip_de_cadena('1.1.1.1, 2.2.2.2, 3.3.3.3', 3), 'sin-ip', 'saltos 3 (cadena más corta que saltos + 1): sin-ip, no el primer valor');
+select is(private.ip_de_cadena('6.6.6.6', 1), 'sin-ip', 'una cadena corta no toma el valor que pudo escribir el cliente');
+select is(private.ip_de_cadena('6.6.6.6', 0), '6.6.6.6', 'cadena de uno con saltos 0');
+select is(private.ip_de_cadena('', 0), 'sin-ip', 'vacía');
+select is(private.ip_de_cadena(null, 0), 'sin-ip', 'nula');
+select is(private.ip_de_cadena(' , ,', 0), 'sin-ip', 'solo separadores');
+select is(private.ip_de_cadena('1.1.1.1, ', 0), '1.1.1.1', 'los valores vacíos se descartan');
+select is(private.ip_de_cadena('1.1.1.1, 2.2.2.2', -4), '2.2.2.2', 'saltos negativos valen 0');
+select is(private.ip_de_cadena('1.1.1.1, 2.2.2.2', null), '2.2.2.2', 'saltos nulos valen 0');
+select is(char_length(private.ip_de_cadena(repeat('9', 100), 0)), 64, 'se acota a 64 caracteres (100 -> 64)');
+select is(char_length(private.ip_de_cadena(repeat('9', 64), 0)), 64, 'el borde de 64 entra entero');
+
+-- ===== IP del cliente (cabecera de la petición) =====
 select set_config('request.headers', '{"x-forwarded-for":"9.9.9.9, 10.2.3.4"}', true);
 select is(private.ip_cliente_publica(), '10.2.3.4', 'con la cadena de proxies se toma el último valor (saltos de confianza = 0)');
+select set_config('request.headers', '{"x-forwarded-for":"10.2.3.4"}', true);
+select is(private.ip_cliente_publica(), '10.2.3.4', 'una cadena de un valor con saltos 0');
 select set_config('request.headers', '{}', true);
 select is(private.ip_cliente_publica(), 'sin-ip', 'sin cabecera: sin-ip');
 select set_config('request.headers', '', true);
@@ -178,11 +217,33 @@ select is((select count(*)::int from dominio.tienda_envios where clave_envio = '
 select is((select count(*)::int from dominio.tienda_envios where clave_envio = '00000000-0000-0000-0000-000000000330'), 1,
   'la alta 30 (la última que pasó) sí conserva su registro');
 select is((select count(*)::int from dominio.newsletter_suscriptores where correo = 'red31@ejemplo.com'), 0, 'la alta rechazada por la red no se guarda');
+select is((select (j ->> 'espera_segundos')::int between 1 and 3600 from res where clave = 'r_31'), true, 'el rechazo por la red trae la espera en segundos (1 a 3600)');
+select is((select (j ->> 'espera_segundos')::int from res where clave = 'r_31'),
+  (ceil(extract(epoch from ((date_trunc('hour', now() at time zone 'UTC') at time zone 'UTC') + interval '1 hour' - now())))::int), 'y es lo que falta para la próxima hora en punto UTC');
+-- No enumera con la red agotada: una dirección ya suscripta y una nueva, desde una IP NUEVA de la misma red, reciben lo mismo.
+set local role anon;
+insert into res values
+  ('red_existente', pg_temp.suscribir_desde('nl-cupo-a.ejemplo.com', '10.9.1.99', 'red1@ejemplo.com', '00000000-0000-0000-0000-000000000701')),
+  ('red_nueva', pg_temp.suscribir_desde('nl-cupo-a.ejemplo.com', '10.9.1.99', 'jamas.vista@ejemplo.com', '00000000-0000-0000-0000-000000000702'));
+reset role;
+select is((select count(distinct j)::int from res where clave in ('red_existente', 'red_nueva')), 1, 'con la red agotada, una dirección existente y una nueva reciben la misma respuesta');
+select is((select j ->> 'resultado' from res where clave = 'red_nueva'), 'limite', 'y es limite (el cupo de red no mira la dirección)');
 select set_config('request.headers', '{"x-forwarded-for":"10.9.2.1"}', true);
 set local role anon;
 insert into res values ('otra_red', publico.suscribirse_newsletter('nl-cupo-a.ejemplo.com', 'otra.red@ejemplo.com', true, '00000000-0000-0000-0000-000000000401', ''));
 reset role;
 select is((select j ->> 'resultado' from res where clave = 'otra_red'), 'ok', 'otra red /24 no se ve afectada');
+
+-- Un /64 de IPv6 es un solo visitante: rotar direcciones dentro de él no abre cupo nuevo; otro /64 sí.
+select set_config('request.headers', '{"x-forwarded-for":"2001:db8:aa:bb::1"}', true);
+select is(pg_temp.consumir_nl_n('e9500000-0000-0000-0000-000000000001', 5), 5, 'los primeros 5 de un /64 pasan');
+select set_config('request.headers', '{"x-forwarded-for":"[2001:DB8:AA:BB:ffff::9]:443"}', true);
+select is(pg_temp.consumir_nl_n('e9500000-0000-0000-0000-000000000001', 1), 0, 'otra dirección del mismo /64 (con mayúsculas, corchetes y puerto) no abre un cupo nuevo');
+select set_config('request.headers', '{"x-forwarded-for":"2001:db8:aa:cc::1"}', true);
+select is(pg_temp.consumir_nl_n('e9500000-0000-0000-0000-000000000001', 1), 1, 'otro /64 sí tiene su cupo');
+-- Una IPv4 mapeada en IPv6 comparte el contador de la IPv4 (baja de correo, ya agotado arriba para 203.0.113.7).
+select is(pg_temp.consumir_baja_n('::ffff:203.0.113.7', 1), 0, 'la IPv4 mapeada en IPv6 es el mismo visitante de la baja');
+select is(pg_temp.consumir_baja_n('[::ffff:203.0.113.7]:5555', 1), 0, 'y también con corchetes y puerto');
 
 -- Cupo propio por visitante, directo: 5 por hora y tienda (límite - 1, límite y límite + 1).
 select set_config('request.headers', '{"x-forwarded-for":"10.9.4.1"}', true);
@@ -191,7 +252,7 @@ select is(pg_temp.consumir_nl_n('e9500000-0000-0000-0000-000000000001', 5), 5,
 select results_eq($$ select se_consumio, segundos_hasta_reinicio between 1 and 3600 from private.consumir_cupo_newsletter('e9500000-0000-0000-0000-000000000001') $$,
   $$ values (false, true) $$, 'el sexto del mismo visitante se rechaza con la espera');
 select is((select usos from private.cupo_publico_ip where ambito = 'newsletter-red'
-            and clave = private.hmac_visitante('newsletter-red|e9500000-0000-0000-0000-000000000001|10.9.4')), 5,
+            and clave = private.hmac_visitante('newsletter-red|e9500000-0000-0000-0000-000000000001|10.9.4.0')), 5,
   'el visitante agotado no gastó el cupo de su red con el intento rechazado');
 select set_config('request.headers', '{"x-forwarded-for":"10.9.0.1"}', true);
 
@@ -209,10 +270,11 @@ select is((select count(*)::int from private.cupo_publico_ip where ambito like '
 select is((select count(*)::int from private.cupo_publico_ip where ambito = 'newsletter-visitante'
             and clave = private.hmac_visitante('newsletter-visitante|e9500000-0000-0000-0000-000000000001|10.9.0.1')), 1, 'la clave del visitante es el HMAC de ámbito, tienda e IP');
 select is((select count(*)::int from private.cupo_publico_ip where ambito = 'newsletter-red'
-            and clave = private.hmac_visitante('newsletter-red|e9500000-0000-0000-0000-000000000001|10.9.1')), 1, 'la clave de la red es el HMAC de ámbito, tienda y prefijo');
+            and clave = private.hmac_visitante('newsletter-red|e9500000-0000-0000-0000-000000000001|10.9.1.0')), 1, 'la clave de la red es el HMAC de ámbito, tienda y prefijo');
 
 -- ===== Falla cerrada: sin el secreto de Vault no se cuenta ni se acepta nada =====
 delete from vault.secrets where name = 'visitante_hmac';
+select throws_ok($$ select * from private.consumir_cupo_newsletter('e9500000-0000-0000-0000-000000000001') $$, 'P0001', 'falta el secreto visitante_hmac en Vault', 'el cupo del newsletter sin secreto falla (no cuenta con la IP en claro)');
 select throws_ok($$ select * from public.consumir_cupo_baja_correo('198.51.100.1') $$, 'P0001', 'falta el secreto visitante_hmac en Vault', 'la baja sin secreto falla (no se cuenta con la IP en claro)');
 select set_config('request.headers', '{"x-forwarded-for":"10.9.3.1"}', true);
 set local role anon;

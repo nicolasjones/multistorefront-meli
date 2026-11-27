@@ -24,7 +24,7 @@ const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-
 const preflightHeaders = { ...corsHeaders, 'Access-Control-Max-Age': '86400' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
-import { ipDelCliente } from '../_shared/ip-cliente.ts'
+import { cadenaProxy, ipDelCliente, SIN_IP } from '../_shared/ip-cliente.ts'
 import { registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 import { TEXTO_CUPO_NO_VERIFICABLE, type RechazoCupo } from './cupo.ts'
 
@@ -53,8 +53,15 @@ export async function manejar(req: Request, { admin, cupo, saltosProxy }: Deps):
   if (req.method === 'OPTIONS') return new Response('ok', { headers: preflightHeaders })
   if (req.method !== 'POST') return response({ error: 'Método no soportado.' }, 405)
 
+  // Si la cadena no tiene la longitud esperada, el pedido cae en el cupo compartido `sin-ip` (cadena corta) o usa la IP de un proxy (cadena larga): en ambos
+  // casos todos los clientes detrás comparten 60 bajas por hora. Se avisa, sin IP, para fijar BAJA_PROXY_SALTOS (docs/newsletter.md, paso de despliegue).
+  const largoCadena = cadenaProxy(req.headers).length
+  const ip = ipDelCliente(req.headers, saltosProxy)
+  if (ip === SIN_IP || largoCadena !== saltosProxy + 1) {
+    console.warn(`baja-correo-masivo: x-forwarded-for trae ${largoCadena} valores y se esperaban ${saltosProxy + 1}; ${ip === SIN_IP ? 'las bajas comparten el cupo sin-ip' : 'la IP resuelta puede ser la de un proxy y compartir cupo'}: revisá BAJA_PROXY_SALTOS`)
+  }
   // Defensa en profundidad: `cupo` ya no lanza, pero si lo hiciera tampoco se deja pasar sin contar (falla cerrado).
-  const rechazo = await cupo(ipDelCliente(req.headers, saltosProxy)).catch((): RechazoCupo => ({ status: 503, error: TEXTO_CUPO_NO_VERIFICABLE }))
+  const rechazo = await cupo(ip).catch((): RechazoCupo => ({ status: 503, error: TEXTO_CUPO_NO_VERIFICABLE }))
   if (rechazo) {
     return new Response(JSON.stringify({ error: rechazo.error }), {
       status: rechazo.status,

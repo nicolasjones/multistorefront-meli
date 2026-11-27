@@ -21,7 +21,8 @@
 --   6. `private.armar_bloques_newsletter` completa `imagen_url` con esa función (antes siempre nulo) y `private.cuerpo_html_newsletter` dibuja la imagen
 --      (`<img>` con `alt` = nombre del producto, ancho fijo, solo si la URL es `https`). Mismo cuerpo que 20270420000300 en todo lo demás.
 --   7. `private.purgar_imagenes_newsletter(dias)`: borra los registros de más de N días y devuelve sus rutas, para quitar los archivos con la API de Storage
---      (borrar filas de `storage.objects` con SQL deja los archivos huérfanos en el almacenamiento). No está agendada; ver docs/newsletter.md.
+--      (borrar filas de `storage.objects` con SQL está prohibido y deja los archivos huérfanos). `public.purgar_imagenes_newsletter` es su envoltorio
+--      para `service_role`. No está agendada; el flow o script de limpieza y el borrado con la API de Storage están en docs/newsletter.md.
 --
 -- Límite honesto: el bucket es público, así que quien conozca la ruta (tres uuid) baja una miniatura de 600 px de un producto que ya es público en la tienda.
 -- Solo se copian productos que están en el newsletter (destacados y promociones vigentes de la tienda). Una copia no se retira sola al ocultar un producto.
@@ -31,7 +32,7 @@
 --
 -- Aditiva e idempotente. Reversión (migración posterior; pasos reales y en orden):
 --   1. restaurar los cuerpos de `private.armar_bloques_newsletter` y `private.cuerpo_html_newsletter` de 20270420000300;
---   2. drop function if exists public.registrar_imagen_newsletter(uuid, uuid, uuid, text), public.productos_para_imagenes_newsletter(uuid, boolean, boolean),
+--   2. drop function if exists public.purgar_imagenes_newsletter(integer), public.registrar_imagen_newsletter(uuid, uuid, uuid, text), public.productos_para_imagenes_newsletter(uuid, boolean, boolean),
 --      private.purgar_imagenes_newsletter(integer), private.url_imagen_newsletter(uuid, uuid), private.imagen_html_newsletter(jsonb);
 --   3. drop table if exists private.newsletter_imagenes;
 --   4. vaciar el bucket con la API de Storage y luego: drop policy newsletter_imagenes_objetos_select/insert/update/delete on storage.objects;
@@ -40,7 +41,8 @@
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('newsletter-imagenes', 'newsletter-imagenes', true, 262144, array['image/webp'])
-on conflict (id) do nothing;
+on conflict (id) do update
+  set public = excluded.public, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists newsletter_imagenes_objetos_select on storage.objects;
 drop policy if exists newsletter_imagenes_objetos_insert on storage.objects;
@@ -77,25 +79,43 @@ create policy newsletter_imagenes_objetos_update on storage.objects
   for update to authenticated
   using (
     bucket_id = 'newsletter-imagenes'
-    and (storage.foldername(name))[1] = (select private.organizacion_id())::text
-    and (select private.nivel_seccion('clientes')) = 'edicion'
-    and (select private.es_administrador_propio_de((select private.organizacion_id())))
-  )
-  with check (
-    bucket_id = 'newsletter-imagenes'
     and array_length(storage.foldername(name), 1) = 2
     and (storage.foldername(name))[1] = (select private.organizacion_id())::text
     and (select private.nivel_seccion('clientes')) = 'edicion'
     and (select private.es_administrador_propio_de((select private.organizacion_id())))
+    and exists (
+      select 1 from dominio.empresas e
+       where e.id::text = (storage.foldername(name))[2]
+         and e.organizacion_id = (select private.organizacion_id())
+         and e.id in (select private.empresas_accesibles()))
+  )
+  with check (
+    bucket_id = 'newsletter-imagenes'
+    and array_length(storage.foldername(name), 1) = 2
+    and name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp$'
+    and (storage.foldername(name))[1] = (select private.organizacion_id())::text
+    and (select private.nivel_seccion('clientes')) = 'edicion'
+    and (select private.es_administrador_propio_de((select private.organizacion_id())))
+    and exists (
+      select 1 from dominio.empresas e
+       where e.id::text = (storage.foldername(name))[2]
+         and e.organizacion_id = (select private.organizacion_id())
+         and e.id in (select private.empresas_accesibles()))
   );
 
 create policy newsletter_imagenes_objetos_delete on storage.objects
   for delete to authenticated
   using (
     bucket_id = 'newsletter-imagenes'
+    and array_length(storage.foldername(name), 1) = 2
     and (storage.foldername(name))[1] = (select private.organizacion_id())::text
     and (select private.nivel_seccion('clientes')) = 'edicion'
     and (select private.es_administrador_propio_de((select private.organizacion_id())))
+    and exists (
+      select 1 from dominio.empresas e
+       where e.id::text = (storage.foldername(name))[2]
+         and e.organizacion_id = (select private.organizacion_id())
+         and e.id in (select private.empresas_accesibles()))
   );
 
 create table if not exists private.newsletter_imagenes (
@@ -140,7 +160,7 @@ as $$
   select n.url
     from private.newsletter_imagenes n
    where n.empresa_id = p_empresa and n.producto_id = p_producto
-     and n.imagen_id = (select i.id from dominio.producto_imagenes i where i.producto_id = p_producto order by i.posicion limit 1)
+     and n.imagen_id = (select i.id from dominio.producto_imagenes i where i.producto_id = p_producto order by i.posicion, i.id limit 1)
      and exists (select 1 from storage.objects o where o.bucket_id = 'newsletter-imagenes' and o.name = n.ruta);
 $$;
 
@@ -194,7 +214,7 @@ begin
       cross join lateral (
         select pi.id, pi.ruta from dominio.producto_imagenes pi
          where pi.producto_id = x.producto_id and pi.organizacion_id = v_org
-         order by pi.posicion limit 1
+         order by pi.posicion, pi.id limit 1
       ) i
   ), '[]'::jsonb);
 end;
@@ -216,6 +236,9 @@ as $$
 declare
   v_org uuid := private.exigir_admin_newsletter(p_empresa);
   v_ruta text;
+  v_cabeceras jsonb := coalesce(nullif(current_setting('request.headers', true), ''), '{}')::jsonb;
+  v_host_api text;
+  v_host_url text;
 begin
   if p_empresa is null or p_producto is null or p_imagen is null then
     raise exception 'Faltan datos de la imagen' using errcode = '22023';
@@ -223,17 +246,31 @@ begin
   if not exists (select 1 from dominio.productos p where p.id = p_producto and p.organizacion_id = v_org) then
     raise exception 'El producto no existe' using errcode = 'P0002';
   end if;
+  -- Solo un producto publicado en ESTA tienda (visible, activo y efectivo): no se copian imágenes de lo que la tienda no muestra.
+  if not exists (select 1 from private.catalogo_tienda_efectivo(p_empresa) g where g.producto_id = p_producto and g.efectivo) then
+    raise exception 'El producto no está publicado en la tienda' using errcode = '22023', hint = 'producto';
+  end if;
   -- Solo la imagen principal actual: una copia de otra (o ya quitada) no sirve.
-  if p_imagen is distinct from (select i.id from dominio.producto_imagenes i where i.producto_id = p_producto and i.organizacion_id = v_org order by i.posicion limit 1) then
+  if p_imagen is distinct from (select i.id from dominio.producto_imagenes i where i.producto_id = p_producto and i.organizacion_id = v_org order by i.posicion, i.id limit 1) then
     raise exception 'La imagen ya no es la principal del producto' using errcode = '22023', hint = 'imagen';
   end if;
   v_ruta := v_org::text || '/' || p_empresa::text || '/' || p_producto::text || '.webp';
   if not exists (select 1 from storage.objects o where o.bucket_id = 'newsletter-imagenes' and o.name = v_ruta) then
     raise exception 'La copia de la imagen no está en el bucket' using errcode = '22023', hint = 'archivo';
   end if;
-  -- https y termina EXACTAMENTE en la ruta pública del bucket: no se puede registrar una dirección ajena como imagen del correo.
-  if p_url is null or char_length(p_url) > 500 or p_url !~ '^https://[^[:space:]"''<>\\?#]+$'
-     or right(p_url, char_length('/storage/v1/object/public/newsletter-imagenes/' || v_ruta)) is distinct from '/storage/v1/object/public/newsletter-imagenes/' || v_ruta then
+  -- Forma de la dirección: https, sin espacios, comillas, signos de menor o mayor, barras invertidas, consulta ni fragmento, hasta 500 caracteres.
+  if p_url is null or char_length(p_url) > 500 or p_url !~ '^https://[^[:space:]"''<>\\?#]+$' then
+    raise exception 'La dirección pública de la imagen no es válida' using errcode = '22023', hint = 'url';
+  end if;
+  -- El host de la URL es el de la API a la que llamó quien registra (cabecera `x-forwarded-host` o `host` que pone el proxy; Supabase sirve el
+  -- almacenamiento público en el mismo host que la API): no se acepta una dirección de otro dominio. Sin esa cabecera, se rechaza (falla cerrada).
+  v_host_api := lower(regexp_replace(btrim(split_part(coalesce(nullif(v_cabeceras ->> 'x-forwarded-host', ''), v_cabeceras ->> 'host', ''), ',', 1)), ':[0-9]+$', ''));
+  v_host_url := lower(substring(p_url from '^https://([^/:?#]+)'));
+  if v_host_api = '' or v_host_url is distinct from v_host_api then
+    raise exception 'La dirección pública de la imagen no es de este servidor' using errcode = '22023', hint = 'host';
+  end if;
+  -- Y termina EXACTAMENTE en la ruta pública del bucket: no se puede registrar otra ruta como imagen del correo.
+  if right(p_url, char_length('/storage/v1/object/public/newsletter-imagenes/' || v_ruta)) is distinct from '/storage/v1/object/public/newsletter-imagenes/' || v_ruta then
     raise exception 'La dirección pública de la imagen no es válida' using errcode = '22023', hint = 'url';
   end if;
 
@@ -277,6 +314,21 @@ comment on function private.purgar_imagenes_newsletter(integer) is
   'MSF-979: borra los registros de copias de imágenes del newsletter con más de p_dias días y devuelve sus rutas para quitar los archivos con la API de Storage. Sin agendar.';
 revoke all on function private.purgar_imagenes_newsletter(integer) from public, anon, authenticated;
 grant execute on function private.purgar_imagenes_newsletter(integer) to service_role;
+
+-- Envoltorio RPC de la limpieza (`private` no está expuesto en la API): lo llama el flow o el script de limpieza con la service-role, que después borra los
+-- archivos con la API de Storage (docs/newsletter.md, «Imágenes de producto en el correo»).
+create or replace function public.purgar_imagenes_newsletter(p_dias integer default 90)
+returns text[]
+language sql
+volatile
+security definer
+set search_path = ''
+as $$ select private.purgar_imagenes_newsletter(p_dias) $$;
+
+comment on function public.purgar_imagenes_newsletter(integer) is
+  'MSF-979: envoltorio RPC de private.purgar_imagenes_newsletter. Solo service_role.';
+revoke all on function public.purgar_imagenes_newsletter(integer) from public, anon, authenticated;
+grant execute on function public.purgar_imagenes_newsletter(integer) to service_role;
 
 -- Foto del contenido (MSF-979): mismo cuerpo que 20270420000300 salvo `imagen_url`, que ahora sale de la copia vigente.
 create or replace function private.armar_bloques_newsletter(p_empresa uuid, p_destacados boolean, p_promociones boolean)

@@ -4,9 +4,13 @@
 --   * MSF-971, alerta del tope global: YA existe (20270507110100, evento de Actividad `newsletter.tope_confirmaciones`, a lo sumo uno por hora y tienda).
 --   * MSF-971, cupo separado: el cupo por visitante de `registrar_envio_tienda` es COMPARTIDO con el formulario de contacto, WhatsApp, pedidos y
 --     presupuestos (5 por hora entre todos), se poda a las 24 h y no mira la red. Esta migración agrega un cupo PROPIO de la suscripción, con dos ámbitos:
---       - `newsletter-visitante`: 5 intentos por hora, por visitante (HMAC de su IP) y tienda;
---       - `newsletter-red`: 30 intentos por hora, por red (HMAC del prefijo: /24 en IPv4, primeros 4 grupos en IPv6) y tienda. Llenar el tope global de
---         200 confirmaciones ya no alcanza con unos 40 visitantes sueltos de una misma red: hacen falta redes distintas.
+--       - `newsletter-visitante`: 5 intentos por hora, por visitante (HMAC de su IP; en IPv6, de su /64) y tienda. Con el tope compartido de
+--         `registrar_envio_tienda` igual (5 por hora) ese cupo NO es alcanzable por `suscribirse_newsletter`: el compartido corta antes, porque cuenta lo mismo y
+--         más. Queda como defensa en profundidad por si alguien baja el compartido; se prueba directo sobre `private.consumir_cupo_newsletter`;
+--       - `newsletter-red`: 30 intentos por hora, por red (HMAC de la red: /24 en IPv4, /48 en IPv6, canónica con `inet`; una IPv4 mapeada en IPv6 cuenta como
+--         IPv4) y tienda. Llenar el tope global de 200 confirmaciones ya no alcanza con unos 40 visitantes sueltos de una misma red: hacen falta redes distintas.
+--       - La IP del cliente sale de `x-forwarded-for` menos los saltos de proxy de confianza; con una cadena más corta que los saltos + 1 vale `sin-ip` (cupo
+--         compartido que falla cerrado: el primer valor lo puede haber escrito el cliente y elegiría su propio cupo).
 --   * MSF-980, rate limit de `baja-correo-masivo`: la función Edge no limitaba nada. Se suma `public.consumir_cupo_baja_correo(ip)` (solo service_role),
 --     con 60 pedidos por hora y visitante (ámbito `baja-correo`). La función Edge responde 429 con `Retry-After` y, si la base no responde, 503 (falla cerrada).
 --
@@ -38,7 +42,7 @@
 --   2. drop function if exists public.consumir_cupo_baja_correo(text);
 --   3. drop function if exists private.consumir_cupo_newsletter(uuid);
 --   4. drop function if exists private.consumir_cupo_ip(text, text, integer);
---   5. drop function if exists private.red_de_ip(text);
+--   5. drop function if exists private.red_de_ip(text), private.visitante_de_ip(text), private.inet_de_ip(text), private.ip_de_cadena(text, integer);
 --   6. drop function if exists private.ip_cliente_publica();
 --   7. drop function if exists private.limite_newsletter_visitante_hora(), private.limite_newsletter_red_hora(), private.limite_baja_correo_hora();
 --   8. drop table if exists private.cupo_publico_ip;  (los contadores solo valen para la hora en curso).
@@ -78,42 +82,115 @@ create or replace function private.limite_baja_correo_hora()
 returns integer language sql immutable set search_path = '' as $$ select 60; $$;
 revoke execute on function private.limite_newsletter_visitante_hora(), private.limite_newsletter_red_hora(), private.limite_baja_correo_hora() from public, anon, authenticated;
 
--- IP del cliente según `x-forwarded-for` y los saltos de proxy de confianza (el mismo criterio que `private.visitante_hash`); sin cabecera: `sin-ip`.
+-- IP del cliente a partir de una cadena `x-forwarded-for` y los saltos de proxy de confianza: el valor que está `p_saltos` lugares antes del último. Sin valores,
+-- o con una cadena MÁS CORTA que `p_saltos + 1` (algún proxy no agregó su IP, así que el primer valor lo puede haber escrito el cliente y elegiría su propio
+-- cupo), un valor fijo: `sin-ip`, un cupo compartido que falla cerrado, igual que `consultar-estado-reparacion`. Los valores vacíos de la cadena se descartan.
+create or replace function private.ip_de_cadena(p_cadena text, p_saltos integer)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  with cadena as (
+    select array_remove(regexp_split_to_array(trim(coalesce(p_cadena, '')), '[[:space:]]*,[[:space:]]*'), '') as ips
+  )
+  select case
+           when coalesce(array_length(ips, 1), 0) < greatest(0, coalesce(p_saltos, 0)) + 1 then 'sin-ip'
+           else coalesce(nullif(left(ips[array_length(ips, 1) - greatest(0, coalesce(p_saltos, 0))], 64), ''), 'sin-ip')
+         end
+    from cadena;
+$$;
+
+comment on function private.ip_de_cadena(text, integer) is
+  'MSF-971/980: IP del cliente de una cadena x-forwarded-for: el valor que está p_saltos lugares antes del último; con una cadena más corta que p_saltos + 1 o vacía, sin-ip (cupo compartido que falla cerrado).';
+revoke execute on function private.ip_de_cadena(text, integer) from public, anon, authenticated;
+
 create or replace function private.ip_cliente_publica()
 returns text
 language sql
 stable
 set search_path = ''
 as $$
-  with cadena as (
-    select regexp_split_to_array(
-             trim(coalesce((coalesce(nullif(current_setting('request.headers', true), ''), '{}')::jsonb ->> 'x-forwarded-for'), '')),
-             '[[:space:]]*,[[:space:]]*') as ips
-  )
-  select coalesce(nullif(left(ips[greatest(1, coalesce(array_length(ips, 1), 0) - private.saltos_proxy_confiables())], 64), ''), 'sin-ip')
-    from cadena;
+  select private.ip_de_cadena(
+    coalesce(nullif(current_setting('request.headers', true), ''), '{}')::jsonb ->> 'x-forwarded-for',
+    private.saltos_proxy_confiables());
 $$;
 
 comment on function private.ip_cliente_publica() is
-  'MSF-971: IP del cliente según x-forwarded-for y private.saltos_proxy_confiables(), acotada a 64 caracteres; sin cabecera, sin-ip. Solo se usa para calcular un HMAC.';
+  'MSF-971: IP del cliente según x-forwarded-for y private.saltos_proxy_confiables() (private.ip_de_cadena); sin cabecera o con una cadena más corta que los saltos, sin-ip. Solo se usa para calcular un HMAC.';
 revoke execute on function private.ip_cliente_publica() from public, anon, authenticated;
 
--- Red de una IP: /24 en IPv4 (a.b.c), primeros 4 grupos en IPv6 (aproximación al /64 sobre el texto); cualquier otra cosa se devuelve igual.
+-- Dirección canónica con `inet` (no con texto): sin corchetes ni puerto, sin importar mayúsculas ni formas comprimidas, y una IPv4 mapeada en IPv6
+-- (::ffff:a.b.c.d) vale como la IPv4. Devuelve nulo si no es una IP (p. ej. `sin-ip`).
+create or replace function private.inet_de_ip(p_ip text)
+returns inet
+language plpgsql
+immutable
+set search_path = ''
+as $$
+declare
+  v_texto text := btrim(coalesce(p_ip, ''));
+  v_inet inet;
+  v_v4 text;
+begin
+  if v_texto ~ '^\[[^]]+\](:[0-9]{1,5})?$' then
+    v_texto := substring(v_texto from '^\[([^]]+)\]');
+  elsif v_texto ~ '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{1,5}$' then
+    v_texto := substring(v_texto from '^([0-9.]+):');
+  end if;
+  begin
+    v_inet := v_texto::inet;
+  exception when others then
+    return null;
+  end;
+  -- Una dirección con máscara (a.b.c.d/n) no es la de un cliente.
+  if v_inet is null or masklen(v_inet) <> (case family(v_inet) when 4 then 32 else 128 end) then
+    return null;
+  end if;
+  if family(v_inet) = 6 and v_inet <<= '::ffff:0:0/96'::inet then
+    v_v4 := substring(host(v_inet) from '([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)$');
+    if v_v4 is not null then
+      return v_v4::inet;
+    end if;
+  end if;
+  return v_inet;
+end;
+$$;
+
+comment on function private.inet_de_ip(text) is
+  'MSF-971/980: IP canónica (inet) de un texto: sin corchetes ni puerto, IPv4 mapeada en IPv6 como IPv4; nulo si no es una IP.';
+revoke execute on function private.inet_de_ip(text) from public, anon, authenticated;
+
+-- Visitante: la IPv4 exacta o, en IPv6, su /64 (una persona controla todo un /64: rotar direcciones dentro de él no abre cupos nuevos).
+create or replace function private.visitante_de_ip(p_ip text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select coalesce(
+    (select case family(i) when 4 then host(i) else host(network(set_masklen(i, 64))) end from (select private.inet_de_ip(p_ip) as i) x where i is not null),
+    p_ip);
+$$;
+
+comment on function private.visitante_de_ip(text) is
+  'MSF-971/980: identidad de un visitante para el cupo: IPv4 exacta o /64 en IPv6, canónica; lo que no es una IP (sin-ip) se devuelve igual.';
+revoke execute on function private.visitante_de_ip(text) from public, anon, authenticated;
+
+-- Red de una IP: /24 en IPv4 y /48 en IPv6, canónica con `inet` (host de la dirección de red); lo que no es una IP se devuelve igual.
 create or replace function private.red_de_ip(p_ip text)
 returns text
 language sql
 immutable
 set search_path = ''
 as $$
-  select case
-    when p_ip ~ '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$' then regexp_replace(p_ip, '\.[0-9]{1,3}$', '')
-    when p_ip like '%:%' then split_part(p_ip, ':', 1) || ':' || split_part(p_ip, ':', 2) || ':' || split_part(p_ip, ':', 3) || ':' || split_part(p_ip, ':', 4)
-    else p_ip
-  end;
+  select coalesce(
+    (select case family(i) when 4 then host(network(set_masklen(i, 24))) else host(network(set_masklen(i, 48))) end from (select private.inet_de_ip(p_ip) as i) x where i is not null),
+    p_ip);
 $$;
 
 comment on function private.red_de_ip(text) is
-  'MSF-971: prefijo de red de una IP (/24 en IPv4, 4 grupos en IPv6) para el cupo por red del newsletter.';
+  'MSF-971: red de una IP para el cupo por red del newsletter: /24 en IPv4, /48 en IPv6, canónica con inet (la IPv4 mapeada en IPv6 cuenta como IPv4); lo que no es una IP se devuelve igual.';
 revoke execute on function private.red_de_ip(text) from public, anon, authenticated;
 
 -- Consume UN uso de la hora actual de forma atómica (`insert ... on conflict do update ... where usos < p_limite`): dos sesiones simultáneas nunca pasan del tope.
@@ -174,7 +251,7 @@ declare
   v_uso record;
 begin
   select * into v_uso from private.consumir_cupo_ip(
-    'newsletter-visitante', private.hmac_visitante('newsletter-visitante|' || p_empresa::text || '|' || v_ip), private.limite_newsletter_visitante_hora());
+    'newsletter-visitante', private.hmac_visitante('newsletter-visitante|' || p_empresa::text || '|' || private.visitante_de_ip(v_ip)), private.limite_newsletter_visitante_hora());
   if not v_uso.se_consumio then
     return query select false, v_uso.segundos_hasta_reinicio;
     return;
@@ -198,7 +275,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_ip text := coalesce(nullif(left(btrim(coalesce(p_ip, '')), 64), ''), 'sin-ip');
+  v_ip text := private.visitante_de_ip(coalesce(nullif(left(btrim(coalesce(p_ip, '')), 64), ''), 'sin-ip'));
   v_uso record;
 begin
   select * into v_uso from private.consumir_cupo_ip(

@@ -192,6 +192,38 @@ describe('baja-correo-masivo', () => {
       assert.equal(llamadas.length, 0)
     })
 
+    it('con una cadena más corta que los saltos + 1 usa sin-ip (no el primer valor, que pudo escribir el cliente) y avisa sin la IP', async () => {
+      const avisos: string[] = []
+      const original = console.warn
+      console.warn = (...args: unknown[]) => { avisos.push(args.join(' ')) }
+      try {
+        const { deps, ips } = montar({ saltos: 1 })
+        await manejar(conIp('6.6.6.6'), deps)
+        assert.deepEqual(ips, ['sin-ip'])
+        assert.equal(avisos.length, 1)
+        assert.match(avisos[0], /trae 1 valores y se esperaban 2; las bajas comparten el cupo sin-ip: revisá BAJA_PROXY_SALTOS/)
+        assert.ok(!avisos[0].includes('6.6.6.6'), 'el aviso no lleva la IP')
+      } finally {
+        console.warn = original
+      }
+    })
+
+    it('sin cabecera avisa; con la cadena justa (saltos + 1) no avisa; con una más larga avisa que la IP puede ser la de un proxy', async () => {
+      const casos: [string | undefined, number, number][] = [[undefined, 0, 1], ['10.2.3.4', 0, 0], ['9.9.9.9, 10.2.3.4', 1, 0], ['9.9.9.9, 10.2.3.4', 0, 1]]
+      for (const [xff, saltos, esperados] of casos) {
+        const avisos: string[] = []
+        const original = console.warn
+        console.warn = (...args: unknown[]) => { avisos.push(args.join(' ')) }
+        try {
+          const { deps } = montar({ saltos })
+          await manejar(conIp(xff), deps)
+        } finally {
+          console.warn = original
+        }
+        assert.equal(avisos.length, esperados, `${xff} saltos ${saltos}`)
+      }
+    })
+
     it('OPTIONS y un método no soportado no gastan cupo', async () => {
       const { deps, ips } = montar()
       await manejar(pedido(null, 'OPTIONS'), deps)
