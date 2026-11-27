@@ -3,7 +3,7 @@
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
 - Rutas del panel: **277**
-- Tablas en migraciones: **211**
+- Tablas en migraciones: **212**
 - Variables de entorno: **112**
 - Specs: **160**
 - Páginas de documentación: **349**
@@ -393,6 +393,7 @@
 - `dominio.rentabilidad_config`
 - `dominio.reparacion_adjuntos`
 - `dominio.reparacion_avisos`
+- `dominio.reparacion_comision_historial`
 - `dominio.reparacion_comision_reparto`
 - `dominio.reparacion_enlaces_consulta`
 - `dominio.reparacion_historial`

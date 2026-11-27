@@ -55,9 +55,9 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "c0c07a69b1eaa137dd4522f18298606acb7b8746c653a2817cdccb63638c17eb",
+      "pageHash": "fdf511f58ceeef0062a5c1f7c1c3f92448dd87742cfbf7ff38ca82ab228832ae",
       "sourceHash": "9fa2136cb8cf19e95f06790dac8bf93eee87e1b7f137365c6162abf1a13cb69d",
-      "sourceAt": "961875891",
+      "sourceAt": "10f3ad9f7",
       "sources": [
         "specs/20261016-120000-actividad-y-ambientes",
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
@@ -80,7 +80,7 @@
         "supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql"
       ],
       "owner": "producto",
-      "commit": "961875891"
+      "commit": "10f3ad9f7"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -2314,9 +2314,9 @@
     },
     "docs/producto/service-comisiones.md": {
       "title": "Service técnico: comisiones de los técnicos",
-      "pageHash": "21c3435b11cce6bdd0117fcdc0c3f2ac0e93dd800529ff9c50beec52c845bfc2",
-      "sourceHash": "b0a0d56bfed6de850d3b380c37fe809660ed549483c1b8ba56612cc7fa53cb9e",
-      "sourceAt": "671156248",
+      "pageHash": "a5e8b94bd84db347c25a3f274c8bc476d69208be85431050d43964852b39299b",
+      "sourceHash": "451a335cf1ff14e2990ea3e2c94b9b4374a52ded395541c1531a01f17382a0e7",
+      "sourceAt": "10f3ad9f7",
       "sources": [
         "apps/web/src/pages/service-tecnico/comisiones.tsx",
         "apps/web/src/components/service/RepartoComision.tsx",
@@ -2324,7 +2324,7 @@
         "supabase/migrations/20270515020000_comisiones_rpc.sql"
       ],
       "owner": "producto",
-      "commit": "671156248"
+      "commit": "10f3ad9f7"
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: registrar y seguir las reparaciones",
@@ -5275,9 +5275,9 @@
     },
     "docs/tecnico/service-comisiones.md": {
       "title": "Service técnico · Comisiones de técnicos (MSF-187, MSF-953, MSF-954, MSF-957)",
-      "pageHash": "f603d9692fc5c15e3a4165d55f58fb982a250cadab11172bd6797673f8d489d5",
-      "sourceHash": "58c34c91f4c5f6d2b70a4ba23aee37a31530c4c818e737449059ca0ea499fff0",
-      "sourceAt": "671156248",
+      "pageHash": "64bf50aec78c0ecdf5d99e9a6899e838afa4fe759fb7b0dac05e6737db7a9865",
+      "sourceHash": "b91420571ec6cd7cd2dcdf265671d59acb10206ce35c632b2a77afc9f3a356b0",
+      "sourceAt": "10f3ad9f7",
       "sources": [
         "supabase/migrations/20270515000000_acciones_ver_comisiones.sql",
         "supabase/migrations/20270515010000_comisiones_reglas_y_reparto.sql",
@@ -5298,7 +5298,7 @@
         "apps/web/src/pages/service-tecnico/comisiones.test.tsx"
       ],
       "owner": "tecnico",
-      "commit": "671156248"
+      "commit": "10f3ad9f7"
     },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",

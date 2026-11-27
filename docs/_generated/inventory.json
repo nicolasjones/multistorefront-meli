@@ -382,6 +382,7 @@
     "dominio.rentabilidad_config",
     "dominio.reparacion_adjuntos",
     "dominio.reparacion_avisos",
+    "dominio.reparacion_comision_historial",
     "dominio.reparacion_comision_reparto",
     "dominio.reparacion_enlaces_consulta",
     "dominio.reparacion_historial",
