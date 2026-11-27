@@ -1083,9 +1083,9 @@
     },
     "docs/endurecimiento-infra.md": {
       "title": "Endurecimiento de la infraestructura (lote 99)",
-      "pageHash": "337e9f54a0f32b596fbb66312c575e5cb4c44265ad4feafe52f9f9445890fe0d",
-      "sourceHash": "61b700d63655820cf4e63fd8a0a60b24286e7cfdab6e49e4b8729719a229c3df",
-      "sourceAt": "b372826bc",
+      "pageHash": "f23fbe6a9412262f3fe22c42abd344396cdb598c1fe9a896325df75a9ceef7a1",
+      "sourceHash": "912121bf7508d783c20dddba6029bcf27ca2cc955ad71c8df7964cb0e7adccb3",
+      "sourceAt": "3b1ed0cce",
       "sources": [
         "infra/vps/firewall-docker-user.sh",
         "infra/vps/obtener-clave-host.sh",
@@ -1114,7 +1114,7 @@
         ".github/workflows/worker-images.yml"
       ],
       "owner": "plataforma",
-      "commit": "b372826bc"
+      "commit": "3b1ed0cce"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",

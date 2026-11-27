@@ -78,3 +78,13 @@ test('ronda 2: la doc cubre DEPLOY->base por FORWARD, el destino SSH, la falsifi
     'scram-sha-256', 'prevent_self_review', 'can_admins_bypass', 'retira las políticas de rama que sobren', 'gh secret delete RELEASE_PLEASE_TOKEN', 'ANTES de mergear este PR', 'retirar los runners viejos con root y `docker.sock`', 'DOCKER_CONFIG=/tmp/.docker',
     '192.0.0.0/24', '198.18.0.0/15', '224.0.0.0/4', 'falla cerrado']) assert.ok(doc.includes(frase), `falta en la doc: ${frase}`);
 });
+
+test('ronda 3: ip del Postgres obligatoria, prepend con ufw vacío, contadores para la falsificación, IPv6 de jobs y chequeo 1 bloqueante', () => {
+  for (const frase of ['`--ip-db-deploy <ip>` es OBLIGATORIO', '--ctorigdst <ip-db> --ctorigdstport <puerto-db>', 'ufw prepend', 'RECIÉN INSTALADO', 'verifica el orden con `ufw status numbered`', 'iptables -L DOCKER-USER -vnx',
+    'pkts TIENE QUE HABER SUBIDO', '`-i br-jobs-* -j DROP`', 'TODAS las IPs locales del host', 'BLOQUEANTE', 'DOCKER-ISOLATION', 'No se pudo probar el puerto 7636']) assert.ok(doc.includes(frase), `falta en la doc: ${frase}`);
+  assert.doesNotMatch(doc, /`ufw insert 1` falla con «Invalid position» cuando todavía no hay reglas, así que el\s+script, en ese caso/);
+  // La numeración del runbook de runners es 1..N sin repetidos.
+  const seccion = doc.slice(doc.indexOf('### Recrear los runners (runbook)'), doc.indexOf('**Rollback**'));
+  const numeros = [...seccion.matchAll(/^(\d+)\. \*\*/gm)].map((m) => Number(m[1]));
+  assert.deepEqual(numeros, numeros.map((_, i) => i + 1));
+});

@@ -68,9 +68,10 @@ Cada caso se prueba con una tabla de entradas que fallan y que pasan y con mutac
 1. `ufw`: entra solo 22 (y los demás puertos donde escucha sshd), 80, 443 y lo que llegue por la interfaz de Tailscale. **Los contenedores de los SERVICIOS del host (Kestra, Superset...) siguen llegando a lo
    que usan por `host.docker.internal`** (Postgres 7634-7636, Storage/API 9300-9302, SMTP 587/25, el router de alertas 8098): `deny incoming` los cortaría porque ese tráfico entra por `br-*` a la cadena
    INPUT, así que el script agrega `ufw allow from <subred de Docker> to any port <p>` (`--subredes-docker`, por defecto `172.16.0.0/12`; `--puertos-host-desde-docker` para otros puertos).
-   **Esos `allow` NO alcanzan a los jobs de CI:** las redes de los jobs (abajo) llevan un `deny from <subred>` insertado PRIMERO (`ufw insert 1`), antes de cualquier `allow` amplio. Si Docker usa
-   `default-address-pools` fuera de `172.16.0.0/12`, pasalo. Verificado con `ufw` real en un contenedor descartable: `ufw insert 1` falla con «Invalid position» cuando todavía no hay reglas, así que el
-   script, en ese caso, agrega la regla al final (con la lista vacía el orden es el mismo).
+   **Esos `allow` NO alcanzan a los jobs de CI:** las redes de los jobs (abajo) llevan un `deny in on <puente>` puesto PRIMERO, antes de cualquier `allow` amplio. Si Docker usa
+   `default-address-pools` fuera de `172.16.0.0/12`, pasalo. Verificado con `ufw` real en un contenedor descartable (QA reprodujo el fallo): con ufw RECIÉN INSTALADO (sin reglas) `ufw insert 1` falla con «Invalid position» y los siguientes `insert` quedan en
+   desorden (los allow de deploy terminaban DEBAJO de su deny y quedaban inertes). Por eso las reglas de las redes de jobs se aplican con **`ufw prepend` en orden inverso** (funciona igual con la lista vacía o llena) y **al terminar el
+   script verifica el orden con `ufw status numbered`**: el deny de PR arriba de todo allow y ningún allow de deploy debajo del deny de su red; si no, revierte y sale 1.
 2. Cadena `DOCKER-USER` de iptables (Docker la evalúa antes que sus reglas): se descarta lo que entra por CADA interfaz externa (`--interfaz-externa eth0,eth1`) salvo los puertos públicos, filtrando por el
    puerto **original** de destino (`--ctorigdstport`). La cadena se reemplaza de forma **atómica** con `iptables-restore --noflush` (un solo `COMMIT`: nunca queda vacía ni a medias; verificado contra un
    `iptables` real en un contenedor descartable, aplicado dos veces deja las mismas reglas y el salto desde `FORWARD` intacto).
@@ -84,9 +85,11 @@ habla con otro) y lanza cada job con `--network <esa red>` y `--dns` explícitos
 
 - **Por interfaz, no solo por IP.** Un job es root-equivalente dentro de su red y podría falsificar el origen con una IP de la red de servicios que ufw permite. Por eso en ufw va `deny in on <puente>` (primero, con `ufw insert`) y en
   `DOCKER-USER` `-i <puente> ! -s <subred> -j DROP` (anti-falsificación) antes que cualquier otra regla de jobs.
-- **Puertos del host.** La red de PR no recibe ninguno. La de **deploy** recibe `--puertos-db-deploy` (por defecto 7635 y 7636) y `--puertos-host-deploy` (para servicios del propio host que NO publica Docker, p. ej. SSH: `22`), y luego `deny`.
-- **Postgres publicado por Docker entra por FORWARD tras el DNAT, no por INPUT** (los `ufw allow` no intervienen): por eso `DOCKER-USER` lleva, ANTES de los DROP de jobs, `-i br-jobs-deploy -s <subred-deploy> -p tcp -m conntrack --ctorigdstport <puerto-db> -j RETURN`
-  para cada `--puertos-db-deploy`. Sin esa regla el deploy no llegaría a la base y fallarían `migraciones-cloud-*` (lo reprodujo QA con iptables real).
+- **Puertos del host.** La red de PR no recibe ninguno. La de **deploy** recibe `--puertos-db-deploy` (por defecto 7635 y 7636) y `--puertos-host-deploy` (para servicios del propio host que NO publica Docker, p. ej. SSH: `22`), y luego `deny`. **Ojo: `--puertos-host-deploy` abre el puerto en TODAS las IPs locales del host** (la regla de ufw no acota el destino).
+- **Postgres publicado por Docker entra por FORWARD tras el DNAT, no por INPUT** (los `ufw allow` no intervienen): por eso `DOCKER-USER` lleva, ANTES de los DROP de jobs, `-i br-jobs-deploy -s <subred-deploy> -p tcp -m conntrack --ctorigdst <ip-db> --ctorigdstport <puerto-db> -j RETURN`
+  para cada `--puertos-db-deploy`. **`--ip-db-deploy <ip>` es OBLIGATORIO** (una IPv4 de unicast: sin rangos, sin 0.0.0.0, sin loopback ni multicast): sin `--ctorigdst` la excepción valdría para ese puerto de CUALQUIER nodo de la tailnet o de la red privada.
+  Sin esa regla el deploy no llegaría a la base y fallarían `migraciones-cloud-*` (lo reprodujo QA con iptables real). **No se pudo probar el puerto 7636 por el camino real** (el laboratorio de QA no tenía DNAT para 7636): la regla está en el plan y en los tests.
+- **IPv6.** El DOCKER-USER de IPv6 descarta todo lo que entra por los puentes de jobs (`-i br-jobs-* -j DROP`): esas redes no tienen IPv6.
 - **Hacia afuera.** Se DESCARTA todo lo que va a `tailscale0` y a `100.64.0.0/10` (la tailnet), `169.254.0.0/16` (metadatos), `10/8`, `172.16/12`, `192.168/16`, `192.0.0.0/24`, `198.18.0.0/15` y `224.0.0.0/4`. A los jobs les queda **solo Internet**.
   Excepciones de deploy, **acotadas por puerto**: `--destinos-tailnet-deploy 100.x.y.z:puerto[,...]` (una IP sola no vale).
 - **El destino SSH del deploy (`VPS_SSH_HOST`).** Si es el propio host del runner: `--puertos-host-deploy 22`. Si es un nodo de Tailscale: `--destinos-tailnet-deploy <ip>:22` (si no, el DROP a `100.64.0.0/10` lo corta). Si es otra máquina con IP pública
@@ -105,11 +108,11 @@ diferir) y aborta si alguno no está en `--puertos-publicos`.
 ```bash
 # Copiar el script al VPS (desde esta máquina) y mirar el plan: no ejecuta nada
 scp infra/vps/firewall-docker-user.sh root@<ip-vps>:/root/
-ssh root@<ip-vps> 'bash /root/firewall-docker-user.sh --interfaz-externa <eth0>'
+ssh root@<ip-vps> 'bash /root/firewall-docker-user.sh --interfaz-externa <eth0> --ip-db-deploy <ip-tailscale-del-vps>'
 # Aplicar (ya dentro del VPS, en una sesión que no vas a cerrar). El rollback queda DESACOPLADO de la sesión (setsid + nohup), así que el comando vuelve enseguida.
 # Cada --chequeo corre al terminar con tope de 20 s (CHEQUEO_TIMEOUT) y, si falla, revierte al instante y cancela el temporizador. Probá las DOS rutas: servicio->host Y
 # deploy->base (el segundo solo existe una vez creada la red de jobs: la primera vez, aplicá sin él y verificalo con «Chequeos de aislamiento»).
-bash /root/firewall-docker-user.sh --aplicar --interfaz-externa <eth0> --puertos-host-deploy 22 \
+bash /root/firewall-docker-user.sh --aplicar --interfaz-externa <eth0> --ip-db-deploy <ip-tailscale-del-vps> --puertos-host-deploy 22 \
   --chequeo 'docker exec <contenedor-kestra> bash -c "echo > /dev/tcp/host.docker.internal/7634"' \
   --chequeo 'docker run --rm --network platform-runner-jobs-deploy alpine nc -z -w 5 <ip-tailscale-del-vps> 7635'
 # En OTRA sesión SSH, comprobá que entrás y confirmá antes de los 120 s:
@@ -135,7 +138,7 @@ PartOf=docker.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/bin/bash /root/firewall-docker-user.sh --aplicar --sin-rollback --interfaz-externa <eth0>
+ExecStart=/bin/bash /root/firewall-docker-user.sh --aplicar --sin-rollback --interfaz-externa <eth0> --ip-db-deploy <ip-tailscale-del-vps>
 [Install]
 WantedBy=multi-user.target docker.service
 ```
@@ -160,12 +163,15 @@ docker run --rm --network platform-runner-jobs-pr alpine wget -T 5 -qO- http://1
 docker run --rm --network platform-runner-jobs-pr alpine nc -vz -w 5 <ip-de-otro-nodo-tailscale> 22     # FALLA
 # 4. DNS e Internet siguen funcionando
 docker run --rm --network platform-runner-jobs-pr alpine sh -c 'nslookup github.com && wget -T 10 -qO- https://api.github.com >/dev/null && echo ok'   # ok
-# 5. Falsificar el origen con la IP de un servicio permitido por ufw NO sirve (anti-spoof por puente)
+# 5. Falsificar el origen con la IP de un servicio permitido por ufw NO sirve (anti-spoof por puente). La respuesta TCP no vuelve con o sin la regla, así que NO sirve para
+#    discriminar: se mira el CONTADOR de la regla anti-falsificación antes y después del intento (los paquetes tienen que subir; hay que correr los dos comandos en el VPS).
+iptables -L DOCKER-USER -vnx | grep -E '!172\.29\.250\.0/24'                      # anotá la columna pkts (primera)
 docker run --rm --cap-add NET_ADMIN --network platform-runner-jobs-pr nicolaka/netshoot sh -c \
   'ip addr add <ip-de-un-contenedor-de-servicio>/32 dev eth0 && curl -m 5 --interface <ip-de-un-contenedor-de-servicio> http://<ip-tailscale-del-vps>:7634; echo salida=$?'   # no responde
+iptables -L DOCKER-USER -vnx | grep -E '!172\.29\.250\.0/24'                      # pkts TIENE QUE HABER SUBIDO: el DROP anti-falsificación vio el intento
 ```
 
-Si el chequeo 1 de DEPLOY no conecta, revisá primero `iptables -S DOCKER-USER | grep ctorigdstport` (tiene que estar el RETURN del puerto antes de los DROP) y `ss -ltn | grep 7635`.
+**El chequeo 1 (DEPLOY→base) es BLOQUEANTE: si no conecta, NO instales los runners** (el deploy fallaría). Revisá primero `iptables -S DOCKER-USER | grep ctorigdst` (tiene que estar el RETURN con la IP y el puerto antes de los DROP) y `ss -ltn | grep 7635`. Un RETURN en `DOCKER-USER` solo deja pasar el paquete a las reglas de Docker: si igual no conecta, mirá `iptables -S DOCKER-ISOLATION-STAGE-1`/`-STAGE-2` (el aislamiento entre redes de Docker podría descartar el paso hacia la red del Postgres) y los contadores con `iptables -L DOCKER-USER -vnx`.
 
 **Qué tiene que seguir funcionando.** Quien necesite Postgres, Studio o Kestra desde afuera entra por Tailscale. Los **jobs** salen solo a Internet (ver arriba). `scripts/migrar-supabase-cloud.mjs` comprueba la conexión
 antes de migrar y, si falla, dice el puerto, enmascara el host en el log desde el principio (`::add-mask::`, el repo es público) y qué revisar (ver MSF-680).
@@ -259,7 +265,7 @@ compartido y los mismos runners (y el mismo contenedor, reutilizado) para PR y p
 | Un contenedor por job | `docker run --rm` nuevo en cada ciclo, con nombre único: no persisten imágenes, contenedores, procesos, `/home/runner` ni nada escrito como root-equivalente de un job al siguiente | El costo es descargar dependencias en cada job (store propio y vacío por contenedor) |
 | Red de los jobs | Red DEDICADA por pool (`platform-runner-jobs-pr` 172.29.250.0/24 con puente `br-jobs-pr`, `platform-runner-jobs-deploy` 172.29.251.0/24 con `br-jobs-deploy`; subred y puente fijos, ICC desactivado) y `--network` y `--dns` obligatorios en el `docker run` (probado: nunca `bridge`/`host`); si la red existe distinta, el supervisor falla cerrado. El firewall filtra por interfaz y por origen y les deja solo Internet (sin host, sin tailnet, sin metadatos, sin red interna) | Es la parte que **no se pudo probar con un host real**: solo funciona con las reglas de `infra/vps/firewall-docker-user.sh` aplicadas. Mientras no estén, un job alcanza los puertos del host: por eso el firewall va ANTES de activar los runners (ver acciones) |
 | Topes | `--memory`, `--cpus`, `--pids-limit` por contenedor de job (`RUNNER_MEMORY_LIMIT`, `RUNNER_CPU_LIMIT`, `RUNNER_PIDS_LIMIT`) | |
-| Supervisor endurecido | `read_only`, `cap_drop: [ALL]`, `no-new-privileges`, `tmpfs /tmp` y `DOCKER_CONFIG=/tmp/.docker` (el cliente de docker necesita un directorio escribible); al arrancar elimina solo los contenedores de jobs de su rol que ya NO corren (los que corren terminan su job; una ranura que falla 5 veces se corta sola y las demás siguen) | Un docker-socket-proxy que solo permita crear/arrancar/borrar contenedores sin `privileged` sería lo siguiente; **no se hizo** (no se puede probar sin un host real). **Tampoco se probó el supervisor con `read_only` + `cap_drop ALL` contra el socket real**: si no conecta al socket, es lo primero a mirar |
+| Supervisor endurecido | `read_only`, `cap_drop: [ALL]`, `no-new-privileges`, `tmpfs /tmp` y `DOCKER_CONFIG=/tmp/.docker` (el cliente de docker necesita un directorio escribible); al arrancar elimina solo los contenedores de jobs de su rol que ya NO corren (los que corren terminan su job; una ranura que falla 5 veces se corta sola, las demás siguen, y se reintenta hasta 3 rondas con aviso en el log (`AVISO: la ranura N se cortó...`); si se agotan, queda cortada y el log lo dice) | Un docker-socket-proxy que solo permita crear/arrancar/borrar contenedores sin `privileged` sería lo siguiente; **no se hizo** (no se puede probar sin un host real). **Tampoco se probó el supervisor con `read_only` + `cap_drop ALL` contra el socket real**: si no conecta al socket, es lo primero a mirar |
 | Pools | `platform-local` + `platform-pr` para PR/CI; `platform-deploy` (nunca `platform-local`) para los jobs con `environment:` y release-please | **No es un límite de confianza frente a un workflow modificado**: en un `pull_request` GitHub usa el workflow del PR, que puede pedir `runs-on` de deploy, y los guards corren desde ese mismo PR. Ver «Control principal» |
 
 **Control principal (frente a un PR malicioso o un workflow modificado).** No son los pools ni `verificar-workflows.mjs` (defensa secundaria y de higiene: avisan de errores, no frenan a un autor
@@ -294,21 +300,22 @@ Cortar jobs en curso: comprobar antes que ninguno esté ocupado (`gh api repos/n
 
 1. **Antes que nada, la política de forks, los Environments protegidos, la rotación de secretos y el firewall con las reglas de jobs** (acciones 4, 5, 7 y 8 de la lista de abajo). Sin eso, activar los pools nuevos no agrega protección
    frente a un PR hostil: **mientras el firewall con las redes de jobs no esté aplicado, un job de PR alcanza los puertos del host (Postgres de DEV/STG/PRD incluidos) y, con contraseñas por defecto, las bases.**
-2. **Instalar sysbox** en el host (una vez): paquete `.deb` de https://github.com/nestybox/sysbox/releases para la versión de Ubuntu, `apt install ./sysbox-ce_*.deb`, `systemctl status sysbox`.
+2. **Comprobación BLOQUEANTE antes de instalar los runners:** en el VPS, el chequeo 1 de «Chequeos de aislamiento» (DEPLOY→base conecta, PR→base falla). Si el RETURN por `ctorigdst` no llega realmente al Postgres tras el DNAT, no sigas.
+3. **Instalar sysbox** en el host (una vez): paquete `.deb` de https://github.com/nestybox/sysbox/releases para la versión de Ubuntu, `apt install ./sysbox-ce_*.deb`, `systemctl status sysbox`.
    `docker info | grep -i runtimes` debe listar `sysbox-runc`. (Reinicia el daemon de Docker: hacerlo en una ventana.)
-3. **PAT del runner** en un archivo que solo lea root: `install -d -m 0700 /etc/platform-runner && install -m 0400 /dev/null /etc/platform-runner/gh_runner_pat` y pegar el token con un editor (no por
+4. **PAT del runner** en un archivo que solo lea root: `install -d -m 0700 /etc/platform-runner && install -m 0400 /dev/null /etc/platform-runner/gh_runner_pat` y pegar el token con un editor (no por
    `echo`). Mejor un PAT de grano fino solo con `Administration: write` sobre este repo, o una GitHub App.
-4. **Construir y levantar el pool de PR** con las etiquetas nuevas, *en paralelo* a los runners viejos (que siguen con `platform-local`): `GH_RUNNER_PAT_FILE=/etc/platform-runner/gh_runner_pat pnpm dev:runner`.
+5. **Construir y levantar el pool de PR** con las etiquetas nuevas, *en paralelo* a los runners viejos (que siguen con `platform-local`): `GH_RUNNER_PAT_FILE=/etc/platform-runner/gh_runner_pat pnpm dev:runner`.
    Comprobar: en GitHub aparecen runners efímeros `automation-platform-pr-*` con `platform-local, platform-pr` mientras corren un job; `docker ps` muestra el supervisor y, durante un job, un contenedor nuevo
    cada vez (el nombre cambia); `docker network ls` muestra `platform-runner-jobs-pr` con la subred 172.29.250.0/24 y `ip link show br-jobs-pr` existe; después corré los «Chequeos de aislamiento» del firewall; `docker exec <contenedor-del-job> id runner` y `docker exec <contenedor-del-job> env | grep -c GH_` da 0; `docker exec <contenedor-del-job> docker ps` funciona sin tocar el daemon del host.
-5. **Levantar el pool de deploy**: `GH_RUNNER_PAT_FILE=... pnpm dev:runner:deploy`; debe aparecer con solo `platform-deploy`.
-6. **Fijar las variables de repo** (esto es lo que mueve el tráfico): `gh variable set CI_RUNS_ON_PR --body '["self-hosted","platform-pr"]'` y `gh variable set CI_RUNS_ON_DEPLOY --body '["self-hosted","platform-deploy"]'`.
+6. **Levantar el pool de deploy**: `GH_RUNNER_PAT_FILE=... pnpm dev:runner:deploy`; debe aparecer con solo `platform-deploy`.
+7. **Fijar las variables de repo** (esto es lo que mueve el tráfico): `gh variable set CI_RUNS_ON_PR --body '["self-hosted","platform-pr"]'` y `gh variable set CI_RUNS_ON_DEPLOY --body '["self-hosted","platform-deploy"]'`.
    Si `CI_RUNS_ON_PESADO` está fijada a runners self-hosted, también debe incluir `platform-pr`.
-7. **Probar**: un PR de prueba corre en `platform-pr`; `env` dentro de un step no muestra el PAT; un workflow_dispatch de `Deploy infraestructura VPS` corre en `platform-deploy`.
-8. **Retirar los runners viejos** (con root y `docker.sock`): `docker compose -p multistorefront-meli-runner-dev down` y borrar el volumen `platform-runner-pnpm-store` cuando ningún otro producto lo use. **No dejarlos registrados**: son justo el riesgo que este lote cierra
+8. **Probar**: un PR de prueba corre en `platform-pr`; `env` dentro de un step no muestra el PAT; un workflow_dispatch de `Deploy infraestructura VPS` corre en `platform-deploy`.
+9. **Retirar los runners viejos** (con root y `docker.sock`): `docker compose -p multistorefront-meli-runner-dev down` y borrar el volumen `platform-runner-pnpm-store` cuando ningún otro producto lo use. **No dejarlos registrados**: son justo el riesgo que este lote cierra
    (confirmar con `gh api repos/nicolasjones/multistorefront-meli/actions/runners -q '.runners[] | .name'` que solo quedan los efímeros nuevos).
 
-**Rollback**: volver a `CI_RUNS_ON_PR`/`CI_RUNS_ON_DEPLOY` en `["self-hosted","platform-local"]` (los runners viejos siguen registrados hasta el paso 8). El estado anterior del código está en el commit
+**Rollback**: volver a `CI_RUNS_ON_PR`/`CI_RUNS_ON_DEPLOY` en `["self-hosted","platform-local"]` (los runners viejos siguen registrados hasta el paso 9). El estado anterior del código está en el commit
 previo a este lote (`infra/runner/` con root y `docker.sock`).
 
 Un solo repo público con runners self-hosted sigue siendo desaconsejado por GitHub: la solución de fondo es un repo privado o runners hospedados para los PR.
