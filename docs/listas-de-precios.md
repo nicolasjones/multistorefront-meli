@@ -80,7 +80,7 @@ Cuatro de los seguimientos de la Fase 5 se entregaron sin tocar la precedencia d
 
 - **Asignación masiva (MSF-973)** · `20270509000200_listas_precios_asignacion_masiva.sql`. RPC `asignar_lista_precios_masiva`: por
   **selección** (los marcados del listado de Clientes) o por **filtro** (texto, tipo, tienda y cuenta web: los mismos criterios del listado
-  y del correo masivo, solo activos). Solo Administrador. Tope de 5000 clientes por llamada. Devuelve asignados, sin cambios y omitidos
+  y del correo masivo, solo activos). Solo Administrador. Selección y filtros son excluyentes: combinarlos se rechaza. Tope de 5000 clientes por llamada, en las dos formas. Devuelve asignados, sin cambios y omitidos
   (archivados, Consumidor final o inexistentes: no abortan el lote). Un solo evento de Actividad por llamada
   (`cliente.lista_precio_asignada_masiva`). En la pantalla: botón «Asignar lista de precios» del listado de Clientes (solo Administrador).
 - **Lista por tipo de cliente (MSF-976)** · `20270509000300_listas_precios_por_tipo_cliente.sql`. Tabla
@@ -88,7 +88,7 @@ Cuatro de los seguimientos de la Fase 5 se entregaron sin tocar la precedencia d
   `asignar_lista_precios_tipo_cliente`. **Precedencia: la lista propia del cliente gana; si no tiene, rige la de su tipo.** Es el mismo
   punto único del motor (`private.lista_precios_cliente`), así que precios, ventas, tienda y el snapshot por línea siguen igual. El
   Consumidor final nunca tiene lista. «No se archiva una lista con clientes» cuenta también a los que la heredan por su tipo
-  (`private.cantidad_clientes_lista`). Pantalla: sección «Lista por tipo de cliente» en Productos → Listas de precios.
+  (`private.cantidad_clientes_lista`); una lista asignada a un tipo sin clientes de ese tipo sí se puede archivar: el motor la ignora y la pantalla la muestra como archivada para elegir otra o quitarla. Pantalla: sección «Lista por tipo de cliente» en Productos → Listas de precios.
   **Por tienda queda fuera**: la lista es de toda la organización y el precio ya se ajusta por tienda con las escalas y el ajuste de la
   empresa; sumar listas por tienda necesita una spec que defina cómo convive con ese ajuste.
 - **Lista del cliente en la planilla (MSF-974)** · `20270509000400_listas_de_clientes_para_exportar.sql`. La **exportación** de clientes suma

@@ -99,7 +99,7 @@ export function ListasPorTipoCliente({ puedeEditar, puedeAsignar, onCambiada }: 
                 size="small"
                 label={`Lista de los clientes ${etiqueta.toLowerCase()}`}
                 value={actual?.listaId ?? SIN_LISTA}
-                slotProps={{ select: { displayEmpty: true } }}
+                slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
                 disabled={!puedeEditar || trabajando !== null}
                 onChange={(evento) => void cambiar(valor, evento.target.value)}
                 helperText={actual?.archivadaEn ? 'Esta lista está archivada: no rige. Elegí otra o quitala.' : undefined}

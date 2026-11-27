@@ -28,7 +28,8 @@
 --   drop trigger producto_costos_sincronizar_vinculo on dominio.producto_costos;
 --   drop trigger productos_sincronizar_vinculo on dominio.productos;
 --   drop function private.sincronizar_costo_a_vinculo_principal(); drop function private.sincronizar_vinculo_principal_producto();
---   drop function private.fijar_proveedor_principal(uuid, uuid, uuid);
+--   drop function private.fijar_proveedor_principal(uuid, uuid, uuid); drop function private.alinear_costo_principal(uuid, uuid, uuid);
+--   drop function private.bloquear_costo_producto(uuid, uuid); drop function private.puede_editar_costo_producto();
 --   -- restaurar productos_de_proveedor de 20261019120001 (lee dominio.productos.proveedor_id)
 --   drop table dominio.productos_proveedores;
 
@@ -86,6 +87,75 @@ grant select, insert, update, delete on dominio.productos_proveedores to service
 -- Principal: tabla y espejo en `productos` (y costo efectivo) en un solo lugar
 -- ============================================================================
 
+-- Quién puede cambiar el costo efectivo del producto: lo mismo que exige la edición directa de `producto_costos` (edición en Rentabilidad).
+-- Sin sesión de persona (service_role, mantenimiento, pgTAP como postgres) no hay rol que restringir.
+create or replace function private.puede_editar_costo_producto()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select (select auth.uid()) is null or (select private.nivel_seccion('rentabilidad')) = 'edicion';
+$$;
+
+revoke execute on function private.puede_editar_costo_producto() from public, anon, authenticated;
+
+-- Orden de bloqueo (evita deadlocks entre las RPC y los disparadores): siempre la fila del producto, luego su costo (`producto_costos`),
+-- luego los vínculos. El disparador de `producto_costos` ya llega con su fila bloqueada y sigue con los vínculos, el mismo orden.
+create or replace function private.bloquear_costo_producto(p_organizacion uuid, p_producto uuid)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  select 1 from dominio.producto_costos c where c.producto_id = p_producto and c.organizacion_id = p_organizacion for update;
+$$;
+
+revoke execute on function private.bloquear_costo_producto(uuid, uuid) from public, anon, authenticated;
+
+-- Alinea el costo efectivo con el vínculo principal. Quien llama ya fijó la marca `catalogo.sincronizando_proveedores`.
+--   * Vínculo sin costo: hereda el costo vigente del producto (no se pierde nada).
+--   * Vínculo con costo distinto del del producto: el producto pasa a ese costo, solo si quien llama puede editar el costo; si no,
+--     el cambio se rechaza (PT409) en lugar de dejar el espejo divergente o cambiar el costo a escondidas.
+create or replace function private.alinear_costo_principal(p_organizacion uuid, p_producto uuid, p_proveedor uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_vinculo numeric;
+  v_producto numeric;
+begin
+  if p_proveedor is null then
+    return;
+  end if;
+  select v.costo into v_vinculo from dominio.productos_proveedores v
+   where v.producto_id = p_producto and v.organizacion_id = p_organizacion and v.proveedor_id = p_proveedor;
+  select c.costo into v_producto from dominio.producto_costos c
+   where c.producto_id = p_producto and c.organizacion_id = p_organizacion;
+
+  if v_vinculo is null then
+    if v_producto is not null then
+      update dominio.productos_proveedores v set costo = v_producto, updated_at = clock_timestamp()
+       where v.producto_id = p_producto and v.organizacion_id = p_organizacion and v.proveedor_id = p_proveedor;
+    end if;
+  elsif v_vinculo is distinct from v_producto then
+    if not (select private.puede_editar_costo_producto()) then
+      raise exception 'Este proveedor tiene otro costo: cambiar el principal modifica el costo del producto y necesitás edición en Rentabilidad'
+        using errcode = 'PT409';
+    end if;
+    insert into dominio.producto_costos as c (producto_id, organizacion_id, costo)
+    values (p_producto, p_organizacion, v_vinculo)
+    on conflict (producto_id) do update set costo = excluded.costo
+    where c.costo is distinct from excluded.costo;
+  end if;
+end;
+$$;
+
+revoke execute on function private.alinear_costo_principal(uuid, uuid, uuid) from public, anon, authenticated;
+
 create or replace function private.fijar_proveedor_principal(p_organizacion uuid, p_producto uuid, p_proveedor uuid)
 returns void
 language plpgsql
@@ -94,8 +164,8 @@ set search_path = ''
 as $$
 declare
   v_codigo text;
-  v_costo numeric;
 begin
+  perform private.bloquear_costo_producto(p_organizacion, p_producto);
   perform set_config('catalogo.sincronizando_proveedores', 'on', true);
 
   update dominio.productos_proveedores v
@@ -108,7 +178,7 @@ begin
        set principal = true, updated_at = clock_timestamp()
      where v.producto_id = p_producto and v.organizacion_id = p_organizacion
        and v.proveedor_id = p_proveedor and not v.principal;
-    select v.codigo_proveedor, v.costo into v_codigo, v_costo
+    select v.codigo_proveedor into v_codigo
       from dominio.productos_proveedores v
      where v.producto_id = p_producto and v.organizacion_id = p_organizacion and v.proveedor_id = p_proveedor;
   end if;
@@ -118,13 +188,7 @@ begin
    where p.id = p_producto and p.organizacion_id = p_organizacion
      and (p.proveedor_id, p.codigo_proveedor) is distinct from (p_proveedor, v_codigo);
 
-  -- Costo efectivo: el del principal, si lo tiene.
-  if v_costo is not null then
-    insert into dominio.producto_costos as c (producto_id, organizacion_id, costo)
-    values (p_producto, p_organizacion, v_costo)
-    on conflict (producto_id) do update set costo = excluded.costo
-    where c.costo is distinct from excluded.costo;
-  end if;
+  perform private.alinear_costo_principal(p_organizacion, p_producto, p_proveedor);
 
   perform set_config('catalogo.sincronizando_proveedores', 'off', true);
 end;
@@ -133,16 +197,15 @@ $$;
 revoke execute on function private.fijar_proveedor_principal(uuid, uuid, uuid) from public, anon, authenticated;
 
 -- Camino viejo: lo que entra por productos.proveedor_id / codigo_proveedor (crear_producto, actualizar_producto, importaciones)
--- se refleja en la tabla CON LA SEMÁNTICA DE SIEMPRE: elegir otro proveedor REEMPLAZA al principal anterior (su vínculo se borra) y
--- dejarlo vacío quita el principal. Quien quiera conservar al anterior como secundario usa «Marcar como principal» (RPC nuevas).
+-- se refleja en la tabla CON LA SEMÁNTICA DE SIEMPRE: elegir otro proveedor REEMPLAZA al principal anterior (su vínculo SE BORRA, con su
+-- código y su costo) y dejarlo vacío quita el principal. Quien quiera conservar al anterior como secundario usa «Marcar como principal»
+-- (RPC nuevas). El vínculo nuevo hereda el costo vigente del producto; si ya tenía otro costo, ver `alinear_costo_principal`.
 create or replace function private.sincronizar_vinculo_principal_producto()
 returns trigger
 language plpgsql
 security definer
 set search_path = ''
 as $$
-declare
-  v_costo numeric;
 begin
   if coalesce(current_setting('catalogo.sincronizando_proveedores', true), 'off') = 'on' then
     return null;
@@ -151,6 +214,7 @@ begin
     return null;
   end if;
 
+  perform private.bloquear_costo_producto(new.organizacion_id, new.id);
   perform set_config('catalogo.sincronizando_proveedores', 'on', true);
   if new.proveedor_id is null then
     delete from dominio.productos_proveedores v where v.producto_id = new.id and v.principal;
@@ -162,14 +226,7 @@ begin
     on conflict (producto_id, proveedor_id) do update
       set principal = true, codigo_proveedor = excluded.codigo_proveedor, updated_at = clock_timestamp()
       where (v.principal, v.codigo_proveedor) is distinct from (true, excluded.codigo_proveedor);
-    select v.costo into v_costo from dominio.productos_proveedores v
-     where v.producto_id = new.id and v.proveedor_id = new.proveedor_id;
-    if v_costo is not null then
-      insert into dominio.producto_costos as c (producto_id, organizacion_id, costo)
-      values (new.id, new.organizacion_id, v_costo)
-      on conflict (producto_id) do update set costo = excluded.costo
-      where c.costo is distinct from excluded.costo;
-    end if;
+    perform private.alinear_costo_principal(new.organizacion_id, new.id, new.proveedor_id);
   end if;
   perform set_config('catalogo.sincronizando_proveedores', 'off', true);
   return null;
@@ -183,21 +240,25 @@ create trigger productos_sincronizar_vinculo
   after insert or update of proveedor_id, codigo_proveedor on dominio.productos
   for each row execute function private.sincronizar_vinculo_principal_producto();
 
--- Costo del producto → costo del vínculo principal.
+-- Costo del producto → costo del vínculo principal, en alta, cambio y BORRADO (borrar el costo del producto vacía el del principal).
 create or replace function private.sincronizar_costo_a_vinculo_principal()
 returns trigger
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_producto uuid := case when tg_op = 'DELETE' then old.producto_id else new.producto_id end;
+  v_organizacion uuid := case when tg_op = 'DELETE' then old.organizacion_id else new.organizacion_id end;
+  v_costo numeric := case when tg_op = 'DELETE' then null else new.costo end;
 begin
   if coalesce(current_setting('catalogo.sincronizando_proveedores', true), 'off') = 'on' then
     return null;
   end if;
   update dominio.productos_proveedores v
-     set costo = new.costo, updated_at = clock_timestamp()
-   where v.producto_id = new.producto_id and v.organizacion_id = new.organizacion_id
-     and v.principal and v.costo is distinct from new.costo;
+     set costo = v_costo, updated_at = clock_timestamp()
+   where v.producto_id = v_producto and v.organizacion_id = v_organizacion
+     and v.principal and v.costo is distinct from v_costo;
   return null;
 end;
 $$;
@@ -206,7 +267,7 @@ revoke execute on function private.sincronizar_costo_a_vinculo_principal() from 
 
 drop trigger if exists producto_costos_sincronizar_vinculo on dominio.producto_costos;
 create trigger producto_costos_sincronizar_vinculo
-  after insert or update of costo on dominio.producto_costos
+  after insert or update of costo or delete on dominio.producto_costos
   for each row execute function private.sincronizar_costo_a_vinculo_principal();
 
 -- Relleno: cada producto con proveedor conserva ese proveedor como principal (y su costo actual como costo del vínculo).
@@ -266,7 +327,8 @@ revoke execute on function public.listar_proveedores_de_producto(uuid) from publ
 grant execute on function public.listar_proveedores_de_producto(uuid) to authenticated;
 
 -- Agrega el proveedor al producto o actualiza su código y costo (idempotente). `p_principal` = marcarlo como principal.
--- Sin edición en Rentabilidad el costo no se toca: no se envía (42501) y el existente se conserva.
+-- Sin edición en Rentabilidad el costo no se toca: no se envía (42501) y el existente se conserva. Marcar como principal un proveedor
+-- cuyo costo difiere del del producto cambia el costo efectivo: sin edición en Rentabilidad se rechaza (PT409).
 create or replace function public.asignar_proveedor_producto(
   p_producto_id uuid,
   p_proveedor_id uuid,
@@ -305,6 +367,7 @@ begin
   if not found then
     raise exception 'El producto no existe' using errcode = 'PT404';
   end if;
+  perform private.bloquear_costo_producto(v_organizacion, p_producto_id);
   select pr.activo into v_activo from dominio.proveedores pr
    where pr.id = p_proveedor_id and pr.organizacion_id = v_organizacion;
   if not found then
@@ -330,6 +393,13 @@ begin
 
   if coalesce(p_principal, false) and not v_activo then
     raise exception 'El proveedor está desactivado: reactivalo antes de marcarlo como principal' using errcode = 'PT409';
+  end if;
+  -- Vaciar el costo del principal vacía el costo efectivo del producto (la sincronía es simétrica). Solo con permiso de costos y solo
+  -- si ya era el principal: promover un vínculo sin costo hereda el costo vigente (no borra nada).
+  if v_puede_costo and p_costo is null and coalesce(v_vinculo.principal, false) and v_vinculo.costo is not null then
+    perform set_config('catalogo.sincronizando_proveedores', 'on', true);
+    delete from dominio.producto_costos c where c.producto_id = p_producto_id and c.organizacion_id = v_organizacion;
+    perform set_config('catalogo.sincronizando_proveedores', 'off', true);
   end if;
   -- Si ya era el principal, se refresca el espejo (código y costo efectivo).
   if coalesce(p_principal, false) or coalesce(v_vinculo.principal, false) then
@@ -362,6 +432,7 @@ begin
   if not found then
     raise exception 'El producto no existe' using errcode = 'PT404';
   end if;
+  perform private.bloquear_costo_producto(v_organizacion, p_producto_id);
 
   delete from dominio.productos_proveedores v
    where v.producto_id = p_producto_id and v.proveedor_id = p_proveedor_id and v.organizacion_id = v_organizacion
@@ -400,6 +471,7 @@ begin
   if not found then
     raise exception 'El producto no existe' using errcode = 'PT404';
   end if;
+  perform private.bloquear_costo_producto(v_organizacion, p_producto_id);
   select pr.activo into v_activo
     from dominio.productos_proveedores v
     join dominio.proveedores pr on pr.id = v.proveedor_id and pr.organizacion_id = v.organizacion_id
@@ -415,7 +487,7 @@ end;
 $$;
 
 comment on function public.marcar_proveedor_principal(uuid, uuid) is
-  'MSF-530: marca un proveedor del producto como principal (el anterior queda secundario). Idempotente. Exige edición en Productos.';
+  'MSF-530: marca un proveedor del producto como principal (el anterior queda secundario). Idempotente. Exige edición en Productos; si su costo difiere del del producto, cambia el costo efectivo y exige edición en Rentabilidad (PT409 si no).';
 
 revoke execute on function public.marcar_proveedor_principal(uuid, uuid) from public, anon;
 grant execute on function public.marcar_proveedor_principal(uuid, uuid) to authenticated;

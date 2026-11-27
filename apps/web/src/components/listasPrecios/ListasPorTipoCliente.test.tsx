@@ -48,6 +48,15 @@ describe('ListasPorTipoCliente', () => {
     expect(screen.getByText(/la lista asignada al cliente siempre gana/)).toBeInTheDocument()
   })
 
+  it('la etiqueta queda encogida aunque el valor sea «Sin lista» (no se superpone con el texto)', async () => {
+    abrir()
+    const selector = await screen.findByRole('combobox', { name: 'Lista de los clientes mayoristas' })
+    expect(selector).toHaveTextContent('Sin lista')
+    const etiqueta = document.querySelector('label[data-shrink]')
+    expect(etiqueta).not.toBeNull()
+    expect(document.querySelectorAll('label[data-shrink="false"]')).toHaveLength(0)
+  })
+
   it('cambiar la lista de un tipo llama a la función y avisa a la pantalla', async () => {
     const { onCambiada } = abrir()
     fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Lista de los clientes mayoristas' }))

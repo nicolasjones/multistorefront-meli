@@ -262,8 +262,14 @@ decisiones que el análisis dejaba abiertas (detalle en `.specify/bugs/msf-530/f
   firmas de `crear_producto`/`actualizar_producto` no cambian). Lo que entra por esas columnas se refleja en la tabla con la semántica de
   siempre: elegir otro proveedor **reemplaza** al principal anterior y vaciarlo quita el principal; para conservar al anterior como
   secundario se usa «Marcar como principal».
-- **Costo efectivo del producto = el del principal**: el costo del vínculo principal se copia a `producto_costos` y un cambio del costo
-  del producto se copia al vínculo principal (marca de sesión `catalogo.sincronizando_proveedores` contra bucles).
+- **Costo efectivo del producto = el del principal**, con sincronía simétrica en alta, cambio y borrado y en los dos sentidos (marca de
+  sesión `catalogo.sincronizando_proveedores` contra bucles): el costo del vínculo principal se copia a `producto_costos` (vaciarlo vacía
+  el del producto) y un cambio o borrado del costo del producto llega al vínculo principal. Un vínculo sin costo que pasa a principal
+  **hereda** el costo vigente del producto. Cambiar el costo efectivo por esta vía exige **edición en Rentabilidad**, igual que la edición
+  directa: sin ese permiso, marcar como principal (o elegir por el campo «Proveedor») un proveedor cuyo costo difiere del del producto se
+  rechaza con un error de estado (`PT409`) y no cambia nada. Orden de bloqueo fijo: producto, su costo y sus vínculos.
+- **Camino viejo**: elegir otro proveedor por el campo «Proveedor» **reemplaza al principal anterior borrando su vínculo, con su código y
+  su costo**; quitar el proveedor quita el principal.
 - **RPC**: `listar_proveedores_de_producto`, `asignar_proveedor_producto` (agrega o actualiza código y costo; `p_principal` lo marca),
   `quitar_proveedor_producto`, `marcar_proveedor_principal`. Exigen edición en Productos (el costo, edición en Rentabilidad). Un proveedor
   desactivado no se asigna nuevo ni se marca principal. `productos_de_proveedor` lista ahora todos los productos donde el proveedor figura

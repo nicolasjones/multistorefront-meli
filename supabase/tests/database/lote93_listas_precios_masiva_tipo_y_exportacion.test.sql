@@ -4,7 +4,7 @@
 -- Consumidor final, lista archivada, archivar con clientes heredados, vista, RLS); `listas_de_clientes_para_exportar` (propia, por tipo, permiso).
 begin;
 
-select plan(56);
+select plan(73);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -25,6 +25,7 @@ insert into dominio.listas_precios (id, organizacion_id, nombre, ajuste_pct) val
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Revendedores', -20),
   ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Gremio', -10),
   ('a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Vieja', -5),
+  ('a1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Solo tipo', -5),
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Ajena', -30);
 update dominio.listas_precios set archivada_en = now() where id = 'a1000000-0000-0000-0000-000000000003';
 
@@ -58,6 +59,12 @@ create function pg_temp.eventos(p_tipo text) returns int language sql security d
 $$;
 create function pg_temp.bandera(p_activa boolean) returns void language sql security definer as $$
   update public.banderas_plataforma set activa = p_activa where clave = 'listas_precios'
+$$;
+create function pg_temp.borrar_masivo() returns void language sql security definer as $$
+  delete from dominio.clientes where numero = 1001 and nombre = 'Masivo 1'
+$$;
+create function pg_temp.eliminar_cliente(p_id uuid) returns int language sql security definer as $$
+  with d as (delete from dominio.clientes where id = p_id returning 1) select count(*)::int from d
 $$;
 grant execute on all functions in schema pg_temp to authenticated;
 
@@ -193,6 +200,61 @@ select is(pg_temp.rige('c1000000-0000-0000-0000-000000000001'), 'ninguna', 'sin 
 select is((select count(*)::int from public.listas_precios_tipo_cliente_resumen), 0, 'la vista queda vacía');
 
 -- Permisos y aislamiento
+-- ============================================================================
+-- Selección y filtros excluyentes, tope por filtro y archivar una lista de un tipo sin clientes
+-- ============================================================================
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select throws_ok(
+  format($f$select * from public.asignar_lista_precios_masiva('a1000000-0000-0000-0000-000000000001', array['c1000000-0000-0000-0000-000000000001']::uuid[], %s)$f$, v.resto),
+  '22023', 'Elegí clientes marcados o filtros, no las dos cosas', 'selección con filtro ' || v.etiqueta || ': se rechaza')
+from (values
+  ('texto', $$'norte'$$),
+  ('tipo', $$null, 'mayorista'$$),
+  ('tienda', $$null, null, 'e1000000-0000-0000-0000-000000000001'::uuid$$),
+  ('cuenta web', $$null, null, null, true$$)
+) as v(etiqueta, resto);
+select lives_ok(
+  $$select * from public.asignar_lista_precios_masiva('a1000000-0000-0000-0000-000000000001', array['c1000000-0000-0000-0000-000000000001']::uuid[], '  ', null, null, false)$$,
+  'filtros vacíos (texto en blanco, falso) no cuentan como filtros');
+
+reset role;
+insert into dominio.clientes (organizacion_id, numero, nombre, tipo)
+select '11111111-1111-1111-1111-111111111111', 1000 + g, 'Masivo ' || g, 'minorista' from generate_series(1, 5001) g;
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select throws_ok(
+  $$select * from public.asignar_lista_precios_masiva('a1000000-0000-0000-0000-000000000001', null, 'Masivo')$$,
+  '54000', 'Son más de 5000 clientes: afiná el filtro', 'por filtro, 5001 clientes superan el tope');
+select pg_temp.borrar_masivo();
+select results_eq(
+  $$select asignados, sin_cambios, omitidos from public.asignar_lista_precios_masiva('a1000000-0000-0000-0000-000000000001', null, 'Masivo')$$,
+  $$values (5000, 0, 0)$$, 'por filtro, exactamente 5000 pasa (frontera del tope)');
+select is((select count(*)::int from public.registro_actividad
+            where tipo = 'cliente.lista_precio_asignada_masiva' and detalle = 'Asignó la lista de precios «Revendedores» a 5000 clientes'),
+          1, 'y deja un solo evento de Actividad');
+
+-- Una lista asignada a un tipo sin clientes de ese tipo se puede archivar: el motor la ignora y restaurarla la reactiva.
+select lives_ok($$select * from public.asignar_lista_precios_masiva('a1000000-0000-0000-0000-000000000001', array['c1000000-0000-0000-0000-000000000005']::uuid[])$$,
+  'el último mayorista sin lista recibe una propia (no queda ninguno que herede)');
+select lives_ok($$select public.asignar_lista_precios_tipo_cliente('mayorista', 'a1000000-0000-0000-0000-000000000004')$$, 'asigna «Solo tipo» al tipo mayorista');
+reset role;
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo) values ('c1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 9999, 'Mayorista nuevo', 'mayorista');
+select is(pg_temp.rige('c1000000-0000-0000-0000-000000000009'), 'a1000000-0000-0000-0000-000000000004', 'un mayorista nuevo sin lista propia la hereda');
+select is(pg_temp.eliminar_cliente('c1000000-0000-0000-0000-000000000009'), 1, 'se retira el mayorista nuevo (el tipo queda sin clientes que hereden)');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok(
+  $$select public.archivar_lista_precios('a1000000-0000-0000-0000-000000000004', (select updated_at from dominio.listas_precios where id = 'a1000000-0000-0000-0000-000000000004'))$$,
+  'archivar una lista de un tipo sin clientes que la hereden está permitido');
+select is((select (archivada_en is not null)::text from public.listas_precios_tipo_cliente_resumen where tipo = 'mayorista'), 'true',
+  'la asignación del tipo se ve como archivada');
+reset role;
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo) values ('c1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 9998, 'Mayorista nuevo 2', 'mayorista');
+select is(pg_temp.rige('c1000000-0000-0000-0000-00000000000a'), 'ninguna', 'archivada, el motor la ignora');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok(
+  $$select public.restaurar_lista_precios('a1000000-0000-0000-0000-000000000004', (select updated_at from dominio.listas_precios where id = 'a1000000-0000-0000-0000-000000000004'))$$,
+  'restaurar la lista');
+select is(pg_temp.rige('c1000000-0000-0000-0000-00000000000a'), 'a1000000-0000-0000-0000-000000000004', 'restaurada, la asignación del tipo vuelve a regir');
+
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 select throws_ok($$select public.asignar_lista_precios_tipo_cliente('minorista', 'a1000000-0000-0000-0000-000000000001')$$, '42501', 'Solo un administrador puede asignar una lista de precios', 'un Operador no asigna por tipo');
 select pg_temp.como('d1000000-0000-0000-0000-000000000003');

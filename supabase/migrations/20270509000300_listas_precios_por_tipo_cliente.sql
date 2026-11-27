@@ -11,6 +11,9 @@
 -- en `public`. Seguridad: RLS por organización y sección `clientes` o `ventas` (lectura/edición), como `listas_precios`; escritura solo por
 -- RPC de Administrador; sin DELETE directo; `anon` sin acceso; FK compuesta por organización.
 --
+-- Archivar una lista asignada a un tipo SIN clientes de ese tipo (ni heredados) está permitido: el motor ignora las listas archivadas y la
+-- pantalla muestra la asignación como «archivada» para elegir otra o quitarla; restaurarla la reactiva. Con clientes heredados, bloquea.
+--
 -- Archivar: una lista usada por un tipo cuenta a los clientes que la heredan (sin lista propia) en `cantidad_clientes_lista`, así que
 -- «no se archiva una lista con clientes» (D10) sigue valiendo.
 --

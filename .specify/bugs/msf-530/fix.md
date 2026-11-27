@@ -23,7 +23,7 @@ RPC y reversión en `docs/proveedores.md` y en `supabase/migrations/202705090001
 
 ## Summary
 
-No se modificó código. MSF-530 es el seguimiento trazado (FR-020 / T029) de una limitación de alcance, no un defecto: MSF-205 entrega un proveedor por producto (`productos.proveedor_id`) y modelar N proveedores se difirió por decisión de negocio (Jira). El assessment exige una spec nueva (tabla `dominio.productos_proveedores`, RPC, UI y cambio de prototipo) y deja tres `[NEEDS CLARIFICATION]` sin resolver; el CLAUDE.md prohíbe inventar requisitos de negocio y exige spec antes de implementar.
+Aplicado en el lote 93 (ver «Resolución» arriba). MSF-530 era el seguimiento trazado (FR-020 / T029) de una limitación de alcance, no un defecto: MSF-205 entrega un proveedor por producto (`productos.proveedor_id`) y modelar N proveedores se difirió por decisión de negocio (Jira). El assessment exige una spec nueva (tabla `dominio.productos_proveedores`, RPC, UI y cambio de prototipo) y deja tres `[NEEDS CLARIFICATION]` sin resolver; el CLAUDE.md prohíbe inventar requisitos de negocio y exige spec antes de implementar.
 
 ## Changes
 
@@ -47,5 +47,5 @@ No se modificó código. MSF-530 es el seguimiento trazado (FR-020 / T029) de un
 
 ## Follow-ups
 
-- Abrir spec Spec Kit (castellano, alcance `supabase` + `refine`) resolviendo: principal obligatorio u opcional, atributos por relación (costo/código/plazo), y rediseño del prototipo `ProductoAlta`/`ProductoEditar` (+ matriz pantalla↔criterios).
-- Esquema declarado: `dominio` (Principio VII); migración aditiva con backfill desde `productos.proveedor_id` y reversión documentada.
+- Ninguno abierto: las tres preguntas quedaron resueltas (ver «Resolución (lote 93)») y la spec nueva no se abrió; la decisión y el diseño viven en `docs/proveedores.md` y en la migración `20270509000100_productos_proveedores.sql`.
+- Costo del vínculo y costo efectivo: la sincronía entre `producto_costos` y el principal es simétrica (alta, cambio y borrado) y exige edición en Rentabilidad para cambiar el costo efectivo.

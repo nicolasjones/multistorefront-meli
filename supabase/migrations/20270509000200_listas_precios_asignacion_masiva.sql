@@ -7,6 +7,8 @@
 -- Esquemas (Principio VII): sin tablas nuevas; función de superficie en `public`. Un solo evento de Actividad por llamada
 -- (`cliente.lista_precio_asignada_masiva`) en lugar de uno por cliente: el detalle dice cuántos clientes y qué lista.
 --
+-- Selección (`p_clientes`) y filtros son excluyentes (`22023`): combinar las dos ignoraría los filtros en silencio.
+--
 -- Tope: 5000 clientes por llamada (`54000`), en selección y en filtro. La organización y el actor salen de la sesión.
 --
 -- Migración aditiva e idempotente. Reversión (migración posterior):
@@ -43,6 +45,12 @@ declare
 begin
   if v_organizacion is null or v_actor is null or not (select private.es_administrador_de(v_organizacion)) then
     raise exception 'Solo un administrador puede asignar una lista de precios' using errcode = '42501';
+  end if;
+  -- Selección y filtros no se combinan: con `p_clientes` los filtros se ignorarían en silencio.
+  if p_clientes is not null
+     and (nullif(btrim(coalesce(p_texto, '')), '') is not null or p_tipo is not null or p_empresa_id is not null
+          or coalesce(p_con_cuenta_web, false)) then
+    raise exception 'Elegí clientes marcados o filtros, no las dos cosas' using errcode = '22023';
   end if;
   if p_tipo is not null and p_tipo not in ('minorista', 'mayorista') then
     raise exception 'El tipo de cliente tiene que ser minorista o mayorista' using errcode = '22023';

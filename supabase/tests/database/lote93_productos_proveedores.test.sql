@@ -4,7 +4,7 @@
 -- PT404/PT409/22023, aislamiento por organización y `anon` sin acceso.
 begin;
 
-select plan(56);
+select plan(87);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -30,9 +30,14 @@ insert into dominio.productos (id, organizacion_id, nombre, moneda, precio_lista
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Producto Uno', 'USD', 10,
    'f1000000-0000-0000-0000-000000000001', 'A-1'),
   ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Producto Dos', 'USD', 10, null, null),
-  ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Producto Ajeno', 'USD', 10, null, null);
+  ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Producto Ajeno', 'USD', 10, null, null),
+  ('e1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Producto Tres', 'USD', 10, 'f1000000-0000-0000-0000-000000000001', 'T-1'),
+  ('e1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Producto Cuatro', 'USD', 10, null, null),
+  ('e1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Producto Cinco', 'USD', 10, 'f1000000-0000-0000-0000-000000000001', 'Q-1');
 insert into dominio.producto_costos (producto_id, organizacion_id, costo) values
-  ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 100);
+  ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 100),
+  ('e1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 20),
+  ('e1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 30);
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -129,7 +134,7 @@ select is(pg_temp.vinculo_alta('Alta con proveedor'), 'true|ALTA-1|55.00', 'crea
 
 -- La ficha del proveedor lista los productos donde figura, principal o no, con el costo del vínculo
 select is((select string_agg(nombre, ',' order by nombre) from public.productos_de_proveedor('f1000000-0000-0000-0000-000000000001')),
-          'Alta con proveedor,Producto Uno', 'productos_de_proveedor incluye los productos donde el proveedor es secundario');
+          'Alta con proveedor,Producto Cinco,Producto Tres,Producto Uno', 'productos_de_proveedor incluye los productos donde el proveedor es secundario');
 select is((select costo from public.productos_de_proveedor('f1000000-0000-0000-0000-000000000001') where nombre = 'Producto Uno'), 100.00::numeric,
           'y trae el costo del vínculo');
 
@@ -168,6 +173,83 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000003');
 select is((select count(*)::int from public.listar_proveedores_de_producto('e1000000-0000-0000-0000-000000000001')), 1, 'Consulta lee los proveedores del producto');
 select throws_ok($f$select public.quitar_proveedor_producto('e1000000-0000-0000-0000-000000000001', 'f1000000-0000-0000-0000-000000000001')$f$,
   '42501', 'Tu rol no puede cambiar los proveedores del producto', 'Consulta no escribe');
+
+-- ============================================================================
+-- Costo efectivo: permiso de Rentabilidad, herencia y sincronía simétrica
+-- ============================================================================
+-- Producto Tres: principal A, costo 20. B secundario con costo 500 (lo carga la administración).
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok($f$select public.asignar_proveedor_producto('e1000000-0000-0000-0000-000000000003', 'f1000000-0000-0000-0000-000000000002', 'B-3', 500)$f$, 'la administración agrega B con costo 500');
+select is(pg_temp.costo_producto('e1000000-0000-0000-0000-000000000003'), 20.00::numeric, 'agregar un secundario no toca el costo efectivo');
+
+-- Un Operador (edita Productos, sin Rentabilidad) no puede cambiar el costo efectivo promoviendo un proveedor con otro costo.
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select throws_ok($f$select public.marcar_proveedor_principal('e1000000-0000-0000-0000-000000000003', 'f1000000-0000-0000-0000-000000000002')$f$,
+  'PT409', 'Este proveedor tiene otro costo: cambiar el principal modifica el costo del producto y necesitás edición en Rentabilidad',
+  'sin Rentabilidad, marcar principal a un proveedor con otro costo se rechaza');
+select is(pg_temp.costo_producto('e1000000-0000-0000-0000-000000000003'), 20.00::numeric, 'y el costo del producto queda en 20 (antes 20, después 20)');
+select is(pg_temp.principal('e1000000-0000-0000-0000-000000000003'), 'f1000000-0000-0000-0000-000000000001', 'ni cambia el principal');
+select throws_ok($f$select public.asignar_proveedor_producto('e1000000-0000-0000-0000-000000000003', 'f1000000-0000-0000-0000-000000000002', 'B-3', null, true)$f$,
+  'PT409', 'Este proveedor tiene otro costo: cambiar el principal modifica el costo del producto y necesitás edición en Rentabilidad',
+  'asignar con p_principal tampoco evade el permiso');
+select is(pg_temp.costo_producto('e1000000-0000-0000-0000-000000000003'), 20.00::numeric, 'el costo sigue en 20');
+
+-- Con permiso (administración), marcar principal a B cambia el costo efectivo a 500.
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok($f$select public.marcar_proveedor_principal('e1000000-0000-0000-0000-000000000003', 'f1000000-0000-0000-0000-000000000002')$f$, 'la administración marca principal a B');
+select is(pg_temp.costo_producto('e1000000-0000-0000-0000-000000000003'), 500.00::numeric, 'el costo efectivo pasa de 20 a 500');
+
+-- Un Operador no promueve a A (costo 20 ≠ 500) pero sí cuando el costo del vínculo coincide con el del producto.
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select throws_ok($f$select public.marcar_proveedor_principal('e1000000-0000-0000-0000-000000000003', 'f1000000-0000-0000-0000-000000000001')$f$,
+  'PT409', 'Este proveedor tiene otro costo: cambiar el principal modifica el costo del producto y necesitás edición en Rentabilidad',
+  'sin Rentabilidad, volver a A (costo 20 contra 500) se rechaza');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok($f$select public.asignar_proveedor_producto('e1000000-0000-0000-0000-000000000003', 'f1000000-0000-0000-0000-000000000001', 'T-1', 500)$f$, 'la administración iguala el costo de A a 500');
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select lives_ok($f$select public.marcar_proveedor_principal('e1000000-0000-0000-0000-000000000003', 'f1000000-0000-0000-0000-000000000001')$f$, 'sin Rentabilidad se puede cuando el costo coincide');
+select is(pg_temp.costo_producto('e1000000-0000-0000-0000-000000000003'), 500.00::numeric, 'y el costo del producto no cambia');
+
+-- Camino viejo (cambiar el proveedor del producto): el vínculo nuevo hereda el costo vigente; el permiso se respeta.
+update dominio.productos set proveedor_id = 'f1000000-0000-0000-0000-000000000002' where id = 'e1000000-0000-0000-0000-000000000004';
+select is(pg_temp.costo_vinculo('e1000000-0000-0000-0000-000000000004', 'f1000000-0000-0000-0000-000000000002'), 30.00::numeric,
+  'camino viejo: el vínculo principal nuevo hereda el costo 30 del producto (no queda nulo)');
+select is(pg_temp.costo_producto('e1000000-0000-0000-0000-000000000004'), 30.00::numeric, 'y el costo del producto no cambia');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok($f$select public.asignar_proveedor_producto('e1000000-0000-0000-0000-000000000004', 'f1000000-0000-0000-0000-000000000003', 'C-4', 99)$f$, 'la administración agrega C con costo 99');
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select throws_ok($f$update dominio.productos set proveedor_id = 'f1000000-0000-0000-0000-000000000003', codigo_proveedor = 'C-4' where id = 'e1000000-0000-0000-0000-000000000004'$f$,
+  'PT409', 'Este proveedor tiene otro costo: cambiar el principal modifica el costo del producto y necesitás edición en Rentabilidad',
+  'camino viejo sin Rentabilidad: elegir un proveedor con otro costo se rechaza');
+select is(pg_temp.costo_producto('e1000000-0000-0000-0000-000000000004'), 30.00::numeric, 'y el costo sigue en 30');
+select is(pg_temp.principal('e1000000-0000-0000-0000-000000000004'), 'f1000000-0000-0000-0000-000000000002', 'y el principal sigue siendo B');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+update dominio.productos set proveedor_id = 'f1000000-0000-0000-0000-000000000003', codigo_proveedor = 'C-4' where id = 'e1000000-0000-0000-0000-000000000004';
+select is(pg_temp.costo_producto('e1000000-0000-0000-0000-000000000004'), 99.00::numeric, 'camino viejo con Rentabilidad: el costo efectivo pasa a 99');
+
+-- Sincronía simétrica del costo en Producto Cinco (principal A, sin costo): alta, cambio y borrado, en los dos sentidos.
+reset role;
+insert into dominio.producto_costos (producto_id, organizacion_id, costo) values ('e1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 10);
+select is(pg_temp.costo_vinculo('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000001'), 10.00::numeric, 'producto -> principal: ALTA del costo');
+update dominio.producto_costos set costo = 12 where producto_id = 'e1000000-0000-0000-0000-000000000005';
+select is(pg_temp.costo_vinculo('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000001'), 12.00::numeric, 'producto -> principal: CAMBIO del costo');
+delete from dominio.producto_costos where producto_id = 'e1000000-0000-0000-0000-000000000005';
+select is(pg_temp.costo_vinculo('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000001'), null::numeric, 'producto -> principal: BORRADO del costo');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok($f$select public.asignar_proveedor_producto('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000001', 'Q-1', 7)$f$, 'principal -> producto: ALTA (el producto no tenía costo)');
+select is(pg_temp.costo_producto('e1000000-0000-0000-0000-000000000005'), 7.00::numeric, 'el costo del producto pasa a 7');
+select lives_ok($f$select public.asignar_proveedor_producto('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000001', 'Q-1', 8)$f$, 'principal -> producto: CAMBIO');
+select is(pg_temp.costo_producto('e1000000-0000-0000-0000-000000000005'), 8.00::numeric, 'el costo del producto pasa a 8');
+select lives_ok($f$select public.asignar_proveedor_producto('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000001', 'Q-1', null)$f$, 'principal -> producto: BORRADO (costo vacío en el principal)');
+select is(pg_temp.costo_producto('e1000000-0000-0000-0000-000000000005'), null::numeric, 'el producto queda sin costo (el espejo no diverge)');
+select is(pg_temp.costo_vinculo('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000001'), null::numeric, 'y el vínculo principal también');
+
+-- Un solo principal por producto: el índice único parcial lo garantiza aunque se escriba la tabla directo.
+reset role;
+select throws_ok(
+  $f$insert into dominio.productos_proveedores (organizacion_id, producto_id, proveedor_id, principal)
+     values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000002', true)$f$,
+  '23505', 'duplicate key value violates unique constraint "productos_proveedores_un_principal_idx"', 'un segundo principal choca con el índice único parcial');
 
 -- Un proveedor usado por un producto no se borra: la clave diferida se traduce a un error de negocio (como productos.proveedor_id)
 reset role;

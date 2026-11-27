@@ -209,7 +209,7 @@ Si tenés permiso, el botón **Importar** del listado te lleva a la carga masiva
 
 **No me aparece el proveedor al cargar un ingreso.** Probablemente está desactivado: reactivalo desde su ficha.
 
-**¿Puedo tener varios proveedores por producto?** Por ahora cada producto tiene un solo proveedor.
+**¿Puedo tener varios proveedores por producto?** Sí: un producto puede tener varios proveedores, uno de ellos principal, cada uno con su código y su costo (ver «Varios proveedores para un mismo producto»). Si cambiás el proveedor principal desde el campo «Proveedor» del formulario, el anterior se reemplaza y su vínculo se borra junto con su código y su costo; para conservarlo usá «Marcar como principal» en la sección «Proveedores del producto».
 
 **¿Puedo editar o borrar un contacto?** Por ahora no: se agregan y se marca cuál es el principal. Para cambiar el dato de contacto del proveedor, cambiá el contacto principal.
 
