@@ -148,3 +148,62 @@ test('el paquete se importa y registra los dos tableros (idempotente) con su sec
   await ejecutar({ args: ['--directorio', RAIZ, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
   assert.equal(filas.size, 2, 'reimportar no duplica los reportes');
 });
+
+// MSF-949: lo que se puede comprobar sin un Superset real. Un gráfico que nombra una columna o una métrica inexistente, o un
+// filtro nativo apuntando a otro dataset que los gráficos, se ve vacío o sin efecto recién al renderizar en Superset.
+async function datasetsPorUuid() {
+  const porUuid = new Map();
+  for (const archivo of await readdir(path.join(RAIZ, 'datasets', 'Ventas_analitica'))) {
+    const texto = await leer('datasets', 'Ventas_analitica', archivo);
+    porUuid.set(valor(texto, 'uuid'), {
+      columnas: new Set([...texto.matchAll(/^- column_name: (\S+)$/gm)].map((m) => m[1])),
+      metricas: new Set([...texto.matchAll(/^- metric_name: (\S+)$/gm)].map((m) => m[1])),
+    });
+  }
+  return porUuid;
+}
+
+test('cada gráfico usa solo columnas y métricas de su dataset', async () => {
+  const datasets = await datasetsPorUuid();
+  for (const archivo of await readdir(path.join(RAIZ, 'charts'))) {
+    const texto = await leer('charts', archivo);
+    const dataset = datasets.get(valor(texto, 'dataset_uuid'));
+    const params = JSON.parse(valor(texto, 'params'));
+    const columnas = [params.x_axis, ...(params.groupby ?? []), ...(params.groupbyRows ?? []), ...(params.groupbyColumns ?? [])].filter(Boolean);
+    assert.ok(columnas.length > 0, `${archivo}: agrupa por algo`);
+    for (const columna of columnas) assert.ok(dataset.columnas.has(columna), `${archivo}: la columna ${columna} existe en el dataset`);
+    assert.ok((params.metrics ?? []).length > 0, `${archivo}: tiene métricas`);
+    for (const metrica of params.metrics) assert.ok(dataset.metricas.has(metrica), `${archivo}: la métrica ${metrica} existe en el dataset`);
+  }
+});
+
+test('los filtros nativos de período y tienda apuntan al dataset de sus gráficos y a columnas que existen', async () => {
+  const datasets = await datasetsPorUuid();
+  const datasetDeGrafico = new Map();
+  for (const archivo of await readdir(path.join(RAIZ, 'charts'))) {
+    const texto = await leer('charts', archivo);
+    datasetDeGrafico.set(valor(texto, 'uuid'), valor(texto, 'dataset_uuid'));
+  }
+  for (const archivo of await readdir(path.join(RAIZ, 'dashboards'))) {
+    const texto = await leer('dashboards', archivo);
+    const filtros = JSON.parse(valor(texto, 'metadata')).native_filter_configuration;
+    const usados = [...texto.matchAll(/"uuid": "([0-9a-f-]{36})"/g)].map((m) => m[1]);
+    const datasetsDelTablero = new Set(usados.map((u) => datasetDeGrafico.get(u)));
+    assert.equal(datasetsDelTablero.size, 1, `${archivo}: todos sus gráficos salen del mismo dataset`);
+    const [datasetUuid] = datasetsDelTablero;
+    const ids = filtros.map((f) => f.id);
+    assert.ok(ids.includes('NATIVE_FILTER-rango') && ids.includes('NATIVE_FILTER-empresa') && ids.includes('NATIVE_FILTER-periodo'), `${archivo}: período, tienda y agrupación`);
+    for (const filtro of filtros) {
+      for (const destino of filtro.targets) {
+        assert.equal(destino.datasetUuid, datasetUuid, `${archivo}/${filtro.id}: filtra el dataset de los gráficos`);
+        if (destino.column) assert.ok(datasets.get(destino.datasetUuid).columnas.has(destino.column.name), `${archivo}/${filtro.id}: la columna ${destino.column.name} existe`);
+      }
+      assert.deepEqual(filtro.scope.excluded, [], `${filtro.id}: aplica a todos los gráficos`);
+    }
+    // El filtro de período es temporal sobre la columna marcada is_dttm y el de tienda es de lista sobre empresa_nombre.
+    const por = (id) => filtros.find((f) => f.id === id);
+    assert.equal(por('NATIVE_FILTER-rango').filterType, 'time_range');
+    assert.equal(por('NATIVE_FILTER-rango').targets[0].column.name, 'fecha');
+    assert.equal(por('NATIVE_FILTER-empresa').targets[0].column.name, 'empresa_nombre');
+  }
+});
