@@ -193,6 +193,8 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'reparacion.estado_cambiado': 'Estado de reparación cambiado',
   'reparacion.item_agregado': 'Ítem de la reparación agregado',
   'reparacion.item_quitado': 'Ítem de la reparación quitado',
+  'cliente.lista_precio_asignada_masiva': 'Lista de precios asignada en masa',
+  'lista_precios.tipo_asignada': 'Lista de precios asignada a un tipo de cliente',
   'reparacion.reingreso_garantia': 'Reingreso por garantía',
   'respuesta_rapida.creada': 'Respuesta rápida creada',
   'respuesta_rapida.editada': 'Respuesta rápida editada',
