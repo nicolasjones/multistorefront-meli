@@ -5,7 +5,7 @@ import { hayCapturasCambiadas, pantallasCambiadas, pantallasSinCaptura } from '.
 const P = 'apps/web/src/pages';
 
 // Equivalentes declarados: `[cm]?` y `[jt]sx?` de NO_PANTALLA no se distinguen porque PANTALLA exige `.tsx` (las variantes .mjs/.cts/.js nunca llegan a esa regex);
-// el `^` de `(^|\/)` en NO_PANTALLA tampoco (toda ruta empieza con apps/ y PANTALLA ya está anclada). Antes: el `^` de `(^|\/)` en NO_PANTALLA no se distingue (toda ruta empieza con apps/ y PANTALLA ya está anclada).
+// el `^` de `(^|\/)` en NO_PANTALLA tampoco (toda ruta empieza con apps/ y PANTALLA ya está anclada).
 // Una fila por condición (n-1 / n / n+1 donde aplica). Cada fila muere al mutar la condición que nombra.
 const PANTALLAS = [
   // [ruta, ¿cuenta como pantalla?, condición que fija]

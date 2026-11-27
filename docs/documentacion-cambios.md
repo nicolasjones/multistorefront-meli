@@ -194,10 +194,14 @@ su descripción y la página queda anotada como pendiente de recaptura.
 
 **Aviso automático (MSF-644).** `verificar-documentacion-cambios.mjs` (`scripts/docs-capturas-manual.mjs`) avisa en el CI cuando el
 diff cambia un `.tsx` de `apps/web/src/pages/` y no cambia ninguna imagen (`png`, `jpg`, `jpeg` o `webp`, sin distinguir mayúsculas) de
-`docs/producto/img/`. No cuenta como pantalla un archivo `.test.*`, `.spec.*` o `.stories.*`, ni los de una carpeta `__tests__/`,
-`__snapshots__/`, `test/`, `tests/` o `e2e/`. Los borrados se ignoran (`--diff-filter=d`): quitar una pantalla no pide capturas y
-quitar una imagen no cuenta como rehacerla (si ese segundo `git diff` fallara, el script avisa con `::warning` y vuelve a la lista completa, que sí cuenta los borrados). El nombre de la imagen o de la pantalla puede llevar saltos de línea: ambas regex usan el flag `s`. Es solo un aviso (`::warning`): el script no ve la descripción del PR, que es donde se
-declara que no corresponde rehacer las capturas. Pasa a error con `CAPTURAS_MANUAL_ESTRICTO=1` o `--capturas-estricto`.
+`docs/producto/img/`.
+
+- **Qué no cuenta como pantalla:** un archivo `.test.*`, `.spec.*` o `.stories.*`, ni los de una carpeta `__tests__/`,
+  `__snapshots__/`, `test/`, `tests/` o `e2e/`. Los nombres de pantalla o de imagen con saltos de línea se reconocen igual (ambas regex usan el flag `s`).
+- **Borrados:** se ignoran (`--diff-filter=d`): quitar una pantalla no pide capturas y quitar una imagen no cuenta como rehacerla.
+  Si ese segundo `git diff` fallara, el script avisa con `::warning` y vuelve a la lista completa, que sí cuenta los borrados.
+- **Severidad:** es solo un aviso (`::warning`), porque el script no ve la descripción del PR, que es donde se declara que no
+  corresponde rehacer las capturas. Pasa a error con `CAPTURAS_MANUAL_ESTRICTO=1` o `--capturas-estricto`.
 
 **Limitación medida.** No distingue una pantalla de un componente auxiliar que vive en `pages/` (eso exigiría analizar código), ni sabe
 qué captura corresponde a qué pantalla. Sobre los últimos 80 merges de `dokploy` (medido el 2026-11-26) el aviso habría saltado en 22
