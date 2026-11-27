@@ -18,6 +18,25 @@ insert into dominio.newsletter_configuracion (empresa_id, organizacion_id, activ
 update public.banderas_plataforma set activa = true where clave = 'newsletter';
 
 create temp table res (clave text primary key, j jsonb);
+-- Consume n veces, una por una (una función en FROM sin correlación se evaluaría una sola vez), y cuenta cuántas pasaron.
+create function pg_temp.consumir_baja_n(p_ip text, p_n integer) returns integer language plpgsql as $$
+declare v_ok integer := 0; v_r boolean;
+begin
+  for i in 1..p_n loop
+    select se_consumio into v_r from public.consumir_cupo_baja_correo(p_ip);
+    if v_r then v_ok := v_ok + 1; end if;
+  end loop;
+  return v_ok;
+end $$;
+create function pg_temp.consumir_nl_n(p_empresa uuid, p_n integer) returns integer language plpgsql as $$
+declare v_ok integer := 0; v_r boolean;
+begin
+  for i in 1..p_n loop
+    select se_consumio into v_r from private.consumir_cupo_newsletter(p_empresa);
+    if v_r then v_ok := v_ok + 1; end if;
+  end loop;
+  return v_ok;
+end $$;
 -- Fija la IP del pedido y llama a la suscripción (una IP distinta por llamada, dentro de una misma consulta).
 create function pg_temp.suscribir_desde(p_host text, p_ip text, p_correo text, p_clave uuid) returns jsonb language plpgsql as $$
 begin
@@ -65,7 +84,7 @@ select is(private.limite_baja_correo_hora(), 60, 'tope de la baja: 60 por hora')
 select is(private.red_de_ip('10.1.2.3'), '10.1.2', 'IPv4: se descarta el último octeto (/24)');
 select is(private.red_de_ip('10.1.2.255'), '10.1.2', 'IPv4: el borde alto del último octeto');
 select is(private.red_de_ip('2001:db8:1:2:3:4:5:6'), '2001:db8:1:2', 'IPv6: los primeros cuatro grupos');
-select is(private.red_de_ip('2001:db8::1'), '2001:db8::', 'IPv6 comprimida: los primeros cuatro campos del texto');
+select is(private.red_de_ip('2001:db8::1'), '2001:db8::1', 'IPv6 comprimida: los primeros cuatro campos del texto (incluye el vacío del ::)');
 select is(private.red_de_ip('sin-ip'), 'sin-ip', 'sin IP: se devuelve igual');
 select is(private.red_de_ip('1.2.3'), '1.2.3', 'un texto que no es IPv4 completa se devuelve igual');
 
@@ -117,7 +136,7 @@ select throws_ok($$ insert into private.cupo_publico_ip values ('baja-correo', r
   'new row for relation "cupo_publico_ip" violates check constraint "cupo_publico_ip_usos_positivos"', 'usos >= 1');
 
 -- ===== Baja de correo masivo (MSF-980): 60 por hora y visitante =====
-select is((select count(*)::int from generate_series(1, 60) g, lateral public.consumir_cupo_baja_correo('203.0.113.7') c where c.se_consumio), 60, 'los primeros 60 pedidos de una IP pasan');
+select is(pg_temp.consumir_baja_n('203.0.113.7', 60), 60, 'los primeros 60 pedidos de una IP pasan');
 select results_eq($$ select se_consumio, segundos_hasta_reinicio between 1 and 3600 from public.consumir_cupo_baja_correo('203.0.113.7') $$, $$ values (false, true) $$,
   'el pedido 61 se rechaza con la espera en segundos');
 select results_eq($$ select se_consumio from public.consumir_cupo_baja_correo('203.0.113.8') $$, $$ values (true) $$, 'otra IP tiene su propio cupo');
@@ -167,7 +186,7 @@ select is((select j ->> 'resultado' from res where clave = 'otra_red'), 'ok', 'o
 
 -- Cupo propio por visitante, directo: 5 por hora y tienda (límite - 1, límite y límite + 1).
 select set_config('request.headers', '{"x-forwarded-for":"10.9.4.1"}', true);
-select is((select count(*)::int from generate_series(1, 5) g, lateral private.consumir_cupo_newsletter('e9500000-0000-0000-0000-000000000001') c where c.se_consumio), 5,
+select is(pg_temp.consumir_nl_n('e9500000-0000-0000-0000-000000000001', 5), 5,
   'los primeros 5 pasan');
 select results_eq($$ select se_consumio, segundos_hasta_reinicio between 1 and 3600 from private.consumir_cupo_newsletter('e9500000-0000-0000-0000-000000000001') $$,
   $$ values (false, true) $$, 'el sexto del mismo visitante se rechaza con la espera');

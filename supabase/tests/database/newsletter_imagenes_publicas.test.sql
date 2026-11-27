@@ -56,6 +56,9 @@ end $$;
 
 update public.banderas_plataforma set activa = true where clave = 'newsletter';
 
+-- Cuenta las copias registradas aunque la sesión sea de authenticated (la tabla interna no es legible por la API).
+create function pg_temp.n_copias() returns integer language sql security definer as $$ select count(*)::int from private.newsletter_imagenes $$;
+
 -- ===== Bucket y políticas =====
 select is((select public from storage.buckets where id = 'newsletter-imagenes'), true, 'el bucket de copias es público (lectura de solo imágenes ya públicas)');
 select is((select allowed_mime_types from storage.buckets where id = 'newsletter-imagenes'), array['image/webp'], 'solo admite image/webp');
@@ -193,16 +196,16 @@ select throws_ok(format($$select public.registrar_imagen_newsletter('e1000000-00
    'https://' || repeat('h', 400) || '/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp'),
   '22023', 'La dirección pública de la imagen no es válida', 'una URL de más de 500 caracteres se rechaza');
 
-select is((select count(*)::int from private.newsletter_imagenes), 0, 'ningún intento inválido dejó un registro');
+select is(pg_temp.n_copias(), 0, 'ningún intento inválido dejó un registro');
 
 select lives_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001',
    'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
   'registra la copia válida');
-select is((select count(*)::int from private.newsletter_imagenes), 1, 'queda un registro');
+select is(pg_temp.n_copias(), 1, 'queda un registro');
 select lives_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001',
    'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
   'registrar de nuevo la misma copia (nuevo envío) es idempotente');
-select is((select count(*)::int from private.newsletter_imagenes), 1, 'sigue habiendo un solo registro por producto y tienda');
+select is(pg_temp.n_copias(), 1, 'sigue habiendo un solo registro por producto y tienda');
 
 -- ===== La foto y el correo llevan la imagen =====
 select is(
