@@ -3,6 +3,7 @@
 // Corre con `node --test` (`pnpm test:edge:solicitar-acceso`); el handler no importa nada de Deno.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 import { manejar, type Deps, type ResultadoRpc } from './handler.ts'
 
 type Opciones = {
@@ -153,5 +154,16 @@ describe('solicitar-acceso', () => {
 
     assert.equal((await pedir(deps, { metodo: 'GET' })).status, 405)
     assert.equal((await pedir(deps, { metodo: 'OPTIONS' })).status, 200)
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  it('un fallo de SMTP o de la liberación deja solo el nombre del error', async () => {
+    const { deps } = montar()
+    deps.enviar = async () => { throw errorHostil() }
+    deps.datos.liberarEnvio = async () => { throw errorHostil() }
+    const { resultado, lineas } = await capturarLog(() => pedir(deps))
+    assert.equal(resultado.status, 502)
+    assert.deepEqual(lineas, ['solicitar-acceso: no se pudo enviar el aviso Error', 'solicitar-acceso: no se pudo liberar el envío sol-1 Error'])
   })
 })

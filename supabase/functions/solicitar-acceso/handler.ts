@@ -1,6 +1,7 @@
 // Lógica de `solicitar-acceso` (F-ROL-05, FR-008) con dependencias inyectadas para poder probarla sin
 // Deno, Supabase ni SMTP (handler.test.ts). `index.ts` solo cablea los clientes reales.
 import type { EnviarCorreo } from '../_shared/correo.ts'
+import { textoDeError } from '../_shared/log-seguro.ts'
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -79,8 +80,8 @@ export async function manejar(req: Request, { verificarJwt, caller, datos, envia
       texto: `${nombre}${usuario.email ? ` (${usuario.email})` : ''} pidió acceso a la sección ${seccion}.\n\nPodés revisar su rol desde Usuarios y permisos.`,
     })
   } catch (e) {
-    console.error('solicitar-acceso: no se pudo enviar el aviso', e instanceof Error ? e.message : e)
-    await datos.liberarEnvio(registro.id).catch((err) => console.error('solicitar-acceso: no se pudo liberar el envío', registro.id, err))
+    console.error('solicitar-acceso: no se pudo enviar el aviso', textoDeError(e))
+    await datos.liberarEnvio(registro.id).catch((err) => console.error('solicitar-acceso: no se pudo liberar el envío', registro.id, textoDeError(err)))
     return response({ error: 'Tu solicitud quedó registrada, pero no pudimos avisar al administrador. Intentá de nuevo.' }, 502)
   }
   return response({ resultado: 'solicitud_enviada', nuevo: registro.nuevo, enviado: true })

@@ -12,6 +12,8 @@ export const FUNCIONALIDAD_CHAT = 'chat-ia'
 export const FUNCIONALIDAD_DOCUMENTOS = 'busqueda-documental'
 // No es de IA: `enviar-correo-proveedor` reutiliza el mismo contador atómico (lote 91, MSF-731) con su propia clave de funcionalidad.
 export const FUNCIONALIDAD_CORREO_PROVEEDOR = 'correo-proveedor'
+// Lote 92: `indexar-documento` gasta embeddings (crédito del proveedor) y también cuenta con su propia clave de funcionalidad.
+export const FUNCIONALIDAD_INDEXAR_DOCUMENTO = 'indexar-documento'
 
 // Bordes de MAX_ERROR_LOG (300), MAX_ANTES_DE_TACHAR (2000), UUID sin guiones {32,} y CORREO {1,64}@{1,255} fijados por tests de tabla
 // (cupo-ia.test.ts) con n-1 / n / n+1; no hay constantes equivalentes entre ellas.

@@ -17,16 +17,19 @@ const dry = args.includes("--dry-run");
 const BASE = (process.env.SUPABASE_URL || "http://localhost:54321").replace(/\/$/, "");
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANON = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const HOST = (() => { try { return new URL(BASE).hostname; } catch { return ""; } })();
+const URL_BASE = (() => { try { return new URL(BASE); } catch { return null; } })();
+const HOST = URL_BASE?.hostname ?? "";
+// Para mostrar: solo protocolo y host (la URL puede llevar usuario:clave@ o una ruta con tokens).
+const ORIGEN = URL_BASE ? `${URL_BASE.protocol}//${URL_BASE.host}` : "(URL inválida)";
 const LOCAL = ["localhost", "127.0.0.1", "host.docker.internal"].includes(HOST);
 const EMAIL = "demo@local.test";
 const PASSWORD = "Demo-Local1!";
 const ORG = "Demo MSF";
 const EMPRESA = "Tienda Demo";
 
-if (!LOCAL) { console.error(`❌ ${BASE} no es un Supabase local (${HOST}). Se aborta por seguridad.`); process.exit(1); }
+if (!LOCAL) { console.error(`❌ ${ORIGEN} no es un Supabase local (${HOST}). Se aborta por seguridad.`); process.exit(1); }
 if (dry) {
-  console.log(`# Demo MSF (dry-run)\n- Supabase: ${BASE}\n- Organización: ${ORG}\n- Empresa: ${EMPRESA}\n- Usuario: ${EMAIL} / ${PASSWORD}\n- 3 clientes, 3 productos y stock inicial 10\n- No se ejecutó nada.`);
+  console.log(`# Demo MSF (dry-run)\n- Supabase: ${ORIGEN}\n- Organización: ${ORG}\n- Empresa: ${EMPRESA}\n- Usuario: ${EMAIL} / ${PASSWORD}\n- 3 clientes, 3 productos y stock inicial 10\n- No se ejecutó nada.`);
   process.exit(0);
 }
 if (!SERVICE) { console.error("❌ falta SUPABASE_SERVICE_ROLE_KEY (supabase status -o env)"); process.exit(1); }

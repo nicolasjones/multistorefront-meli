@@ -5,6 +5,7 @@
 // la comprobación TLS solo corre con el dominio verificado y se conecta a la IP de la plataforma guardada
 // en la base (nunca a una IP resuelta del DNS del usuario, que podría cambiar entre consultas), validando el
 // certificado contra el nombre del dominio.
+import { registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -113,7 +114,7 @@ export async function manejar(req: Request, { verificarJwt, caller, admin, dns, 
       resultados.push({ tipo: 'CNAME', nombre: etiqueta, ...evaluarRegistro(cnames, prep.cname_destino, sinPuntoFinal) })
     }
   } catch (e) {
-    console.error('verificar-dominio-tienda: DNS no disponible', e instanceof Error ? e.message : e)
+    console.error('verificar-dominio-tienda: DNS no disponible', textoDeError(e))
     return response({ error: 'dns_no_disponible' }, 502)
   }
 
@@ -126,14 +127,14 @@ export async function manejar(req: Request, { verificarJwt, caller, admin, dns, 
     try {
       certificado = await tls.comprobar(dominio, prep.ip_publica)
     } catch (e) {
-      console.error('verificar-dominio-tienda: comprobación TLS fallida', e instanceof Error ? e.message : e)
+      console.error('verificar-dominio-tienda: comprobación TLS fallida', textoDeError(e))
       certificado = 'pendiente'
     }
   }
 
   const { error: errorRegistro } = await admin.registrar(empresaId, dominio, redireccion, resultados, certificado)
   if (errorRegistro) {
-    console.error('verificar-dominio-tienda: no se pudo registrar el resultado', errorRegistro.message)
+    registrarErrorDeBase('verificar-dominio-tienda: no se pudo registrar el resultado', errorRegistro)
     return response({ error: 'solicitud_invalida' }, 400)
   }
 

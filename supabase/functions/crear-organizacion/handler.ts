@@ -6,6 +6,7 @@
 // fundador vía la Auth Admin API (requiere la service-role key — por eso es una Edge Function y no
 // una RPC de Postgres, ver research.md) y lo deja como administrador de esa organización. Si la
 // invitación o la membresía fallan, revierte la organización creada.
+import { registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -91,14 +92,14 @@ export async function manejar(req: Request, { admin }: Deps): Promise<Response> 
 
   if (organizacionError || !organizacion) {
     // El detalle de la base (nombres de restricciones, columnas) queda en el log, no en la respuesta.
-    console.error('crear-organizacion: no se pudo crear la organización', organizacionError?.message)
+    registrarErrorDeBase('crear-organizacion: no se pudo crear la organización', organizacionError)
     return jsonResponse({ error: 'No se pudo crear la organización. Revisá el nombre e intentá de nuevo.' }, 400)
   }
 
   // La reversión no puede ser silenciosa: si falla, queda una organización huérfana y hay que poder verlo.
   const revertirOrganizacion = async () => {
     const { error } = await admin.from('organizaciones').delete().eq('id', organizacion.id)
-    if (error) console.error('crear-organizacion: no se pudo revertir la organización', organizacion.id, error.message)
+    if (error) registrarErrorDeBase(`crear-organizacion: no se pudo revertir la organización ${organizacion.id}`, error)
   }
 
   const { data: invitado, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
@@ -107,7 +108,8 @@ export async function manejar(req: Request, { admin }: Deps): Promise<Response> 
 
   if (inviteError || !invitado?.user) {
     await revertirOrganizacion()
-    console.error('crear-organizacion: falló la invitación', inviteError?.status, inviteError?.message)
+    // El error de Auth puede traer el correo del fundador: solo status, nombre y código.
+    console.error('crear-organizacion: falló la invitación', inviteError?.status, textoDeError(inviteError))
 
     // GoTrue responde 422 cuando el email ya tiene cuenta — probablemente
     // con membresía activa en otra organización (FR-002, único-usuario-
@@ -135,12 +137,12 @@ export async function manejar(req: Request, { admin }: Deps): Promise<Response> 
   })
 
   if (membresiaError) {
-    console.error('crear-organizacion: no se pudo vincular al fundador', membresiaError.message)
+    registrarErrorDeBase('crear-organizacion: no se pudo vincular al fundador', membresiaError)
     await revertirOrganizacion()
     // El usuario ya se creó (y el correo salió): se borra para que un reintento con el mismo correo no dé 422.
     if (admin.auth.admin.deleteUser) {
       const { error } = await admin.auth.admin.deleteUser(invitado.user.id)
-      if (error) console.error('crear-organizacion: no se pudo borrar al usuario invitado', invitado.user.id, error.message)
+      if (error) console.error('crear-organizacion: no se pudo borrar al usuario invitado', invitado.user.id, textoDeError(error))
     }
     return jsonResponse({ error: 'No se pudo vincular al fundador como administrador.' }, 400)
   }

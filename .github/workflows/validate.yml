@@ -139,7 +139,12 @@ jobs:
           # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm docs:check
+      # MSF-688/869: en un PR la correspondencia código-doc es ERROR (el código que figura en el `sources:` de un doc exige tocar ese
+      # doc, o `Docs-no-aplica: <motivo>` en un commit del PR). En push/dispatch/merge_group queda en aviso: ahí no hay diff de PR.
+      - name: docs:check (correspondencia código-doc estricta en PR)
+        env:
+          DOCUMENTACION_CORRESPONDENCIA_ESTRICTA: ${{ github.event_name == 'pull_request' && '1' || '0' }}
+        run: pnpm docs:check
       # Tests de los controles de documentación (docs-yaml, docs-check, trampas conocidas, documentación de cambios).
       - name: test:docs:check
         run: pnpm test:docs:check

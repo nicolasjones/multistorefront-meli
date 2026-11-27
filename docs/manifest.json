@@ -456,9 +456,9 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "7aee778212256ea470bf2a60ba0d2152b7a808eb45cf6e95077e7ddd6beeaa11",
-      "sourceHash": "a8c77e7f6f75901b5a4a885db541deb5eb316ff41736ea270d12c2d4c9520444",
-      "sourceAt": "10fa9457c",
+      "pageHash": "595dfbba1b71d8fd8b8aaf1e3838e059b040fbfeb994600c5639e77368f613a2",
+      "sourceHash": "4732b7b5ecdebeb0ff4766f7c323ff70c47fcd6c1f68a2d551de07c6a39bb0ef",
+      "sourceAt": "ac3be4155",
       "sources": [
         "scripts/calidad.mjs",
         ".github/workflows/quality.yml",
@@ -469,20 +469,20 @@
         "apps/web/vite.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "10fa9457c"
+      "commit": "ac3be4155"
     },
     "docs/capturas-documentacion.md": {
       "title": "Capturas del manual de usuario",
-      "pageHash": "9afd8d4b1a29783df50d1d9d5e385a5188255af29b77c268db869e0fe66a7ef3",
-      "sourceHash": "7ea6aac9470956dabb3aec02ea876b86522b87cef15c351727a8af9e77d36133",
-      "sourceAt": "882abece",
+      "pageHash": "0240da48c964587650d8123b06dd8c4d8169661932869e8c967bc7020748de27",
+      "sourceHash": "9048245c48e6281aae711d68331059349aa7927e2e46ed02aeaef4b5f13bb3c3",
+      "sourceAt": "77b70ff50",
       "sources": [
         "apps/web/playwright.capturas.config.ts",
         "apps/web/e2e/capturas/lib.ts",
         "apps/web/package.json"
       ],
       "owner": "plataforma",
-      "commit": "882abece"
+      "commit": "77b70ff50"
     },
     "docs/catalogo-exportacion.md": {
       "title": "Catálogo · Exportar productos a CSV (F-CAT-11)",
@@ -712,9 +712,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "9c7a32a0e609c8a35e172416796de905a9c52f8fe3a9cd0d50ada222af6f5fb8",
-      "sourceHash": "bcb4d9f52330eec80140ed1cdb8c61e1b6d5ea6fe6097a39717295b67009253a",
-      "sourceAt": "af0142a09",
+      "pageHash": "21f7419ed48a9686f8f16bba505406f1c9bff481750e1ba1bf3a1c6cf3e70d8e",
+      "sourceHash": "975eb628819b50d6a63d7b02ef45273c347653dc7b03021fa2a1f2fe5aa6a76f",
+      "sourceAt": "47914a40a",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -722,11 +722,13 @@
         "scripts/gate-integracion.mjs",
         "scripts/limpiar-ci.mjs",
         "scripts/verificar-workflows.mjs",
+        "scripts/verificar-inventario-suites.mjs",
+        "scripts/migraciones-reversion.mjs",
         "scripts/verificar-validacion.mjs",
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "af0142a09"
+      "commit": "47914a40a"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -928,12 +930,14 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "e6538a6a9b0f45be53708459a7e6a5c4cbd4271bc5d0b006ba54f1a67220be1b",
-      "sourceHash": "cc5633e76497f1708e2e0997ecb51071acf12c7fd959c888cca2c376df24651d",
-      "sourceAt": "604620925",
+      "pageHash": "764792db1fee4143b7a8f6f36d1b1320c2f3229de74707c427f23987a3a7ab35",
+      "sourceHash": "85410faa70f3c34aecf18713d3273c25d21fc7b3a8a9bb101617f17d33342d2a",
+      "sourceAt": "cce9f3024",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
+        "scripts/docs-capturas-manual.mjs",
+        "scripts/docs-capturas-manual.test.mjs",
         "scripts/docs-correspondencia.mjs",
         "scripts/docs-correspondencia.test.mjs",
         "scripts/docs-lineas.mjs",
@@ -949,7 +953,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "604620925"
+      "commit": "cce9f3024"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
@@ -962,9 +966,9 @@
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
-      "pageHash": "d57b275bcb33d8b1ce2573d8ddc9d3a0488c3245497c8d8bc237a705e1feda48",
-      "sourceHash": "292d8de11c5eb4abc1ff0e09676b19afe5d29cf5e8491fc736a355b80be8f160",
-      "sourceAt": "e7a004bc1",
+      "pageHash": "b4e01176b77f0c92fe387de675163c782ed48a3878b966a9d32c8a9293459170",
+      "sourceHash": "0912ad1ff9e11491d5a58d54c1907e6788413931420c520fbeb63d467c95550d",
+      "sourceAt": "6900b8a5d",
       "sources": [
         "specs/20261005-document-rag-mechanism",
         "apps/web/src/lib/documentosIa.ts",
@@ -976,11 +980,12 @@
         "supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql",
         "supabase/functions/preguntar-documentos/handler.ts",
         "supabase/functions/indexar-documento/handler.ts",
+        "supabase/functions/indexar-documento/cupo.ts",
         "supabase/functions/indexar-documento/fragmentos.ts",
         "supabase/functions/indexar-documento/consultas.ts"
       ],
       "owner": "tecnico",
-      "commit": "e7a004bc1"
+      "commit": "6900b8a5d"
     },
     "docs/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)",
@@ -995,9 +1000,9 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "3e4a50cddd115dba6fa2f9e01b40a2b3edf0d845a71aed689cc06b714fd20059",
-      "sourceHash": "a5b4421cbccd504a3b2e6064b1a67565ee70c5884cf2500b11a22634822796a1",
-      "sourceAt": "e1e6da5b9",
+      "pageHash": "d9bdd86611db102b8297d383b6ab81354407dde108d412842cc81faf09882c2d",
+      "sourceHash": "1895dae6ab3f81e97ef023917b00af3800a5ddd357bd87874e4d9f604c439f72",
+      "sourceAt": "0eb04f5aa",
       "sources": [
         "apps/web/playwright.config.ts",
         "apps/web/e2e/verificar-dist.mjs",
@@ -1013,7 +1018,7 @@
         "scripts/e2e-cobertura-epicas.py"
       ],
       "owner": "tecnico",
-      "commit": "e1e6da5b9"
+      "commit": "0eb04f5aa"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -1154,9 +1159,9 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "bf3645019587951fc5e3a9cddc5e3c5576b045fc8ed77c968d84c77daf3ac490",
-      "sourceHash": "fd3dd9466ac2170fd821bd1977f1891e3d68020d932a9a23019595cd490bac5a",
-      "sourceAt": "c27f480d4",
+      "pageHash": "9222a896741662e563102114e244e44d6ad2b7dd27300e89c2a330db85ced64c",
+      "sourceHash": "eb3f096c620e3613deae8842b4ecc2aed39938781c1699d2f859815957270b49",
+      "sourceAt": "8e0e9442e",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/chat-ia-responder/handler.ts",
@@ -1183,10 +1188,30 @@
         "packages/mcp-server/src/herramientas.ts",
         "packages/mcp-server/src/servidor.ts",
         "packages/ia/src/purga.ts",
-        "infra/kestra/flows/correo-masivo.yml"
+        "infra/kestra/flows/correo-masivo.yml",
+        "supabase/functions/indexar-documento/cupo.ts",
+        "supabase/functions/indexar-documento/index.ts",
+        "supabase/migrations/20270508100000_purga_de_envios_de_correo_a_proveedores.sql",
+        "supabase/tests/database/lote92_purga_envios_correo_proveedor.test.sql",
+        "supabase/functions/_shared/capturar-log.ts",
+        "supabase/functions/api-v1/handler.ts",
+        "supabase/functions/baja-correo-masivo/handler.ts",
+        "supabase/functions/consultar-estado-reparacion/handler.ts",
+        "supabase/functions/cotizacion-sugerida/handler.ts",
+        "supabase/functions/emitir-acceso-reporte/handler.ts",
+        "supabase/functions/entregar-webhook/handler.ts",
+        "supabase/functions/enviar-aviso-faltante/handler.ts",
+        "supabase/functions/enviar-resumen-reposicion/handler.ts",
+        "supabase/functions/enviar-resumen-semanal/handler.ts",
+        "supabase/functions/invitar-cliente/handler.ts",
+        "supabase/functions/invitar-miembro/handler.ts",
+        "supabase/functions/recalcular-alertas-inicio/handler.ts",
+        "supabase/functions/solicitar-acceso/handler.ts",
+        "supabase/functions/tienda-seo/handler.ts",
+        "supabase/functions/verificar-dominio-tienda/handler.ts"
       ],
       "owner": "plataforma",
-      "commit": "c27f480d4"
+      "commit": "8e0e9442e"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",
@@ -1478,9 +1503,9 @@
     },
     "docs/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
-      "pageHash": "208ad803f42dcc7d18984099d6f65d2f6176e8540a8328b0f82954ae6ebac463",
-      "sourceHash": "1425ab6855bea998c13cd0d5e75077f9fb844123bac7a1ad980c15440568c6ad",
-      "sourceAt": "c27f480d4",
+      "pageHash": "8ab16405fdcd3a4f4f0accfc6a7fb6fc7d90b973dd0116448675cd5aebf5a8d0",
+      "sourceHash": "0260ab25b83391daa0c7c25dfb406f4439ca5f222300fae10f691ae841d32b7e",
+      "sourceAt": "115ffea09",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -1510,7 +1535,7 @@
         "apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx"
       ],
       "owner": "tecnico",
-      "commit": "c27f480d4"
+      "commit": "115ffea09"
     },
     "docs/notificaciones-en-panel.md": {
       "title": "Centro de notificaciones en el panel (MSF-378 · F-NOT-02)",
@@ -1694,12 +1719,14 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "ac98d2963c5888d218cdbfff03176b007cf701546f5136ecf832c7a449f8917a",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "f5179a2fd0f4ec1c8db0930a464a1bc386d43a57610782fb192f19a1b5f85a64",
+      "sourceHash": "cd24b0a45f35cd51bf361166533b4e86c772fab71277357bfbc84467c18bb9a1",
+      "sourceAt": "77b70ff50",
+      "sources": [
+        "apps/web/src/components/navegacion/destinosPanel.ts"
+      ],
       "owner": "producto",
-      "commit": "432db86d"
+      "commit": "77b70ff50"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -1776,12 +1803,15 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "d6d41dc8e6a3381c7d288beb496833769c33f8caa1c05c6c964da7852d78e922",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "c2a893e323c5c05893bcfacfa0379fee4519d94cb9a0065f63967675d7363b17",
+      "sourceHash": "f9ec2552525bc275a0285f41d6d1bd710f4cddb3c535c9d66642a80ed02fe8ab",
+      "sourceAt": "77b70ff50",
+      "sources": [
+        "apps/web/src/components/navegacion/destinosPanel.ts",
+        "template-capabilities.json"
+      ],
       "owner": "producto",
-      "commit": "c35d315c"
+      "commit": "77b70ff50"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -2568,12 +2598,15 @@
     },
     "docs/producto/ventas-cierre-caja.md": {
       "title": "Cierre de caja",
-      "pageHash": "84c1d83e0eefa9f2ebba0bcc148aa796d74bc315dfdc568e4a25254556e34df2",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "36aa3a501cb17591ce63d3b3981389ef134d6c8dcb5be024a4ae586b99b5c708",
+      "sourceHash": "d4409cd5d25050ff81c9880fe53729e2c25fcecdbff952372298f0ca467e880d",
+      "sourceAt": "77b70ff50",
+      "sources": [
+        "specs/20261027-100000-ventas-mejoras",
+        "docs/tecnico/ventas-cierre-caja.md"
+      ],
       "owner": "producto",
-      "commit": "98fbbddf"
+      "commit": "77b70ff50"
     },
     "docs/producto/ventas-cobros-y-conciliacion.md": {
       "title": "Registrar cobros y controlar los pagos",
@@ -2768,14 +2801,15 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "a69ef6830005157e7b1f124784ebda03412f8588cefc4979e64e15b3a1ba2ad0",
-      "sourceHash": "bd84ab2fe82e22392fa4116aefe759501cb98392ca8635450e0722be87cf9d9d",
-      "sourceAt": "9e94da6b5",
+      "pageHash": "fad67380e89c2e366f92beeef4cdc688ab9fa4a2d98c606c907a34b1fdd31e82",
+      "sourceHash": "5320e983de5e0a2f3cbac9bbd4643cd501b353159e5b2fa69c1d2ec023fae80d",
+      "sourceAt": "6fd530583",
       "sources": [
         "scripts/tests-afectados.mjs",
         "scripts/tests-afectados.test.mjs",
         "scripts/verificar-trampas-conocidas.mjs",
         "scripts/verificar-migraciones.mjs",
+        "scripts/verificar-inventario-suites.mjs",
         "scripts/calidad.mjs",
         "apps/web/vite.config.ts",
         "apps/web/src/higieneReferenciasInternas.test.ts",
@@ -2784,7 +2818,7 @@
         ".github/workflows/quality.yml"
       ],
       "owner": "plataforma",
-      "commit": "9e94da6b5"
+      "commit": "6fd530583"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -4604,9 +4638,9 @@
     },
     "docs/tecnico/newsletter.md": {
       "title": "Newsletter de la tienda (MSF-468)",
-      "pageHash": "a859fc5c234a28c407808f0135fff20776f4f35484c4ddf1533f34219d5f04cb",
-      "sourceHash": "8e12db591345e90f1c9aac650b88754fb6eb81557d0c5b29d3a87aa736a3aa65",
-      "sourceAt": "c27f480d4",
+      "pageHash": "0ac179d23a2de0df2d64c2486932b98a6c4a93c9641c629e76ce7cbe9357911c",
+      "sourceHash": "b997dd218bd4d6993425fdedd5b45e89a746ff8b237b8972e471ef76461b678c",
+      "sourceAt": "115ffea09",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -4632,7 +4666,7 @@
         "design/pantallas/Newsletter.inventory.json"
       ],
       "owner": "tecnico",
-      "commit": "c27f480d4"
+      "commit": "115ffea09"
     },
     "docs/tecnico/notificaciones-ayuda-y-exportacion-total.md": {
       "title": "Notificaciones, ayuda y exportación total (MSF-224)",
@@ -5142,18 +5176,19 @@
     },
     "docs/tecnico/sandbox.md": {
       "title": "Sandbox de onboarding",
-      "pageHash": "458ae836a4d437b44f6e0b46548af1812c805ed60fc096c272ddc1d6ae39907d",
-      "sourceHash": "d0be8c6d73fa650e70663c371ffce83cf98f49f171f87c45b6d6418658e80c0b",
-      "sourceAt": "6776fb4d",
+      "pageHash": "5d36a3650483411203e3043af0b13b7b144199e0b1ef5fb042effffd7fb80c41",
+      "sourceHash": "df5c24739b21065c10744e438ec5eac425a095e0144a28f05f42339e12c17672",
+      "sourceAt": "cf4dbac2c",
       "sources": [
         "supabase/seed.sql",
         "scripts/demo-sandbox.mjs",
+        "scripts/demo-sandbox.test.mjs",
         "apps/web/vite.config.ts",
         "infra/refine/compose.yaml",
         ".github/workflows/validate.yml"
       ],
       "owner": "operacion",
-      "commit": "6776fb4d"
+      "commit": "cf4dbac2c"
     },
     "docs/tecnico/service-alta-estados-y-permisos.md": {
       "title": "Service técnico: alta, estados y permisos (MSF-182)",
@@ -6616,16 +6651,16 @@
     },
     "docs/verificar-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
-      "pageHash": "3cd60f4196ab53044b65a88dd6221a022ec6437441c8a98517ce80a0de421396",
+      "pageHash": "501c9984209b128e47e00dd625e05a7ad08bea35e8cb6771ebc5f5ca692f30c0",
       "sourceHash": "69fc4095ac1a90cbc9f06c45c54e5c58b0015528117ad97de1b6a9c8213df9a2",
-      "sourceAt": "15b0ce4e6",
+      "sourceAt": "6fd530583",
       "sources": [
         "scripts/verificar-migraciones.mjs",
         "scripts/migraciones-reversion.mjs",
         "scripts/inventariar-migraciones-sin-reversion.mjs"
       ],
       "owner": "plataforma",
-      "commit": "15b0ce4e6"
+      "commit": "6fd530583"
     }
   }
 }

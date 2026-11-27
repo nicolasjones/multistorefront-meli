@@ -27,6 +27,26 @@ sources:
   - packages/mcp-server/src/servidor.ts
   - packages/ia/src/purga.ts
   - infra/kestra/flows/correo-masivo.yml
+  - supabase/functions/indexar-documento/cupo.ts
+  - supabase/functions/indexar-documento/index.ts
+  - supabase/migrations/20270508100000_purga_de_envios_de_correo_a_proveedores.sql
+  - supabase/tests/database/lote92_purga_envios_correo_proveedor.test.sql
+  - supabase/functions/_shared/capturar-log.ts
+  - supabase/functions/api-v1/handler.ts
+  - supabase/functions/baja-correo-masivo/handler.ts
+  - supabase/functions/consultar-estado-reparacion/handler.ts
+  - supabase/functions/cotizacion-sugerida/handler.ts
+  - supabase/functions/emitir-acceso-reporte/handler.ts
+  - supabase/functions/entregar-webhook/handler.ts
+  - supabase/functions/enviar-aviso-faltante/handler.ts
+  - supabase/functions/enviar-resumen-reposicion/handler.ts
+  - supabase/functions/enviar-resumen-semanal/handler.ts
+  - supabase/functions/invitar-cliente/handler.ts
+  - supabase/functions/invitar-miembro/handler.ts
+  - supabase/functions/recalcular-alertas-inicio/handler.ts
+  - supabase/functions/solicitar-acceso/handler.ts
+  - supabase/functions/tienda-seo/handler.ts
+  - supabase/functions/verificar-dominio-tienda/handler.ts
 ---
 
 # Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)
@@ -221,12 +241,11 @@ La función anónima de baja consume un cupo persistente de **60 pedidos por hor
 
 | Pendiente | Por qué no se hizo | Propuesta |
 |---|---|---|
-| `indexar-documento` gasta crédito de embeddings sin cupo (MSF-727, hallazgo de la revisión del lote 90) | Fuera del alcance del lote 90: el cupo cubre `chat-ia-responder` y `preguntar-documentos` | Reutilizar `private.consumir_cupo_ia` con otra `funcionalidad` (por ejemplo `indexar-documento`) y un tope en caracteres o fragmentos por usuario y hora; ver también el tope de texto y de fragmentos de MSF-728 |
+| ~~`indexar-documento` gasta crédito de embeddings sin cupo~~ | Resuelto en el lote 92 | Ver «Lote 92», parte B |
 | Cupo de IA por organización (lote 90) | El cupo es por usuario y funcionalidad, no por organización: una organización con N usuarios, o una persona con N cuentas, obtiene 30·N por hora | Decisión consciente del lote 90. Si hace falta un techo por organización: segunda clave (organización) en `private.ia_cupo_uso` o una tabla análoga y consumir ambos cupos en la misma transacción |
-| Logs con `error.message` crudo en funciones fuera de IA (lote 90) | Fuera del alcance del lote 90 (solo IA) | 18 funciones imprimen `error.message` o el error completo en sus `console.error`/`console.warn`, sin `textoDeError` ni `redactarCredenciales`: `api-v1`, `baja-correo-masivo`, `consultar-estado-reparacion`, `cotizacion-sugerida`, `crear-organizacion`, `emitir-acceso-reporte` (errores de Superset), `entregar-webhook`, `enviar-aviso-faltante`, `enviar-correo-proveedor`, `enviar-resumen-reposicion`, `enviar-resumen-semanal`, `invitar-cliente`, `invitar-miembro`, `recalcular-alertas-inicio`, `recuperar-clave-cliente`, `solicitar-acceso`, `tienda-seo` y `verificar-dominio-tienda` (lista obtenida recorriendo todos los `console.*` de `supabase/functions` fuera de IA). **Mayor riesgo:** `enviar-correo-proveedor` y `enviar-aviso-faltante` (errores del cliente SMTP), `entregar-webhook` (imprime el error completo), `api-v1` (imprime objetos de error completos) y `emitir-acceso-reporte` (`causa.message` del flujo de Superset). Pasar los que corresponda por `_shared/log-seguro.ts` (`enviar-correo-proveedor` y `recuperar-clave-cliente` ya lo hacen desde el lote 91) |
-| Agendar `private.purgar_cupo_ia` (lote 90) | Sin agendar a propósito | Un flow de Kestra o pg_cron semanal con `select private.purgar_cupo_ia();` como `service_role`; sin purga la tabla crece una fila por usuario, funcionalidad y hora de uso |
-| Agendar el barrido de versiones `procesando` de `indexar-documento` (MSF-728) | La función ya existe (lote 89) pero no está agendada | Un flow de Kestra o pg_cron que llame `public.liberar_versiones_documento_atascadas(30)` con service_role; considerar que la pantalla ofrece «Reintentar» a los 15 minutos y que tras el barrido la versión queda `fallida` (hay que volver a subir el archivo) |
-| Consulta, retención y tope por organización de los envíos a proveedores (MSF-731) | El lote 91 solo registra (`private.correo_proveedor_envios`) | Una pantalla o RPC de lectura para administradores, una purga por antigüedad agendada (política de retención a definir) y, si hace falta, un segundo cupo por organización |
+| ~~Logs con `error.message` crudo en funciones fuera de IA (lote 90)~~ | Resuelto en el lote 92 (16 funciones) | Ver «Lote 92», parte A. Quedan fuera `_shared/ia/purga.ts` (`AggregateError` con el mensaje del primer fallo de Storage, sin log propio) y el `sanearError` de `entregar-webhook` (guarda el error del destino en la tabla, con el secreto redactado: es dato, no log) |
+| Agendar las tres purgas y el barrido (lotes 89, 90 y 92) | Sin agendar a propósito: agendar es infraestructura | Ver «Cómo agendarlas» en el «Lote 92»: `private.purgar_cupo_ia` (semanal), `private.purgar_correo_proveedor_envios` (mensual) y `public.liberar_versiones_documento_atascadas(30)` (cada 15 minutos). Sin agendar, `ia_cupo_uso` crece una fila por usuario, funcionalidad y hora de uso, el registro de correos sin límite y las versiones `procesando` atascadas no se liberan |
+| Consulta y tope por organización de los envíos a proveedores (MSF-731) | El lote 91 solo registra (`private.correo_proveedor_envios`) y el lote 92 agrega la purga (sin agendar) | Una pantalla o RPC de lectura para administradores, agendar la purga (ver «Lote 92») y, si hace falta, un segundo cupo por organización |
 | El override de organización del MCP es por nombre de parámetro (MSF-729) | No cubre `id_organizacion`, `tenant_id`, `empresa_id` | El wrapper SQL por acción (fila anterior) es la solución de fondo; abrir ticket y no registrar acciones con esos parámetros hasta tenerlo |
 | Lista negra de columnas secretas en `sanitizarDato` (MSF-730) | Es por nombre, ampliada pero no exhaustiva | La lista permitida por vista (`fuentes_chat_ia.columnas`, lote 89) es el control real; cargarla en cada fuente registrada |
 | Estado `indexando` en `versiones_documento` (MSF-728) | Migración y cambio de `activar_version_documento` | Ampliar el `check` de estado con `indexando` y que `activar_version_documento` lo acepte; con eso el candado deja de usar `motivo_error` (el índice único `(version_id, orden)` ya existe, lote 89) |
@@ -363,7 +382,7 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   propósito. `redactarCredenciales` acota su entrada a 4000 caracteres antes de cualquier regex (la salida no pasa de unas pocas veces ese
   tope) y los cuantificadores de los patrones (segmentos del JWT a 2000, esquema de URL a 30, sufijo del nombre de campo a 40, comillas a 4 y espacios a 16: todos con su borde fijado por tests de tabla n-1/n/n+1; el prefijo del nombre es solo un tope de rendimiento sin efecto observable); no se afirma que cada
   regex sea lineal (el JWT no lo es) sino que el tiempo está acotado por construcción, medido con 200k caracteres hostiles por variante
-  (decenas de milisegundos, aun en frío). La redacción **no es exhaustiva**: no cubre `AIza…`, `xoxb-…`, `ghp_…`, `Cookie:` sin nombre de campo ni base64 sin prefijo, tampoco nombres como `pwd=`, `pass=`, `passphrase:`, `private_key=`, `access_key=` o `session=`, una frase sin separador (`password is x`) ni un `)` entre el nombre y el `=` (`Key (token)=(x)`),
+  (decenas de milisegundos, aun en frío). **`registrarErrorDeBase` no tacha correos ni uuid** (eso lo hace solo `[cupo-ia]`): imprime el código y el mensaje de la base redactado. La base no suele poner datos de personas en `message`, pero si lo hiciera saldrían. La redacción **no es exhaustiva**: no cubre `AIza…`, `xoxb-…`, `ghp_…`, `Cookie:` sin nombre de campo ni base64 sin prefijo, tampoco nombres como `pwd=`, `pass=`, `passphrase:`, `private_key=`, `access_key=` o `session=`, una frase sin separador (`password is x`) ni un `)` entre el nombre y el `=` (`Key (token)=(x)`),
   y los errores de red o del proveedor no imprimen mensaje; (4) en `[cupo-ia]` se tachan,
   antes de acotar a 300, el uuid del usuario (sin distinguir mayúsculas), cualquier otro uuid, con o sin guiones (`[uuid]`), y los correos
   (`[correo]`). Como el tachado precede al recorte, un uuid completo nunca queda cortado por él y no se descarta nada al final (hacerlo
@@ -383,8 +402,8 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   ejemplo 3000 caracteres) pierde los últimos 64 del tramo previo y sale igual a 300.
   **Alcance de la regla:** vale para `chat-ia-responder`, `preguntar-documentos`, `indexar-documento` (handler, `fragmentos.ts`, `index.ts`) y
   `_shared/cupo-ia.ts`. Quedan fuera, por no tener datos variables, `_shared/token.ts` (`console.warn` con un texto fijo) y, por no correr en
-  producción, `_shared/verificacion/smtp-real.deno.ts` (script manual de verificación). Las demás funciones fuera de IA siguen imprimiendo
-  `error.message` (ver «Pendientes»).
+  producción, `_shared/verificacion/smtp-real.deno.ts` (script manual de verificación). Desde el lote 92 la misma regla vale para el resto de las
+  funciones fuera de IA (ver «Lote 92»).
   **Volumen:** son una línea por petición fallida, acotada en longitud y sin datos del usuario ni del contenido;
   con la base caída pueden repetirse una vez por petición y no hay limitador (el volumen lo acota el tamaño del tráfico, y el cupo no
   aplica si la RPC falla). Los logs de persistencia (crear la conversación, guardar el mensaje del usuario o la respuesta) quedan acotados por el
@@ -445,3 +464,102 @@ documental quedan sin servicio hasta aplicar la migración).
 **Reversión: advertencia.** Revertir quita el único cupo persistente: hay que volver a desplegar antes las versiones anteriores de las dos
 funciones y después borrar la tabla y las funciones (pasos en el encabezado de la migración). Con las versiones anteriores vuelve el tope de
 mejor esfuerzo (mensajes borrables y contador por isolate) y se reabre el hueco de gasto de crédito del proveedor sin cuota real.
+
+## Lote 92: logs sin texto crudo, cupo de `indexar-documento` y purgas (MSF-727, MSF-731)
+
+Seguimientos abiertos de los lotes 90 y 91. Una migración nueva, `20270508100000_purga_de_envios_de_correo_a_proveedores.sql` (solo una
+función; reaplicable; reversión en su encabezado). Prueba: `supabase/tests/database/lote92_purga_envios_correo_proveedor.test.sql`.
+
+### A. Logs fuera de IA sin mensaje crudo
+
+16 funciones imprimían `error.message`, `cause` o el error completo: `api-v1`, `baja-correo-masivo`, `consultar-estado-reparacion`,
+`cotizacion-sugerida`, `crear-organizacion`, `emitir-acceso-reporte`, `entregar-webhook`, `enviar-aviso-faltante`, `enviar-resumen-reposicion`,
+`enviar-resumen-semanal`, `invitar-cliente`, `invitar-miembro`, `recalcular-alertas-inicio`, `solicitar-acceso`, `tienda-seo` y
+`verificar-dominio-tienda`. `enviar-correo-proveedor` y `recuperar-clave-cliente` ya estaban resueltas desde el lote 91 (la tabla de pendientes del
+lote 90 listaba 18 con ellas dos). La lista salió de recorrer con grep `error.message`, `.message`, `String(e`, `instanceof Error` y todo `console.*`
+de `supabase/functions` fuera de IA.
+
+- **Errores de red, SMTP, DNS, TLS, Auth o de excepciones inesperadas:** `textoDeError` (nombre y código corto; nunca mensaje, `cause` ni URL).
+  El error de Auth de `crear-organizacion` e `invitar-*` puede traer el correo de la persona: va igual por `textoDeError` (más el `status`).
+- **Errores que DEVUELVE la base (`{ code, message }` de PostgREST):** `registrarErrorDeBase` (código acotado a 64 y mensaje saneado y redactado
+  con `redactarCredenciales`). Los identificadores (cliente, organización, resumen) van en el prefijo.
+- **Errores de la base que se relanzan** (`new Error(error.message)` en `baja-correo-masivo`, `tienda-seo`, los `index.ts` de `solicitar-acceso` y
+  `emitir-acceso-reporte`, los resúmenes y las alertas): ahora `errorDeBase(mensaje, error)` (`_shared/log-seguro.ts`), un `Error` con mensaje
+  constante y el `code` corto, que `textoDeError` imprime como `Error 42P01`. Así tampoco sale el texto de la base por una excepción que nadie
+  captura. Cambio de contrato interno: los mensajes de esos `Error` ya no llevan `: <mensaje de la base>`.
+- **`enviar-aviso-faltante`:** el texto crudo del error se sigue usando para CLASIFICAR (`codigoDeError`: `smtp_conexion`, `smtp_auth`…) pero no se
+  imprime; el log lleva el código de clasificación y el nombre del error. La configuración SMTP inválida (`ConfiguracionSmtpError`, mensaje de la
+  plataforma) pasa por `mensajeParaLog`. Los helpers `mensajeDeError` de los resúmenes y las alertas se eliminaron (su redacción de correos, IP y hosts
+  ya no hace falta: no se imprime el mensaje).
+- **`emitir-acceso-reporte`:** `registrarFallo` imprime un motivo propio (texto con a lo sumo un código HTTP) tal cual y, de un error capturado,
+  solo `textoDeError`. Los motivos de `listarDatasets` no cambian.
+- **`entregar-webhook`:** el error del destino que se guarda en la entrega (`sanearError`, con el secreto redactado) no es un log y no cambió.
+- **`cotizacion-sugerida`:** la captura de la caída inesperada pasó de `index.ts` a `manejarSinCaida` en `handler.ts`, para poder probar el log.
+- **Pruebas:** cada función tiene un test con un error hostil (mensaje, `cause`, `stack` y URL con `sk-secreta`; `errorHostil()` en
+  `_shared/capturar-log.ts`, utilidad solo de pruebas que captura `console.error/warn/log/info`) y verifica el log por igualdad con la línea
+  esperada. Para los errores de la base, `ERROR_BASE_HOSTIL` lleva una credencial en un formato que `redactarCredenciales` cubre. **Límite:**
+  `registrarErrorDeBase` redacta por patrones y NO es exhaustiva: un secreto sin formato reconocible dentro de un mensaje de la base (por
+  ejemplo `sk-corta`, de menos de 10 caracteres tras el prefijo) se imprimiría; la defensa principal sigue siendo no imprimir los mensajes de red.
+
+### B. `indexar-documento`: cupo persistente de embeddings
+
+- **Funcionalidad propia** `indexar-documento` en `public.consumir_cupo_ia` (misma tabla y función del lote 90; sin migración). Tope por usuario y
+  hora configurable con `INDEXAR_DOCUMENTO_LIMITE_HORA` (entero de **1 a 1000**; ausente, inválido, decimal, no positivo o mayor que 1000 vuelve a **20**).
+- **Por qué 20 por defecto.** Una indexación llega a `MAX_FRAGMENTOS` (2000) embeddings de ~1200 caracteres: 20 por hora acotan a un usuario a unos
+  40.000 embeddings por hora (centavos de dólar con `text-embedding-3-small`) y sobran para la carga normal de un administrador, que sube un manual
+  o un lote de documentos. Es un contador por INDEXACIÓN, no por fragmento ni carácter: el tamaño por documento ya lo acota `MAX_FRAGMENTOS`. Un
+  reintento desde la pantalla cuenta como otra indexación si llega hasta los embeddings.
+- **Orden.** El cupo se consume DESPUÉS de toda la validación (JWT, `version_id`, funcionalidad, permiso, versión, reclamo, descarga, texto,
+  fragmentos, política, credencial, proveedor y entrada) y ANTES de pedir los embeddings. Un pedido inválido o una configuración que falta no gasta cupo.
+- **Cupo agotado:** 429 con `Retry-After` (hasta la próxima hora UTC) y «Indexaste demasiados documentos en poco tiempo. Probá de nuevo más tarde.».
+  **Falla cerrado:** si la base no responde, la RPC lanza o la respuesta no se entiende, 503 «No se pudo verificar tu
+  cuota de uso.» sin gastar embeddings. Sin `SUPABASE_SERVICE_ROLE_KEY` el cliente de servicio de `index.ts` no se puede crear y la función responde
+  500 (se crea al inicio de cada pedido, antes de autenticar, y también en el preflight OPTIONS, que sale sin cabeceras CORS); sigue siendo falla cerrada, solo que no es un 503. En
+  `enviar-correo-proveedor` el cliente se crea de forma perezosa dentro del cupo y ahí la falta de la clave sí da 503. En ambos rechazos se SUELTA el candado de la versión (queda `procesando`, sin `fallida`): es transitorio y se
+  reintenta con «Reintentar» pasada la hora o el 503.
+- **Cableado:** `indexar-documento/cupo.ts` (`crearConsumirCupo(crearAdmin, leerEnv)`) con dependencias inyectables, igual que
+  `enviar-correo-proveedor/cupo.ts`; `index.ts` solo le pasa el cliente de servicio y `Deno.env`. `handler.ts` recibe `consumirCupo` en `Deps`.
+  Pruebas: `cupo.test.ts` (entorno falso que responde SOLO por su variable, fronteras del rango en una tabla, textos literales) y
+  `handler.test.ts` (orden, 429 con cabecera, 503, candado soltado y «ningún camino previo gasta cupo»).
+- **Orden de despliegue:** sin migración nueva; la función depende de `public.consumir_cupo_ia` (lote 90). Si falta, todo pedido llega a 503 tras validar.
+
+### C. Purga de los envíos de correo a proveedores
+
+`private.purgar_correo_proveedor_envios(p_dias int default 365)` (`security definer`, `search_path = ''`, solo `service_role`, igual que
+`private.purgar_cupo_ia`): borra las filas con `creado_en` estrictamente anterior a `now() - p_dias días` (una fila de exactamente `p_dias` días se
+conserva) y devuelve cuántas borró (idempotente). `p_dias` nulo, menor que 30 o mayor que 36500 se rechaza con `22023` («purgar_correo_proveedor_envios:
+los días deben ser un entero entre 30 y 36500») sin borrar nada: el piso evita vaciar por error una evidencia y el techo evita el desborde de fecha.
+**Decisión de retención:** 365 días por defecto, reversible porque la función no borra a quien la agenda con otro valor. `service_role` no tiene
+`delete` sobre la tabla: solo borra a través de esta función. **Sin agendar.**
+
+### Cómo agendarlas (infraestructura, a cargo de quien opera el entorno)
+
+Ninguna de las tres purgas ni el barrido está agendado. Todas se llaman como `service_role` (o dueño) y son idempotentes, así que repetir una
+ejecución es inocuo. Con `pg_cron` (si la extensión está habilitada en el proyecto):
+
+```sql
+-- Domingos 03:00 UTC: contadores de cupo de IA con más de 2 días (la tabla crece una fila por usuario, funcionalidad y hora).
+select cron.schedule('purgar-cupo-ia', '0 3 * * 0', $$ select private.purgar_cupo_ia(2) $$);
+-- Día 1 de cada mes, 03:30 UTC: envíos de correo a proveedores con más de 365 días (el defecto).
+select cron.schedule('purgar-correo-proveedor-envios', '30 3 1 * *', $$ select private.purgar_correo_proveedor_envios(365) $$);
+-- Cada 15 minutos: libera las versiones `procesando` atascadas hace más de 30 minutos (pasan a `fallida`; hay que volver a subir el archivo).
+select cron.schedule('liberar-versiones-documento-atascadas', '*/15 * * * *', $$ select public.liberar_versiones_documento_atascadas(30) $$);
+```
+
+Con Kestra (el camino del repo para lo agendado, `infra/kestra/flows/`): un flow con un `Schedule` y una tarea SQL o HTTP contra PostgREST que llame
+a la misma función con la clave de servicio (`/rest/v1/rpc/...`; `private.*` no está expuesto, así que para las dos purgas privadas hace falta una
+tarea SQL directa o un envoltorio público: `liberar_versiones_documento_atascadas` sí es público). Notas: (1) la pantalla de Documentos IA ofrece
+«Reintentar» a los 15 minutos, y tras el barrido la versión queda `fallida`; (2) la purga del correo es retención de evidencia: confirmar el plazo
+antes de agendarla; (3) para quitar un agendado: `select cron.unschedule('<nombre>');` o desactivar el flow.
+
+### Qué quedó fuera
+
+- Agendar las purgas (infraestructura).
+- Un segundo cupo por organización para `indexar-documento` (el cupo es por usuario, como el resto).
+- Cupo por tamaño del documento: lo acota `MAX_FRAGMENTOS`; un tope por caracteres o fragmentos por hora exigiría otra tabla.
+- `_shared/ia/purga.ts` (el `AggregateError` con el mensaje del primer fallo de Storage; no se imprime en ningún log de estas funciones).
+
+**Seguimiento del lote 92 (revisión):** los handlers con cupo (`chat-ia-responder`, `preguntar-documentos`, `enviar-correo-proveedor` e `indexar-documento`)
+y `consultar-estado-reparacion` envían `Access-Control-Expose-Headers: Retry-After` en todas sus respuestas (cada test del 429 lo verifica): sin esa cabecera
+el navegador del panel, que llama desde otro origen, no puede leer el `Retry-After`. Quedan fuera a propósito `api-v1` (no define CORS) y
+`verificar-dominio-tienda` (su 429 `demasiado_pronto` no tiene una ventana calculada que informar y el frontend usa un texto fijo según el código).

@@ -11,6 +11,7 @@
 // (solo `service_role`). La respuesta es SIEMPRE `{ ok: true }` exista o no el token y se repita o no la baja
 // (idempotente): no se puede enumerar qué tokens son válidos. Un fallo de la base responde 500 sin detalle, para que
 // quien quiere darse de baja pueda reintentar, y solo se registra en el log (sin el token).
+import { errorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 
 // CORS (MSF-963, RF-NL-9): la página de baja corre en el dominio de CADA tienda y llama a esta función con `supabase.functions.invoke`, así que el
 // origen no se puede fijar de antemano: `*` es correcto porque la función no usa cookies ni credenciales (la autenticación es el token del enlace) y el
@@ -25,7 +26,6 @@ const preflightHeaders = { ...corsHeaders, 'Access-Control-Max-Age': '86400' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
 import { cadenaProxy, ipDelCliente, SIN_IP } from '../_shared/ip-cliente.ts'
-import { registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 import { TEXTO_CUPO_NO_VERIFICABLE, type RechazoCupo } from './cupo.ts'
 
 type DbError = { message: string; code?: string }
@@ -79,12 +79,8 @@ export async function manejar(req: Request, { admin, cupo, saltosProxy }: Deps):
   try {
     // Un token desconocido no es error: la función devuelve false y la respuesta es la misma.
     const { error } = await admin.rpc('dar_de_baja_correo_masivo', { p_token_hash: await sha256Hex(token) })
-    if (error) {
-      registrarErrorDeBase('baja-correo-masivo: la base rechazó la baja', error)
-      return response({ error: 'No pudimos procesar la baja. Probá de nuevo en un rato.' }, 500)
-    }
+    if (error) throw errorDeBase('dar_de_baja_correo_masivo falló', error)
   } catch (cause) {
-    // Solo el nombre y el código del error: nunca su mensaje (puede traer datos de la base) ni el token.
     console.error('baja-correo-masivo: no se pudo procesar la baja', textoDeError(cause))
     return response({ error: 'No pudimos procesar la baja. Probá de nuevo en un rato.' }, 500)
   }

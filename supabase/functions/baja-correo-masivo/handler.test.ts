@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { describe, it } from 'node:test'
 import { manejar, type Deps } from './handler.ts'
 import type { RechazoCupo } from './cupo.ts'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 
 const TOKEN = 'a'.repeat(32) + 'b'.repeat(32)
 const hash = (texto: string) => createHash('sha256').update(texto).digest('hex')
@@ -34,7 +35,7 @@ function montar(opciones: { rpcError?: boolean; rechazo?: RechazoCupo | null; sa
 }
 
 const pedido = (body: unknown, method = 'POST') =>
-  new Request('http://localhost/baja-correo-masivo', { method, headers: { 'Content-Type': 'application/json' }, body: method === 'POST' ? JSON.stringify(body) : undefined })
+  new Request('http://localhost/baja-correo-masivo', { method, headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '10.2.3.4' }, body: method === 'POST' ? JSON.stringify(body) : undefined })
 
 describe('baja-correo-masivo', () => {
   it('con un token válido calcula el hash SHA-256 y da de baja sin mandar el token en claro', async () => {
@@ -252,5 +253,23 @@ describe('baja-correo-masivo', () => {
     assert.ok(registros.length > 0, 'se registró el fallo')
     const texto = JSON.stringify(registros)
     assert.ok(!texto.includes(TOKEN), 'sin el token')
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  it('un error de la base deja el nombre y el código, sin el mensaje', async () => {
+    const { deps } = montar()
+    deps.admin.rpc = async () => ({ data: null, error: ERROR_BASE_HOSTIL })
+    const { resultado, lineas } = await capturarLog(() => manejar(pedido({ token: TOKEN }), deps))
+    assert.equal(resultado.status, 500)
+    assert.deepEqual(lineas, ['baja-correo-masivo: no se pudo procesar la baja Error 42501'])
+  })
+
+  it('una excepción hostil de la red deja solo el nombre', async () => {
+    const { deps } = montar()
+    deps.admin.rpc = async () => { throw errorHostil() }
+    const { resultado, lineas } = await capturarLog(() => manejar(pedido({ token: TOKEN }), deps))
+    assert.equal(resultado.status, 500)
+    assert.deepEqual(lineas, ['baja-correo-masivo: no se pudo procesar la baja Error'])
   })
 })
