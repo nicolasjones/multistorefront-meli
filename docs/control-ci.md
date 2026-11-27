@@ -7,6 +7,8 @@ sources:
   - scripts/gate-integracion.mjs
   - scripts/limpiar-ci.mjs
   - scripts/verificar-workflows.mjs
+  - scripts/verificar-inventario-suites.mjs
+  - scripts/migraciones-reversion.mjs
   - scripts/verificar-validacion.mjs
   - .github/workflows/validate.yml
 ---
@@ -239,22 +241,39 @@ así un fallo transitorio no queda fijado. La organización activa no se cachea:
   - `test:db`, `test:acceso:e2e`, `test:auth:hook-bloqueo:e2e`, `test:kestra:secretos:e2e`, `test:kestra:evidencia:e2e`,
     `test:kestra:reintentos:e2e` y `test:kestra:conexion-trabada:e2e` necesitan Supabase o Kestra levantados.
   - `test:web` y `test:e2e` ya corren con vitest y playwright en sus propios jobs; `test:e2e:headed` (corre con navegador visible),
-    `:report` (abre el reporte HTML y queda esperando), `:trace` (abre el visor de trazas), `:codegen` (graba acciones en un navegador
-    abierto) y `:storage` (graba el estado de sesión en `auth.json`) son herramientas interactivas de depuración local: necesitan
+    `test:e2e:report` (abre el reporte HTML y queda esperando), `test:e2e:trace` (abre el visor de trazas), `test:e2e:codegen` (graba acciones en un navegador
+    abierto) y `test:e2e:storage` (graba el estado de sesión en `auth.json`) son herramientas interactivas de depuración local: necesitan
     una persona frente a la pantalla y no verifican nada; `test:e2e:ui` abre la interfaz
     interactiva de Playwright, `test:e2e:record` graba video y traza para revisar a mano y `test:e2e:evidencia` corre con navegador visible
     para capturar evidencia: ninguna de las tres está en los scripts del CI.
+  - `test:historia:item` y `test:tracker:duplicados` corren dentro de `test:tooling` (mismo archivo); no se repiten.
   - `test:afectados` es un selector que corre otros tests según el diff, no una suite propia.
 - **`release-please` y migraciones a staging cloud (MSF-680).** Ramas `main`, credenciales y flujo de promoción STG/PRD: no se
   tocan acá. Propuesta (no verificado: el diagnóstico sale del texto del ítem, no se revisaron los logs ni los ajustes del repo):
   habilitar «Allow GitHub Actions to create and approve pull requests» en Settings → Actions, o pasar `token:` de un PAT/GitHub App
   a `release-please-action` (secret nuevo); revisar el secret `SUPABASE_DB_URL` del Environment `staging` y su puerto (según el
   ítem, el destino rechazaba conexiones) y agregar una alerta cuando falle el job `staging`.
-- **`docs:check` elude fácil (MSF-688).** `verificar-documentacion-cambios.mjs` da por documentado cualquier cambio en
-  `docs/`/`specs/`. Se atendió en el lote 88 (MSF-869) con una verificación adicional en modo aviso que usa el `sources:` de cada doc
-  como mapa ruta de código → doc (ver «Correspondencia código-doc» en `docs/documentacion-cambios.md`); no bloquea PRs en vuelo.
-  Activarla como error: `DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1`. El `accessControlProvider` (llamadas de red por
-  ítem de menú, `lib/superadmin.ts`) es código de la app, no de CI: se atendió en la sección «Acceso por ítem de menú (MSF-688, lote 58)».
+- **Gates eludibles (MSF-688 y MSF-869, cerrados en el lote 96 salvo lo de GitHub).**
+  - `verificar-documentacion-cambios.mjs`: la correspondencia código→doc (`sources:` de cada doc) ahora es **error en todo PR**
+    (`validate.yml`, job `chequeos`, `DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1` solo en `pull_request`). Antes quedaba en aviso desde el
+    lote 88. Se redujo el ruido estructural y hay una excepción auditable (`Docs-no-aplica: <motivo>` en un commit): detalle y cifras
+    en `docs/documentacion-cambios.md`.
+  - `validar-migraciones-aditivas.mjs` (verificado en el árbol, ya estaba hecho): detecta además `DROP SCHEMA`, `DROP FUNCTION` y
+    `DELETE FROM` sin `WHERE`; el marcador de reversión exige la palabra «Reversión» completa (no «reversible»), sin negar y con
+    contenido. `DROP CONSTRAINT` no se marca a propósito (falso positivo comprobado: redefinir un check es seguro). Límites en
+    `scripts/migraciones-reversion.mjs`.
+  - `accessControlProvider`/`superadmin.ts` (llamadas de red por ítem de menú): atendido en «Acceso por ítem de menú (MSF-688, lote 58)».
+  - **De Nicolás, no resolubles desde el repo** (ajustes de GitHub; recomendaciones, no se pudo consultar el ruleset): que el ruleset de `dokploy` siga exigiendo `validacion` (que ya
+    agrega `chequeos`, donde corre el estricto); no permitir saltar el ruleset con «bypass» a los administradores si se quiere que el
+    estricto también los alcance; y no marcar como requerido ningún check que dependa del filtro de rutas.
+- **Inventario de suites contra el CI (MSF-679, lote 96).** `scripts/verificar-inventario-suites.mjs` (`pnpm test:suites:inventario`,
+  corre en `test:ci:scripts`) falla si una suite `test:*` de `package.json` o un archivo de test (`scripts/`, `supabase/functions/`,
+  `infra/`, `workers/`, `packages/`) no lo ejecuta ningún workflow, salvo que figure en su tabla `EXCLUIDAS` con el motivo; también
+  falla si una exclusión quedó vieja (la suite ya corre o ya no existe) o si esta sección no la nombra. «Corre en el CI» es
+  alcanzable desde el texto de los workflows siguiendo `pnpm <script>`. Primer barrido: estaban sin correr los tests de los cinco
+  workers (`pnpm test:workers:unit`, ~15 s, vitest sin servicios), `supabase/functions/_shared/log-seguro.test.ts` (ahora en
+  `test:edge:compartido-ia`) y `scripts/prototipo-inventario.test.mjs` (ahora en `test:prototipo:inventario`). Lo caro o con servicios
+  sigue fuera, con el motivo en la lista de abajo. El test del inventario (`test:suites:inventario:unit`) fija sus fronteras.
 
 ## Cambios de CI de la auditoría MSF-647 (lote 36)
 
