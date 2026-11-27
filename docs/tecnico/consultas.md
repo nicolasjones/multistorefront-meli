@@ -145,7 +145,7 @@ Contrato completo: `specs/20261023-120000-consultas-bandeja-y-aviso/contracts/co
 
 | RPC | Contrato |
 |---|---|
-| `public.actualizar_consulta(p_id, p_estado, p_responsable_id, p_nota_interna, p_updated_at)` | Exige `consultas = edicion` y empresa accesible. Valida el responsable (usuario activo con acceso a la empresa y a la sección), aplica bloqueo optimista por `updated_at` (`40001`), es idempotente y registra `consulta.estado_cambiado`, `consulta.asignada` y `consulta.nota_actualizada` en `registro_actividad` solo si el valor cambió. Cambia solo estado, responsable y nota. |
+| `public.actualizar_consulta(p_id, p_estado, p_responsable_id, p_nota_interna, p_updated_at)` | Exige `consultas = edicion` y empresa accesible. Valida el responsable (usuario activo con acceso a la empresa y a la sección), acepta cualquier estado activo de la organización (`dominio.estados_consulta`: la clave guardada en `consultas.estado`, MSF-595) o el que la consulta ya tiene aunque se haya desactivado, aplica bloqueo optimista por `updated_at` (`PT412`; ver [`errores-negocio-postgrest.md`](../errores-negocio-postgrest.md)), es idempotente y registra `consulta.estado_cambiado`, `consulta.asignada` y `consulta.nota_actualizada` en `registro_actividad` solo si el valor cambió. Cambia solo estado, responsable y nota. |
 | `public.contar_consultas_nuevas(p_empresa_id uuid default null)` | Contador de nuevas para el menú; respeta RLS. |
 | `public.responsables_consultas(p_empresa_id uuid)` | Personas asignables a consultas de una empresa. |
 | `public.consultas_bandeja` (vista `security_invoker`) | Filas de la bandeja con empresa, producto, responsable y nota; la paginación, la búsqueda y los filtros los arma el cliente sobre PostgREST. |

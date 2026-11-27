@@ -219,6 +219,8 @@ c7860a7c y hoy `docs-check` pasa; MSF-570: el spec `40-catalogo-tiendas` suma la
 revisión visual lado a lado con el sistema de diseño en STG. MSF-644 se trata en el PR #1226. Además, el comentario de
 `playwright.capturas.config.ts` remite a `docs/capturas-documentacion.md`, que ahora existe.
 
+Pendientes por el lote 94 (2026-11-26, MSF-595 y MSF-611): `docs/producto/img/consultas/` (filtro y selector de estados configurados, aclaración de «Nuevas») y las capturas del listado de productos (chip «Stock bajo», sin «Sin vincular a ML»).
+
 ## Ramas `main` y `dokploy`: estado y reconciliación de la documentación (MSF-590)
 
 **Estado (medido el 2026-11-17 con `git rev-list --left-right --count origin/main...origin/dokploy`).** `main` tiene 16

@@ -9,7 +9,11 @@ import {
   listarItemsConsulta,
   textoProductoConsulta,
   totalReferenciaPedido,
+  colorEstadoConsulta,
   esConflicto,
+  esEstadoRechazado,
+  etiquetaEstadoConsulta,
+  opcionesParaElegir,
   formatearCuando,
   limitesDeFecha,
   mensajeDeError,
@@ -130,5 +134,60 @@ describe('pedidos de la tienda (B1, P-6)', () => {
     expect(totalReferenciaPedido([item(2, 2500), item(1, null), item(3, 100.5)])).toBe(5301.5)
     expect(totalReferenciaPedido([item(1, null)])).toBeNull()
     expect(totalReferenciaPedido([])).toBeNull()
+  })
+})
+
+// MSF-595: estados configurables conectados a `consultas.estado`.
+describe('estados configurados de una consulta', () => {
+  const opciones = [
+    { clave: 'nueva', nombre: 'Nueva', activo: true },
+    { clave: 'en_curso', nombre: 'En curso', activo: true },
+    { clave: 'resuelta', nombre: 'Resuelta', activo: true },
+    { clave: 'c-1', nombre: 'Descartada', activo: true },
+    { clave: 'c-2', nombre: 'Archivada', activo: false },
+  ]
+
+  it('el nombre sale de la lista configurada, no de la clave', () => {
+    expect(etiquetaEstadoConsulta('c-1', opciones)).toBe('Descartada')
+    expect(etiquetaEstadoConsulta('nueva', opciones)).toBe('Nueva')
+  })
+
+  it('sin lista cargada los de base conservan su nombre y uno ajeno no muestra la clave cruda', () => {
+    expect(etiquetaEstadoConsulta('en_curso', null)).toBe('En curso')
+    expect(etiquetaEstadoConsulta('c-1', null)).toBe('Otro estado')
+  })
+
+  it('solo los de base tienen color; uno propio es neutro', () => {
+    expect([colorEstadoConsulta('nueva'), colorEstadoConsulta('en_curso'), colorEstadoConsulta('resuelta')]).toEqual(['primary', 'warning', 'success'])
+    expect(colorEstadoConsulta('c-1')).toBe('default')
+  })
+
+  it('se ofrecen los activos; uno desactivado solo si es el que la consulta ya tiene', () => {
+    expect(opcionesParaElegir(opciones, 'nueva').map((o) => o.clave)).toEqual(['nueva', 'en_curso', 'resuelta', 'c-1'])
+    expect(opcionesParaElegir(opciones, 'c-2').map((o) => o.clave)).toEqual(['nueva', 'en_curso', 'resuelta', 'c-1', 'c-2'])
+  })
+
+  it('el estado actual se ofrece aunque no esté en la lista y sin lista se ofrecen los tres de base', () => {
+    expect(opcionesParaElegir(opciones, 'c-9')[0]).toEqual({ clave: 'c-9', nombre: 'Otro estado', activo: true })
+    expect(opcionesParaElegir(null, 'nueva').map((o) => o.clave)).toEqual(['nueva', 'en_curso', 'resuelta'])
+    expect(opcionesParaElegir(null, 'c-1').map((o) => o.clave)).toEqual(['c-1', 'nueva', 'en_curso', 'resuelta'])
+  })
+
+  it.each([
+    ['PT404', 'estado', 'El estado elegido ya no existe. Cerrá y abrí la consulta para ver los estados vigentes.'],
+    ['PT412', 'estado', 'El estado elegido está desactivado. Elegí otro estado activo.'],
+  ])('%s con detail estado no es un conflicto de edición', (codigo, detalle, texto) => {
+    const error = new ErrorConsulta('crudo', codigo, detalle)
+    expect(esEstadoRechazado(error)).toBe(true)
+    expect(esConflicto(error)).toBe(false)
+    expect(mensajeDeError(error, 'x')).toBe(texto)
+  })
+
+  it('PT412 sin detail sigue siendo el conflicto de edición y PT404 sin detail no es del estado', () => {
+    expect(esConflicto(new ErrorConsulta('crudo', 'PT412'))).toBe(true)
+    expect(esEstadoRechazado(new ErrorConsulta('crudo', 'PT412'))).toBe(false)
+    expect(esEstadoRechazado(new ErrorConsulta('crudo', 'PT404'))).toBe(false)
+    expect(esEstadoRechazado(new ErrorConsulta('crudo', '42501', 'estado'))).toBe(false)
+    expect(esEstadoRechazado(new Error('x'))).toBe(false)
   })
 })

@@ -213,3 +213,5 @@ Qué tener en cuenta:
 
 !!! note "Capturas pendientes"
     Esta página todavía no trae capturas de pantalla de la carga masiva, del diálogo de exportar ni del filtro «Compatible con». Se agregan con el comando de capturas del repositorio cuando se pueda levantar la aplicación con datos de ejemplo.
+
+Al exportar «Lo filtrado», el filtro «Stock bajo» del listado de productos también se aplica al archivo.
