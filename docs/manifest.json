@@ -223,9 +223,9 @@
     },
     "docs/adoptar-runners-locales.md": {
       "title": "Adoptar los runners locales optimizados",
-      "pageHash": "ef8896d02156733a8f113103b02fdf30cfb473222197c347097d812e618b721d",
-      "sourceHash": "256a55964e2d8435c1e2ecd1e9f2d8ca65395be2931cacba26026be3b004d02c",
-      "sourceAt": "6776fb4d3",
+      "pageHash": "8c552ffc10f747e136b13a5481f315b835f00dc4eba21a81368331da59637c5d",
+      "sourceHash": "40d1bbc5e10d9b4f0d6eca693964d7fcd4830e5cb1ba2f4e6d6628c8780cdfe3",
+      "sourceAt": "74577130c",
       "sources": [
         "specs/20260925-221701-optimizar-runners-locales",
         "infra/runner/compose.yaml",
@@ -233,7 +233,7 @@
         "template-capabilities.json"
       ],
       "owner": "plataforma",
-      "commit": "6776fb4d3"
+      "commit": "74577130c"
     },
     "docs/adoptar-tooling-typescript.md": {
       "title": "Adoptar tooling Node/TypeScript en un producto derivado",
@@ -549,15 +549,15 @@
     },
     "docs/ci-self-hosted-storage.md": {
       "title": "CI self-hosted y almacenamiento",
-      "pageHash": "f1a8341e13669ad967a03159f356995b8cc68a570c4f703bfe9227c4a1f75331",
-      "sourceHash": "3017fb74a7ca603b3b445e5ad4cd78627cda318b3691bd7739a0e8f77581c0d9",
-      "sourceAt": "6776fb4d",
+      "pageHash": "2605761e84caa72799cedd1a48eb569f2246dc979aaee2786e46bb442077a00f",
+      "sourceHash": "533e0c7b9c3608ca895814fba5367a0502f94a0357a44acbb6c629da789b9d0a",
+      "sourceAt": "74577130c",
       "sources": [
         ".github/workflows/validate.yml",
         "infra/runner/compose.yaml"
       ],
       "owner": "tecnico",
-      "commit": "6776fb4d"
+      "commit": "74577130c"
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
@@ -664,9 +664,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "3b0010c59b4d5f08611dfca9cf80d03fd0e1b0b3226752b020b273eb78fc866d",
+      "pageHash": "35167d9a4af4c7bf8a68f65f05ef4c636063b12cb47e92fc7aec7765c63e6619",
       "sourceHash": "1fca73533acc64bb309f9e49b999abaed9eee7afb7fc94705dcae52377a240bc",
-      "sourceAt": "c95e6c87e",
+      "sourceAt": "74577130c",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -677,7 +677,7 @@
         "apps/web/src/lib/presupuestoDesdePedido.ts"
       ],
       "owner": "tecnico",
-      "commit": "c95e6c87e"
+      "commit": "74577130c"
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -712,9 +712,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "9c7a32a0e609c8a35e172416796de905a9c52f8fe3a9cd0d50ada222af6f5fb8",
-      "sourceHash": "bcb4d9f52330eec80140ed1cdb8c61e1b6d5ea6fe6097a39717295b67009253a",
-      "sourceAt": "af0142a09",
+      "pageHash": "fcd0e587cf87116bb862b65f2d718d8381ce7212e5a6e3628934f2f38e1612af",
+      "sourceHash": "36cd9bc67edae01b45835183c45c2f712dcbd8518e81d6efbdf94a715442ebb2",
+      "sourceAt": "74577130c",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -726,7 +726,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "af0142a09"
+      "commit": "74577130c"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -825,9 +825,9 @@
     },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
-      "pageHash": "3f2e9a53d68f812bc34b6850350bbb03e99f59ae4f02aa856d11baf89f47d831",
-      "sourceHash": "194635b81fd1571dc6c91dbcf87fb0670acc149e33949a93467133095c33b1bd",
-      "sourceAt": "e55825f7",
+      "pageHash": "e7205357fc95ccbbfe1ec7f61af75fa02934359886aa7a947d11d4be8d578247",
+      "sourceHash": "e42c7f9ae0dbbd014f111e079ac82b8b106d7852ffd86c7126d9a24df6950807",
+      "sourceAt": "74577130c",
       "sources": [
         "package.json",
         "supabase/config.toml",
@@ -845,7 +845,7 @@
         "docs/adoptar-capacidades-template.md"
       ],
       "owner": "plataforma",
-      "commit": "e55825f7"
+      "commit": "74577130c"
     },
     "docs/cuentas-cobro.md": {
       "title": "Cuentas de cobro (F-VTA-03 · MSF-240)",
@@ -893,9 +893,9 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "372aefa083eb1ed08e649b6557b42bbe927d4aba85dc34904e3a2dc2f2f664c0",
-      "sourceHash": "9745e88e96e88911abe3807b21e85a79046bcbcb5d843834ba165e000496b8fc",
-      "sourceAt": "07661f192",
+      "pageHash": "08f41bd10f71b811f5e006fc80c669ad74298e251124ecd6810c969835fdc035",
+      "sourceHash": "679327f34ac4502ad34d9376144f34955849dc453df61143e2dbe6828e521584",
+      "sourceAt": "74577130c",
       "sources": [
         "scripts/preflight-deploy-vps.mjs",
         "scripts/deploy-vps.mjs",
@@ -912,7 +912,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "tecnico",
-      "commit": "07661f192"
+      "commit": "74577130c"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -1069,6 +1069,40 @@
       ],
       "owner": "producto",
       "commit": "0c49705a0"
+    },
+    "docs/endurecimiento-infra.md": {
+      "title": "Endurecimiento de la infraestructura (lote 99)",
+      "pageHash": "bc85111e59a31e0316d494967eb2e2c7ebfd2a702f75e30fda1ef18f88589389",
+      "sourceHash": "7199e223b5b0f1d964c9cb5680d650ed7832889b0eb898fa9cac6d592ec0ff7f",
+      "sourceAt": "74577130c",
+      "sources": [
+        "infra/vps/firewall-docker-user.sh",
+        "infra/vps/obtener-clave-host.sh",
+        "infra/runner/Dockerfile",
+        "infra/runner/compose.yaml",
+        "infra/runner/compose.deploy.yaml",
+        "infra/runner/entrypoint.mjs",
+        "infra/runner/config-runner.mjs",
+        "infra/runner/verificar-compose.mjs",
+        "infra/kestra/compose.estricto.yaml",
+        "scripts/verificar-compose-puertos.mjs",
+        "scripts/verificar-compose-credenciales.mjs",
+        "scripts/verificar-puertos-externos.mjs",
+        "scripts/secretos-por-defecto.mjs",
+        "scripts/generar-secretos-entorno.mjs",
+        "scripts/verificar-secretos-por-defecto.mjs",
+        "scripts/instalar-binario-verificado.sh",
+        "scripts/comprobar-conexion-db.mjs",
+        "scripts/abrir-issue-alerta.mjs",
+        "scripts/reconciliar-base.mjs",
+        "scripts/verificar-workflows.mjs",
+        "supabase/migrations/20270514000000_reafirmar_acl_rpc_internas_de_publico.sql",
+        "supabase/tests/database/lote99_reafirmar_acl_publico.test.sql",
+        ".github/workflows/release-please.yml",
+        ".github/workflows/worker-images.yml"
+      ],
+      "owner": "plataforma",
+      "commit": "74577130c"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -1241,9 +1275,9 @@
     },
     "docs/higiene-base-datos.md": {
       "title": "Higiene y endurecimiento de la base de datos (lote 33)",
-      "pageHash": "9a47e800ac5d19c5d7b0d17292120db152b0d0eb9982bbb5c52651424fa9a6e3",
-      "sourceHash": "8d6eb404183c925d50b5a864c10cfc25d75747104f6572c63656ac6c4fc5968b",
-      "sourceAt": "49f522d7f",
+      "pageHash": "3395cb29687252392ae76efa414ff342d5134e1bf08cff43842764468fa4d057",
+      "sourceHash": "ae1786fd3142c532f4011163ae1efac908637d5874770612bbca83dd5c825222",
+      "sourceAt": "74577130c",
       "sources": [
         "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
         "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
@@ -1259,10 +1293,12 @@
         "supabase/verificacion/higiene_base.sql",
         "supabase/verificacion/higiene_base_migraciones.sql",
         "scripts/verificar-higiene-base.mjs",
-        "scripts/analizar-definer-search-path.mjs"
+        "scripts/analizar-definer-search-path.mjs",
+        "scripts/reconciliar-base.mjs",
+        "supabase/migrations/20270514000000_reafirmar_acl_rpc_internas_de_publico.sql"
       ],
       "owner": "plataforma",
-      "commit": "49f522d7f"
+      "commit": "74577130c"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
