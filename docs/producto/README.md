@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/components/navegacion/destinosPanel.ts
 ---
 
 # Bienvenida: qué es MSF y por dónde empezar

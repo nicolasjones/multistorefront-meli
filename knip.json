@@ -12,7 +12,6 @@
   ],
   "ignore": [
     "commitlint.config.cjs",
-    "infra/ia/aprovisionar-proveedores.mjs",
     "infra/runner/entrypoint.mjs",
     "scripts/fixtures/**",
     "scripts/demo-dataset/**",
