@@ -216,7 +216,7 @@ describe('Newsletter · diálogo «Nueva campaña»', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Nueva campaña' })).toBeNull())
   })
 
-  it('MSF-979: antes de enviar prepara las copias de las imágenes de las secciones elegidas (y el envío sigue aunque no haya ninguna)', async () => {
+  it('imágenes del correo: antes de enviar prepara las copias de las imágenes de las secciones elegidas (y el envío sigue aunque no haya ninguna)', async () => {
     await abrirDialogo()
     completar()
     fireEvent.click(screen.getByRole('checkbox', { name: 'Productos destacados' }))
@@ -229,7 +229,7 @@ describe('Newsletter · diálogo «Nueva campaña»', () => {
     expect(mocks.llamar).toHaveBeenCalledWith('productos_para_imagenes_newsletter', { p_empresa: 'e-1', p_destacados: true, p_promociones: false })
   })
 
-  it('MSF-979: sin secciones de productos no prepara ninguna copia', async () => {
+  it('imágenes del correo: sin secciones de productos no prepara ninguna copia', async () => {
     await abrirDialogo()
     completar()
     fireEvent.click(screen.getByRole('button', { name: 'Enviar a 3' }))
