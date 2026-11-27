@@ -4,14 +4,16 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { describe, it } from 'node:test'
 import { manejar, type Deps } from './handler.ts'
+import type { RechazoCupo } from './cupo.ts'
 import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 
 const TOKEN = 'a'.repeat(32) + 'b'.repeat(32)
 const hash = (texto: string) => createHash('sha256').update(texto).digest('hex')
 
 // La «base»: conoce un solo token y registra las bajas; una baja repetida no cambia nada (idempotente).
-function montar(opciones: { rpcError?: boolean } = {}) {
+function montar(opciones: { rpcError?: boolean; rechazo?: RechazoCupo | null; saltos?: number } = {}) {
   const llamadas: [string, Record<string, unknown>][] = []
+  const ips: string[] = []
   const bajas = new Set<string>()
   const deps: Deps = {
     admin: {
@@ -23,12 +25,17 @@ function montar(opciones: { rpcError?: boolean } = {}) {
         return { data: conocido, error: null }
       },
     },
+    cupo: async (ip) => {
+      ips.push(ip)
+      return opciones.rechazo ?? null
+    },
+    saltosProxy: opciones.saltos ?? 0,
   }
-  return { deps, llamadas, bajas }
+  return { deps, llamadas, bajas, ips }
 }
 
 const pedido = (body: unknown, method = 'POST') =>
-  new Request('http://localhost/baja-correo-masivo', { method, headers: { 'Content-Type': 'application/json' }, body: method === 'POST' ? JSON.stringify(body) : undefined })
+  new Request('http://localhost/baja-correo-masivo', { method, headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '10.2.3.4' }, body: method === 'POST' ? JSON.stringify(body) : undefined })
 
 describe('baja-correo-masivo', () => {
   it('con un token válido calcula el hash SHA-256 y da de baja sin mandar el token en claro', async () => {
@@ -121,6 +128,131 @@ describe('baja-correo-masivo', () => {
     const res = await manejar(pedido({ token: TOKEN }), deps)
     assert.match(res.headers.get('content-type') ?? '', /application\/json/)
     assert.deepEqual(await res.json(), { ok: true })
+  })
+
+  // MSF-980: rate limit por IP, ANTES de leer el cuerpo.
+  describe('cupo por IP (MSF-980)', () => {
+    const conIp = (xff: string | undefined, body: unknown = { token: TOKEN }) =>
+      new Request('http://localhost/baja-correo-masivo', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(xff === undefined ? {} : { 'x-forwarded-for': xff }) }, body: JSON.stringify(body) })
+
+    it('consume el cupo con la IP del cliente (último valor de x-forwarded-for) antes de dar de baja', async () => {
+      const { deps, ips, llamadas } = montar()
+      const res = await manejar(conIp('9.9.9.9, 10.2.3.4'), deps)
+      assert.equal(res.status, 200)
+      assert.deepEqual(ips, ['10.2.3.4'])
+      assert.equal(llamadas.length, 1)
+    })
+
+    it('descuenta los saltos de proxy de confianza configurados', async () => {
+      const { deps, ips } = montar({ saltos: 1 })
+      await manejar(conIp('1.1.1.1, 2.2.2.2'), deps)
+      assert.deepEqual(ips, ['1.1.1.1'])
+    })
+
+    it('sin cabecera consume el cupo único sin-ip (no deja pasar sin contar)', async () => {
+      const { deps, ips } = montar()
+      await manejar(conIp(undefined), deps)
+      assert.deepEqual(ips, ['sin-ip'])
+    })
+
+    it('sin cupo responde 429 con Retry-After, CORS y sin tocar la base ni leer el token', async () => {
+      const { deps, llamadas } = montar({ rechazo: { status: 429, error: 'Hiciste demasiados pedidos seguidos. Probá de nuevo en un rato.', retryAfter: 1234 } })
+      const res = await manejar(conIp('10.2.3.4'), deps)
+      assert.equal(res.status, 429)
+      assert.equal(res.headers.get('retry-after'), '1234')
+      assert.equal(res.headers.get('access-control-allow-origin'), '*')
+      assert.match(res.headers.get('content-type') ?? '', /application\/json/)
+      assert.deepEqual(await res.json(), { error: 'Hiciste demasiados pedidos seguidos. Probá de nuevo en un rato.' })
+      assert.equal(llamadas.length, 0)
+    })
+
+    it('el 429 no depende del token: uno válido, uno desconocido y un cuerpo inválido reciben exactamente lo mismo (no enumera)', async () => {
+      const rechazo: RechazoCupo = { status: 429, error: 'x', retryAfter: 60 }
+      const respuestas = []
+      for (const cuerpo of [{ token: TOKEN }, { token: 'c'.repeat(64) }, { token: 'con espacios y ñ' }, null]) {
+        const { deps } = montar({ rechazo })
+        const res = await manejar(conIp('10.2.3.4', cuerpo), deps)
+        respuestas.push([res.status, res.headers.get('retry-after'), await res.json()])
+      }
+      for (const r of respuestas) assert.deepEqual(r, respuestas[0])
+    })
+
+    it('si no se puede contar el cupo responde 503 sin Retry-After y no da de baja (falla cerrado)', async () => {
+      const { deps, llamadas } = montar({ rechazo: { status: 503, error: 'No pudimos procesar la baja. Probá de nuevo en un rato.' } })
+      const res = await manejar(conIp('10.2.3.4'), deps)
+      assert.equal(res.status, 503)
+      assert.equal(res.headers.get('retry-after'), null)
+      assert.equal(llamadas.length, 0)
+    })
+
+    it('si el cupo lanza una excepción también responde 503 y no da de baja', async () => {
+      const { deps, llamadas } = montar()
+      deps.cupo = async () => { throw new Error('boom') }
+      const res = await manejar(conIp('10.2.3.4'), deps)
+      assert.equal(res.status, 503)
+      assert.equal(llamadas.length, 0)
+    })
+
+    it('con una cadena más corta que los saltos + 1 usa sin-ip (no el primer valor, que pudo escribir el cliente) y avisa sin la IP', async () => {
+      const avisos: string[] = []
+      const original = console.warn
+      console.warn = (...args: unknown[]) => { avisos.push(args.join(' ')) }
+      try {
+        const { deps, ips } = montar({ saltos: 1 })
+        await manejar(conIp('6.6.6.6'), deps)
+        assert.deepEqual(ips, ['sin-ip'])
+        assert.equal(avisos.length, 1)
+        assert.match(avisos[0], /trae 1 valores y se esperaban 2; las bajas comparten el cupo sin-ip: revisá BAJA_PROXY_SALTOS/)
+        assert.ok(!avisos[0].includes('6.6.6.6'), 'el aviso no lleva la IP')
+      } finally {
+        console.warn = original
+      }
+    })
+
+    it('sin cabecera avisa; con la cadena justa (saltos + 1) no avisa; con una más larga avisa que la IP puede ser la de un proxy', async () => {
+      const casos: [string | undefined, number, number][] = [[undefined, 0, 1], ['10.2.3.4', 0, 0], ['9.9.9.9, 10.2.3.4', 1, 0], ['9.9.9.9, 10.2.3.4', 0, 1]]
+      for (const [xff, saltos, esperados] of casos) {
+        const avisos: string[] = []
+        const original = console.warn
+        console.warn = (...args: unknown[]) => { avisos.push(args.join(' ')) }
+        try {
+          const { deps } = montar({ saltos })
+          await manejar(conIp(xff), deps)
+        } finally {
+          console.warn = original
+        }
+        assert.equal(avisos.length, esperados, `${xff} saltos ${saltos}`)
+      }
+    })
+
+    it('OPTIONS y un método no soportado no gastan cupo', async () => {
+      const { deps, ips } = montar()
+      await manejar(pedido(null, 'OPTIONS'), deps)
+      await manejar(pedido(null, 'GET'), deps)
+      assert.deepEqual(ips, [])
+    })
+
+    it('un cuerpo inválido sí gasta cupo (la sonda con basura también se limita)', async () => {
+      const { deps, ips } = montar()
+      const res = await manejar(conIp('10.2.3.4', {}), deps)
+      assert.equal(res.status, 400)
+      assert.deepEqual(ips, ['10.2.3.4'])
+    })
+  })
+
+  it('un error de la base se registra con el helper seguro (mensaje saneado) y nunca con el token', async () => {
+    const registros: unknown[][] = []
+    const original = console.error
+    console.error = (...args: unknown[]) => { registros.push(args) }
+    try {
+      const { deps } = montar({ rpcError: true })
+      await manejar(pedido({ token: TOKEN }), deps)
+    } finally {
+      console.error = original
+    }
+    assert.ok(registros.length > 0, 'se registró el fallo')
+    const texto = JSON.stringify(registros)
+    assert.ok(!texto.includes(TOKEN), 'sin el token')
   })
 })
 

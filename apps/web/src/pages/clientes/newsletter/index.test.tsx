@@ -216,6 +216,28 @@ describe('Newsletter · diálogo «Nueva campaña»', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Nueva campaña' })).toBeNull())
   })
 
+  it('imágenes del correo: antes de enviar prepara las copias de las imágenes de las secciones elegidas (y el envío sigue aunque no haya ninguna)', async () => {
+    await abrirDialogo()
+    completar()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Productos destacados' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Enviar a 3' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar envío' }))
+    await waitFor(() => expect(mocks.llamar.mock.calls.filter((c) => c[0] === 'enviar_newsletter')).toHaveLength(1))
+    const nombres = mocks.llamar.mock.calls.map((c) => c[0])
+    expect(nombres.indexOf('productos_para_imagenes_newsletter')).toBeGreaterThan(nombres.indexOf('guardar_newsletter'))
+    expect(nombres.indexOf('productos_para_imagenes_newsletter')).toBeLessThan(nombres.indexOf('enviar_newsletter'))
+    expect(mocks.llamar).toHaveBeenCalledWith('productos_para_imagenes_newsletter', { p_empresa: 'e-1', p_destacados: true, p_promociones: false })
+  })
+
+  it('imágenes del correo: sin secciones de productos no prepara ninguna copia', async () => {
+    await abrirDialogo()
+    completar()
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar a 3' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar envío' }))
+    await waitFor(() => expect(mocks.llamar.mock.calls.filter((c) => c[0] === 'enviar_newsletter')).toHaveLength(1))
+    expect(mocks.llamar.mock.calls.map((c) => c[0])).not.toContain('productos_para_imagenes_newsletter')
+  })
+
   it('sin suscriptores confirmados el botón de envío no se puede usar y un error del envío se explica', async () => {
     mocks.llamar.mockImplementation(async (nombre: string) => {
       if (nombre === 'vista_previa_newsletter') return { data: { confirmados: 0, generado_en: '2027-03-30T15:00:00Z', html: '' }, error: null }

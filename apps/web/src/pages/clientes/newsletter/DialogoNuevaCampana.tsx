@@ -4,6 +4,7 @@ import {
 } from '@mui/material'
 import { SelectorEmpresas } from '../../../components/base/SelectorEmpresas'
 import { llamarRpcNewsletter } from '../../../hooks/useRpcNewsletter'
+import { prepararImagenesNewsletter } from '../../../lib/newsletterImagenes'
 import {
   ASUNTO_MAXIMO, MENSAJE_MAXIMO, NOMBRE_INTERNO_MAXIMO, campanaValida, textoDestinatarios, textoErrorNewsletter, validarCampana,
   type DetalleNewsletter, type TiendaNewsletter, type VistaPreviaNewsletterDatos,
@@ -131,6 +132,8 @@ export function DialogoNuevaCampana({ tiendas, empresaInicial, borrador, onCerra
       return
     }
     setOcupado(true)
+    // MSF-979: las copias optimizadas de las imágenes se crean AL ENVIAR; si alguna falla, ese producto sale sin imagen y el envío sigue.
+    if (empresa) await prepararImagenesNewsletter({ empresa, destacados, promociones }, { rpc: llamarRpcNewsletter })
     const { error } = await llamarRpcNewsletter('enviar_newsletter', { p_id: guardado.id, p_version: guardado.version, p_clave: claveEnvio.current })
     setOcupado(false)
     setConfirmando(false)

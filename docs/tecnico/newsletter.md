@@ -13,6 +13,11 @@ sources:
   - supabase/migrations/20270420000400_newsletter_envio.sql
   - supabase/migrations/20270420000500_newsletter_lote.sql
   - supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql
+  - supabase/migrations/20270511000000_cupo_persistente_por_ip_newsletter_y_baja.sql
+  - supabase/migrations/20270511000100_newsletter_imagenes_publicas.sql
+  - supabase/functions/baja-correo-masivo
+  - supabase/functions/_shared/ip-cliente.ts
+  - apps/web/src/lib/newsletterImagenes.ts
   - infra/kestra/flows/newsletter-confirmaciones.yml
   - apps/web/src/pages/clientes/newsletter
   - apps/web/src/pages/tienda-publica/newsletter
@@ -49,7 +54,7 @@ Resumen para quien usa el panel: [Newsletter de la tienda](../producto/newslette
 | Migraciones | 11 migraciones aditivas, todas con su reversión en el encabezado: `20270342000000_newsletter_suscripcion.sql`, `20270342000100_newsletter_publico.sql`, `20270342000200_newsletter_confirmaciones.sql`, `20270342000300_exportacion_total_newsletter.sql`, `20270420000000_newsletter_baja_y_gestion.sql`, `20270420000100_newsletters.sql`, `20270420000200_exportacion_total_newsletters.sql`, `20270420000300_newsletter_bloques_y_prueba.sql`, `20270420000400_newsletter_envio.sql`, `20270420000500_newsletter_lote.sql`, `20270420000600_newsletter_correo_sin_llaves.sql`. |
 | Front | `apps/web/src/pages/clientes/newsletter/` (`index.tsx`, `DialogoNuevaCampana.tsx`, `VistaPreviaNewsletter.tsx`, `index.test.tsx`), `apps/web/src/lib/newsletter.ts`, `apps/web/src/lib/tiendaNewsletter.ts`, `apps/web/src/hooks/useNewsletterTienda.ts`, `apps/web/src/pages/tienda-publica/newsletter/FormularioSuscripcion.tsx`, `apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx` y `newsletter.baja.tsx`; ruta lazy `/clientes/newsletter` en `apps/web/src/App.tsx`; entrada de menú en `apps/web/src/components/navegacion/destinosPanel.ts`. |
 | Flows | `infra/kestra/flows/newsletter-confirmaciones.yml` (nuevo) y `infra/kestra/flows/correo-masivo.yml` (extendido con la plantilla del newsletter). |
-| Pruebas | pgTAP: `newsletter_suscripcion`, `newsletter_bandera`, `newsletter_aislamiento`, `newsletter_baja`, `newsletter_gestion`, `newsletter_composicion`, `newsletter_envio`, `newsletter_lote`, `newsletter_correo_llaves`, `newsletter_alerta_tope` y extensiones de `tienda_contacto`, `tienda_capacidades`, `exportacion_total` y `correo_masivo_*`. Vitest: `pages/clientes/newsletter/index.test.tsx`, `lib/newsletter.test.ts`, `lib/tiendaNewsletter.test.ts`, `lib/tiendaNewsletterBaja.test.ts`, `FormularioSuscripcion.test.tsx`, `newsletter.confirmar.test.tsx`, `newsletter.baja.test.tsx`. Kestra: `newsletter-confirmaciones.test.mjs`, `correo-masivo.test.mjs`. Edge: `baja-correo-masivo` sin cambios de contrato. |
+| Pruebas | pgTAP: `newsletter_suscripcion`, `newsletter_bandera`, `newsletter_aislamiento`, `newsletter_baja`, `newsletter_gestion`, `newsletter_composicion`, `newsletter_envio`, `newsletter_lote`, `newsletter_correo_llaves`, `newsletter_alerta_tope`, `newsletter_cupo_por_ip`, `newsletter_imagenes_publicas` y extensiones de `tienda_contacto`, `tienda_capacidades`, `exportacion_total` y `correo_masivo_*`. Vitest: `pages/clientes/newsletter/index.test.tsx`, `lib/newsletter.test.ts`, `lib/tiendaNewsletter.test.ts`, `lib/tiendaNewsletterBaja.test.ts`, `FormularioSuscripcion.test.tsx`, `newsletter.confirmar.test.tsx`, `newsletter.baja.test.tsx`. Kestra: `newsletter-confirmaciones.test.mjs`, `correo-masivo.test.mjs`. Edge: `baja-correo-masivo` sin cambios de contrato. |
 | E2E | `apps/web/e2e/tienda-newsletter.e2e.ts` (job `e2e-tienda`): suscripción desde el pie, confirmación por enlace, enlace vencido y baja. Quedan fuera componer y enviar (necesitan sesión del panel y el SMTP de Kestra; T034, MSF-978). |
 | Prototipo | `design/pantallas/Newsletter.dc.html` e `design/pantallas/Newsletter.inventory.json`. |
 
@@ -300,6 +305,11 @@ responder `limite`: es el único agregado al contrato de la spec.
 | `private.armar_bloques_newsletter(p_empresa, p_destacados, p_promociones)` | funciones `security definer` | Arma la foto del contenido: hasta 6 destacados y 6 promociones vigentes, con el precio público de la tienda y el enlace a la ficha. |
 | `private.escapar_html(p_texto)` / `private.cuerpo_html_newsletter(p_mensaje, p_bloques, p_tienda, p_enlace_baja)` | funciones `security definer` | Escapan el texto y arman el HTML del correo (secciones, pie fijo, enlace de baja). |
 | `private.remitente_newsletter(p_nombre)` | — | Sanea el nombre de la tienda para el encabezado `From`. |
+| `private.cupo_publico_ip` (tabla) y `private.consumir_cupo_ip(ámbito, clave, límite)` | `security definer`, sin acceso de API | Cupo persistente por hora de los pedidos anónimos (suscripción y baja), por HMAC de la IP o de la red; solo guarda el HMAC (lote 95, MSF-971 y MSF-980). |
+| `private.consumir_cupo_newsletter(p_empresa)` | `security definer` | Consume el cupo de suscripción del visitante (5 por hora) y de su red (30 por hora) en la tienda; la usa `publico.suscribirse_newsletter`. |
+| `public.consumir_cupo_baja_correo(p_ip)` | `service_role` | Cupo de la baja de correo masivo (60 por hora y visitante, IP canónica con `inet`); la llama la Edge Function `baja-correo-masivo`. Con una cadena `x-forwarded-for` más corta que los saltos + 1, la IP es `sin-ip`. |
+| `public.productos_para_imagenes_newsletter(p_empresa, p_destacados, p_promociones)` / `public.registrar_imagen_newsletter(p_empresa, p_producto, p_imagen, p_url)` | `authenticated` (Administrador) | Qué imágenes copiar antes de enviar y registro de la copia ya subida a `newsletter-imagenes` (MSF-979). |
+| `private.newsletter_imagenes` (tabla), `private.url_imagen_newsletter`, `private.imagen_html_newsletter`, `private.purgar_imagenes_newsletter(p_dias)` / `public.purgar_imagenes_newsletter(p_dias)` | `security definer`, sin acceso de API (la limpieza y su envoltorio público: `service_role`) | Copias vigentes de las imágenes del correo, su URL pública y la limpieza. |
 | `private.reclamar_lote_correo_masivo(p_lote, p_limite_diario, p_vence_seg)` | `kestra_orquestacion` | Redefinida: re-verifica `confirmado`, bandera, interruptor y tienda activa; devuelve `tipo`, `cuerpo_html`, `remitente`, `tienda` y `dominio_tienda`. |
 
 **Cambio incompatible (BREAKING) declarado en la spec:** `private.reclamar_lote_correo_masivo` suma
@@ -405,11 +415,11 @@ de baja son públicas: **«Empresa activa: no aplica»** (las resuelve el domini
   dominio con etiquetas alfanuméricas y TLD de dos o más letras (acepta punycode `xn--`, no acepta IP),
   total ≤ 254, en minúsculas. Sin `<`, `>`, comillas, paréntesis, `\`, `:`, `,` ni `;`. El mismo criterio
   rige en el `check` de la tabla, en el validador y en `lib/tiendaNewsletter.ts`.
-- **Tope global por tienda (riesgo aceptado, MSF-971):** máximo 200 confirmaciones nuevas por hora y
-  tienda (`private.tope_confirmaciones_hora_newsletter()`). Superado, la suscripción no se guarda ni se
-  envía y la respuesta sigue siendo `ok`: **las altas legítimas se descartan en silencio** hasta una hora.
-  Es un riesgo de disponibilidad (DoS) aceptado en estas fases; la mitigación prevista es CAPTCHA o un
-  cupo separado por visitante, más una alerta al alcanzar el tope (no hay alerta todavía).
+- **Tope global por tienda (MSF-971):** máximo 200 confirmaciones nuevas por hora y tienda
+  (`private.tope_confirmaciones_hora_newsletter()`). Superado, la suscripción no se guarda ni se envía y la
+  respuesta sigue siendo `ok`. Desde el lote 95 hay una alerta (evento de Actividad `newsletter.tope_confirmaciones`,
+  a lo sumo uno por hora y tienda) y un cupo propio por IP hasheada y por red (`private.cupo_publico_ip`) que
+  encarece llenarlo; sin CAPTCHA (decisión y límites en `docs/newsletter.md`).
 - **Límite por visitante compartido:** 5 por hora por visitante HMAC y tienda, el mismo del formulario de
   contacto y de WhatsApp. `confirmar_newsletter` también lo consume. Quienes comparten IP pueden quedar
   bloqueados por un rato.
@@ -437,7 +447,7 @@ de baja son públicas: **«Empresa activa: no aplica»** (las resuelve el domini
 | **Entrada de menú** | El ítem quedó en **Contactos → Newsletter** (`destinosPanel.ts`), no en «Canales» como dibuja el prototipo (`AdminSider.dc.html:123`) y como fijaba la decisión D19 de la spec. | La decisión D16 (ruta y audiencia) y la implementación prevalecieron sobre lo visual. **Contradicción con el prototipo sin resolver.** |
 | **Listados por cursor → por tandas** | `listar_suscriptores_newsletter` y `listar_newsletters` usan `p_pagina`/`p_tamano` (25 por defecto, ≤ 100), no el cursor `(creado_en, id)` de la spec. | La carga infinita del panel ya resuelve las tandas con `useListadoAcumulado`. |
 | **Un solo renderizado** | El HTML lo arma `private.cuerpo_html_newsletter`; la vista previa lo muestra en un `iframe sandbox=""` y el flow lo recibe ya armado. No hay plantilla de React y plantilla de Kestra que puedan divergir. | Se eliminó la causa del riesgo en lugar de testear la paridad (T023). |
-| **Sin imágenes en el correo** | `imagen_url` queda nulo en la foto del contenido. | El bucket de productos es privado y un correo no puede llevar una URL firmada de larga vida. Queda pendiente de decisión. |
+| **Imágenes en el correo** | Se resolvió en el lote 95 (MSF-979): bucket público dedicado `newsletter-imagenes` con copias WebP de hasta 600 px creadas al enviar; `imagen_url` es nulo solo si el producto no tiene copia vigente. | Una URL firmada de larga vida no se puede revocar y un correo reenviado la lleva; el bucket privado nunca se expone. Detalle en `docs/newsletter.md`. |
 | **Columna «Aperturas»** | No se construyó (la tabla de campañas muestra enviados/fallidos/omitidos/bajas). | Decisión D9 de la spec: no hay pixel de rastreo. |
 | **`private.cerrar_envio_correo_masivo`** | No se redefinió. | No hacía falta: cierra por id de destinatario o de prueba. |
 | **Archivo de prueba nuevo** | `newsletter_lote.test.sql` en lugar de extender `correo_masivo_lote.test.sql`. | Este sigue verde sin cambios: es la paridad con las campañas de clientes. |
@@ -558,10 +568,10 @@ rótulos por tarea.
 | Revisión de seguridad de la épica (`authz-security`, `crypto-secrets`) | Quien revisa el PR | T033: **sin informe**. |
 | `List-Unsubscribe` / `List-Unsubscribe-Post` | Operaciones | MSF-962: verificado, `MailSend` de Kestra no admite encabezados propios (plugin de correo 1.6.9: sin propiedad de encabezados). Falta elegir el camino (relay SMTP o script) y probarlo con SMTP real; ver `docs/newsletter.md`. |
 | CORS de la Edge Function `baja-correo-masivo` | Operaciones | MSF-963: verificado y endurecido (preflight con los encabezados del SDK, métodos y `Max-Age`; `pnpm test:edge:baja-correo-masivo`). Falta confirmar por entorno que el gateway no responda `401` antes de la función (`verify_jwt`); ver `docs/newsletter.md`. |
-| Imágenes en el correo | Producto / Plataforma | `imagen_url` queda nulo: hay que decidir entre un bucket público de miniaturas o una URL firmada de larga vida. |
-| Cupo diario separado del newsletter | Producto | D14: hoy el cupo es uno solo entre clientes y newsletter. La alerta al alcanzar el tope global ya existe (MSF-971). |
+| Imágenes en el correo | Operaciones | MSF-979: resuelto en el repo; falta verificarlo con el SMTP real y agendar la limpieza (`private.purgar_imagenes_newsletter`). |
+| Cupo diario separado del newsletter | Producto | D14: hoy el cupo es uno solo entre clientes y newsletter. La alerta del tope global (MSF-971) y el cupo propio por IP de la suscripción ya existen. |
 | CAPTCHA de la suscripción | Producto | Solo si hay abuso real. |
-| Rate limit en el borde de la baja (Edge Function anónima) | Plataforma | MSF-980: los tokens son de 244 bits y la respuesta es uniforme, pero la función no limita por visitante. No se resuelve en el repo (un contador en la base agrega carga): regla por IP en Cloudflare, Kong o nginx; propuesta en `docs/newsletter.md`. |
+| Rate limit de la baja (Edge Function anónima) | Operaciones | MSF-980: resuelto en la función (cupo persistente de 60 por hora y IP hasheada, 429 y 503 cerrado). Falta fijar `BAJA_PROXY_SALTOS` según la cabecera real de cada entorno y desplegar la migración antes que la función; detalle en `docs/newsletter.md`. |
 | Verificar `kestra.templating.recursive-rendering: false` en dev, stg y prd | Operaciones | Fijado en `infra/kestra/compose.yaml`; no se pudo comprobar contra un Kestra real. |
 | Reubicar el ítem de menú a «Canales» o actualizar el prototipo | Producto | Desvío abierto: la implementación lo puso en **Contactos** y el prototipo lo dibuja en **Canales**. |
 | Mergear la épica a `main` | Spec Kit | Todo vive en `dokploy`: en `main` no hay migraciones, RPC, rutas, flows ni tests. |
