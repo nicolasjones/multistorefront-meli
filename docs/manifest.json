@@ -928,12 +928,13 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "e6538a6a9b0f45be53708459a7e6a5c4cbd4271bc5d0b006ba54f1a67220be1b",
-      "sourceHash": "cc5633e76497f1708e2e0997ecb51071acf12c7fd959c888cca2c376df24651d",
-      "sourceAt": "604620925",
+      "pageHash": "14d0b0b8b228f4229172d4b89cf1b0e4c4f56201280b864285f9afc407a456eb",
+      "sourceHash": "1ca2bdcb759988ec8ea6b606ab8425de29760b685c5853fdc5f0235a6b02f3cd",
+      "sourceAt": "30f6d00dc",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
+        "scripts/capturas-manual.mjs",
         "scripts/docs-correspondencia.mjs",
         "scripts/docs-correspondencia.test.mjs",
         "scripts/docs-lineas.mjs",
@@ -949,7 +950,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "604620925"
+      "commit": "30f6d00dc"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
@@ -5131,18 +5132,19 @@
     },
     "docs/tecnico/sandbox.md": {
       "title": "Sandbox de onboarding",
-      "pageHash": "458ae836a4d437b44f6e0b46548af1812c805ed60fc096c272ddc1d6ae39907d",
-      "sourceHash": "d0be8c6d73fa650e70663c371ffce83cf98f49f171f87c45b6d6418658e80c0b",
-      "sourceAt": "6776fb4d",
+      "pageHash": "8e7f0806abf9ef9e1a2d7c226d7ae18584052043ecf0f3c337cec0dde007db0a",
+      "sourceHash": "47bbe7df5ad447db90ee3a8b4d38566db6bc135518d37e9712b47b85e194774c",
+      "sourceAt": "30f6d00dc",
       "sources": [
         "supabase/seed.sql",
         "scripts/demo-sandbox.mjs",
+        "scripts/demo-sandbox.test.mjs",
         "apps/web/vite.config.ts",
         "infra/refine/compose.yaml",
         ".github/workflows/validate.yml"
       ],
       "owner": "operacion",
-      "commit": "6776fb4d"
+      "commit": "30f6d00dc"
     },
     "docs/tecnico/service-alta-estados-y-permisos.md": {
       "title": "Service técnico: alta, estados y permisos (MSF-182)",
