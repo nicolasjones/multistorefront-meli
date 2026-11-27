@@ -43,6 +43,7 @@
 --   create index if not exists rma_items_producto_idx ON dominio.rma_items USING btree (producto_id);
 --   create index if not exists rma_items_rma_idx ON dominio.rma_items USING btree (rma_id);
 --   create index if not exists transiciones_estado_comprobante_org_idx ON dominio.transiciones_estado_comprobante USING btree (organizacion_id, tipo, estado_desde);
+--   create index if not exists fragmentos_indexados_version_id_fk_idx on public.fragmentos_indexados using btree (version_id);
 --   y para la telemetría: drop function if exists private.registrar_uso_indices(); drop table if exists private.uso_indices_acumulado;
 --   drop function if exists private.indices_redundantes();
 
@@ -83,6 +84,8 @@ comment on function private.indices_redundantes() is
   'MSF-920: índices btree no únicos de public/dominio cuyas columnas son prefijo de otro. Uso: select * from private.indices_redundantes().';
 
 drop index if exists public.avisos_pendientes_user_id_idx;
+-- Cubierto por el único `fragmentos_indexados_version_orden_uidx (version_id, orden)` (el prefijo version_id sigue sirviendo a la FK).
+drop index if exists public.fragmentos_indexados_version_id_fk_idx;
 drop index if exists dominio.categorias_tienda_categoria_idx;
 drop index if exists dominio.clientes_organizacion_id_idx;
 drop index if exists dominio.comprobantes_venta_lineas_deposito_idx;

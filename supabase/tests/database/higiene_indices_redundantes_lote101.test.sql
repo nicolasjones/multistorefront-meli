@@ -3,14 +3,15 @@ begin;
 
 select plan(13);
 
--- 1. Lista independiente de la migración: ninguno de los 31 índices retirados existe.
+-- 1. Lista independiente de la migración: ninguno de los 32 índices retirados existe.
 select is(
-  (select count(*)::int from pg_indexes where schemaname || '.' || indexname in ('public.avisos_pendientes_user_id_idx','dominio.categorias_tienda_categoria_idx','dominio.clientes_organizacion_id_idx','dominio.comprobantes_venta_lineas_deposito_idx','dominio.comprobantes_venta_lineas_producto_idx','public.conexiones_oauth_organizacion_id_idx','dominio.contrarreembolsos_transporte_idx','dominio.existencias_deposito_deposito_idx','dominio.existencias_deposito_organizacion_idx','dominio.existencias_variante_deposito_idx','dominio.faltantes_avisos_cliente_idx','dominio.faltantes_avisos_empresa_idx','dominio.faltantes_avisos_organizacion_idx','dominio.historial_cobros_org_comprobante_idx','dominio.ingresos_mercaderia_lineas_ingreso_idx','dominio.intereses_whatsapp_producto_id_idx','dominio.movimientos_stock_deposito_idx','dominio.ordenes_compra_items_orden_idx','dominio.producto_precios_escala_organizacion_idx','dominio.productos_tienda_producto_idx','public.proveedor_capacidad_organizacion_organizacion_id_idx','dominio.reparaciones_cliente_idx','dominio.reparaciones_modelo_idx','dominio.reparaciones_org_empresa_idx','dominio.reservas_stock_deposito_idx','dominio.rma_comprobante_idx','dominio.rma_empresa_idx','dominio.rma_items_linea_idx','dominio.rma_items_producto_idx','dominio.rma_items_rma_idx','dominio.transiciones_estado_comprobante_org_idx')),
-  0, 'los 31 índices redundantes retirados ya no existen');
+  (select count(*)::int from pg_indexes where schemaname || '.' || indexname in ('public.avisos_pendientes_user_id_idx', 'public.fragmentos_indexados_version_id_fk_idx','dominio.categorias_tienda_categoria_idx','dominio.clientes_organizacion_id_idx','dominio.comprobantes_venta_lineas_deposito_idx','dominio.comprobantes_venta_lineas_producto_idx','public.conexiones_oauth_organizacion_id_idx','dominio.contrarreembolsos_transporte_idx','dominio.existencias_deposito_deposito_idx','dominio.existencias_deposito_organizacion_idx','dominio.existencias_variante_deposito_idx','dominio.faltantes_avisos_cliente_idx','dominio.faltantes_avisos_empresa_idx','dominio.faltantes_avisos_organizacion_idx','dominio.historial_cobros_org_comprobante_idx','dominio.ingresos_mercaderia_lineas_ingreso_idx','dominio.intereses_whatsapp_producto_id_idx','dominio.movimientos_stock_deposito_idx','dominio.ordenes_compra_items_orden_idx','dominio.producto_precios_escala_organizacion_idx','dominio.productos_tienda_producto_idx','public.proveedor_capacidad_organizacion_organizacion_id_idx','dominio.reparaciones_cliente_idx','dominio.reparaciones_modelo_idx','dominio.reparaciones_org_empresa_idx','dominio.reservas_stock_deposito_idx','dominio.rma_comprobante_idx','dominio.rma_empresa_idx','dominio.rma_items_linea_idx','dominio.rma_items_producto_idx','dominio.rma_items_rma_idx','dominio.transiciones_estado_comprobante_org_idx')),
+  0, 'los 32 índices redundantes retirados ya no existen');
 
 -- 2. Con el esquema real no queda ningún índice cubierto por otro (guarda contra reintroducirlos).
-select is((select count(*)::int from private.indices_redundantes()), 0,
-  'ningún índice btree no único de public/dominio es prefijo de otro');
+select is(
+  (select coalesce(string_agg(esquema || '.' || indice || ' (cubierto por ' || cubierto_por || ')', ', ' order by esquema, indice), '') from private.indices_redundantes()),
+  '', 'ningún índice btree no único de public/dominio es prefijo de otro');
 
 -- 3. El detector detecta (tabla temporal real en public, dentro de la transacción).
 create table public.zz_idx_prueba (a int not null, b int not null, c int, d int);

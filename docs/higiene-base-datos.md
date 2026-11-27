@@ -273,10 +273,10 @@ Todo lo de abajo se midió en una base local con el esquema de dokploy; lo que s
 
 ### MSF-920: 97 % del almacenamiento en índices
 
-- **Retirados (migración `…000000`):** 31 índices btree no únicos cuyas columnas son prefijo exacto de otro índice de la misma
+- **Retirados (migración `…000000`):** 32 índices btree no únicos cuyas columnas son prefijo exacto de otro índice de la misma
   tabla (mismas clases de operador, orden y predicado; sin expresiones; no respaldan constraints). Casi todos son índices de una
   columna anteriores a los `*_fk_idx` compuestos `(columna, organizacion_id)` del lote 33, que los cubren. Cada retiro tiene su
-  `create index` en el comentario «Reversión». La pgTAP lista los 31 por nombre, y `private.indices_redundantes()` (la definición
+  `create index` en el comentario «Reversión». La pgTAP lista los 32 por nombre, y `private.indices_redundantes()` (la definición
   única de «redundante») debe devolver 0 filas: si alguien vuelve a crear uno cubierto, falla.
 - **No se retiran, a propósito:** los dos GIN trigram de `dominio.productos` (`productos_nombre_trgm_idx` sobre `nombre` y
   `productos_nombre_busqueda_trgm` sobre `private.normalizar_busqueda(nombre)`): los usan consultas distintas (listado del
