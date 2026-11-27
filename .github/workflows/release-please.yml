@@ -3,6 +3,11 @@ name: release-please
 # Release automático: a partir de los commits conventional en `main` (feat/fix/perf…), release-please
 # abre/actualiza un PR de release que sube la versión (`package.json`) y el `CHANGELOG.md`. Al mergearlo,
 # crea el tag y el GitHub Release. Requiere commits conventional (los valida `commitlint` en `quality`).
+#
+# MSF-680: con el GITHUB_TOKEN por defecto el job falló en todos los push a main («GitHub Actions is not permitted to create or approve
+# pull requests») porque el ajuste del repo lo prohíbe. Se usa el secret RELEASE_PLEASE_TOKEN (un PAT con permiso de PR, o un token de una
+# GitHub App) y, mientras no exista, el GITHUB_TOKEN con un aviso explícito. Si el job falla se abre/actualiza un issue `alerta-ci`.
+# Alternativa sin secret: Settings > Actions > General > «Allow GitHub Actions to create and approve pull requests».
 on:
   push:
     branches: [main]
@@ -10,6 +15,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 concurrency:
   group: release-please-${{ github.ref }}
@@ -17,11 +23,30 @@ concurrency:
 
 jobs:
   release-please:
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_DEPLOY || '["self-hosted","platform-local"]') }}
+    # El token propio vive como secret del Environment `release` (restringido a `main`), no como secret de repo: así lo reciben solo los jobs que corren desde `main`.
+    environment: release
     # MSF-926: tope explícito (el default de GitHub son 360 min: un job colgado ocuparía el runner self-hosted horas).
     timeout-minutes: 15
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Avisar si falta el token propio de release-please
+        env:
+          TOKEN_PROPIO: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          if [ -z "$TOKEN_PROPIO" ]; then
+            echo "::warning::Falta el secret RELEASE_PLEASE_TOKEN: se usa el GITHUB_TOKEN, que no puede crear PRs si el ajuste «Allow GitHub Actions to create and approve pull requests» está apagado (MSF-680)."
+          fi
       - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
         with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+      - name: Abrir una alerta si release-please falló
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/abrir-issue-alerta.mjs --titulo "Falla: release-please en main" --detalle "job release-please"

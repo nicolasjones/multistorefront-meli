@@ -9,17 +9,17 @@ sources:
 
 # Adoptar los runners locales optimizados
 
-Capacidad `local-ci-runners` de `template-capabilities.json`. Hace que las
-réplicas del runner self-hosted compartan un store de pnpm persistente
-(también con los runners de otros productos de la máquina), limita la memoria
+Capacidad `local-ci-runners` de `template-capabilities.json`. Desde la versión 1.1.0 (lote 99, MSF-703/704) un supervisor (el único que ve el PAT) lanza un contenedor nuevo por job: no root, sin el socket de Docker del host
+(daemon propio con sysbox), configuración JIT de un solo uso y **sin store de pnpm compartido** (cada contenedor tiene el suyo); hay un pool de PR y otro de deploy (`infra/runner/compose.yaml` y `compose.deploy.yaml`; ver
+`docs/endurecimiento-infra.md`). La capacidad original hacía que las réplicas compartieran un store persistente
+(también con los runners de otros productos de la máquina); hoy eso se retiró por seguridad. Además limita la memoria
 de cada réplica y la cantidad de descargas simultáneas de `pnpm install`, y
 deja la cantidad de réplicas en una variable. El diseño y la operación están
 en `docs/deployment.md` ("Réplicas, memoria, red y store de pnpm del runner");
 el porqué, en `specs/20260925-221701-optimizar-runners-locales/research.md`.
 
-Mientras un producto no la adopte, sus runners siguen descargando todas las
-dependencias en cada réplica, y el store del template no lo aprovecha: el
-beneficio de "una descarga por máquina" requiere que ambos adopten.
+Un producto que no la adopte sigue con los runners anteriores (con root y socket del host): conviene adoptar la versión 1.1.0 completa
+(`compose.yaml`, `compose.deploy.yaml`, `Dockerfile`, `entrypoint.mjs`, `supervisor.mjs`, `config-runner.mjs`).
 
 ## Qué traer
 
@@ -35,9 +35,7 @@ contenedor: la versión la fija el `Dockerfile` y se actualiza reconstruyendo la
    **conservando lo propio del producto**: `name:` (línea 1), `RUNNER_REPO` y
    `RUNNER_NAME`. Lo nuevo es el bloque `deploy` (réplicas y
    `resources.limits.memory`), las cinco variables `pnpm_config_*` del
-   `environment`, el montaje `pnpm-store:/pnpm` y el bloque `volumes:`
-   al final. **No** cambiar el nombre por defecto del volumen
-   (`platform-runner-pnpm-store`): es lo que lo comparte con el template.
+   `environment`. Desde la 1.1.0 ya no hay montaje `pnpm-store:/pnpm` ni bloque `volumes:` (el store es propio de cada contenedor).
 2. En `package.json`, `dev:down:runner` con `--env-file .env` (como
    `dev:runner`).
 3. Las variables `RUNNER_*` en `.env.example` (sin valores reales; ninguna es
@@ -47,9 +45,7 @@ contenedor: la versión la fija el `Dockerfile` y se actualiza reconstruyendo la
 ## estudio-contable-automation
 
 - Proyecto Compose: `estudio-contable-automation-runner-dev`; se conserva.
-- El volumen `platform-runner-pnpm-store` ya existe en la máquina (lo creó el
-  template): el primer CI del producto solo descarga lo que el template no
-  tenga.
+- Desde la 1.1.0 no comparte store con el template: el primer CI de cada contenedor descarga las dependencias completas.
 - Con los dos repos en la misma máquina, conviene arrancar con
   `RUNNER_REPLICAS=2` en el `.env` del producto si hay varios agentes
   trabajando a la vez (ver criterios en `docs/deployment.md`).
@@ -71,7 +67,7 @@ repo desde este.
 
 1. `pnpm infra:config` pasa.
 2. `docker exec estudio-contable-automation-runner-dev-runner-1 sh -c 'env | grep ^pnpm_config_'`
-   muestra `store_dir=/pnpm/store`, `cache_dir=/pnpm/cache`,
+   muestra `store_dir=/home/runner/.pnpm-store`, `cache_dir=/home/runner/.cache/pnpm`,
    `network_concurrency=16`, `fetch_retries=5` y `fetch_timeout=600000`;
    `docker inspect … --format '{{.HostConfig.Memory}}'` muestra el tope.
 3. En el CI del PR de adopción, el log de `pnpm install --frozen-lockfile`
@@ -116,6 +112,5 @@ token de solo lectura) antes del escaneo.
 ## Reversión
 
 Revertir el merge del PR de adopción y recrear los runners (verificando antes
-que ninguno esté ocupado). El volumen compartido no se borra: lo sigue usando
-el template. Para aislar el producto sin revertir, fijar
-`RUNNER_PNPM_STORE_VOLUME` con otro nombre en su `.env` y recrear.
+que ninguno esté ocupado). Revertir vuelve a la versión con root y socket del host; el rollback gradual del lote 99 (variables
+`CI_RUNS_ON_PR`/`CI_RUNS_ON_DEPLOY`) está en `docs/endurecimiento-infra.md`.

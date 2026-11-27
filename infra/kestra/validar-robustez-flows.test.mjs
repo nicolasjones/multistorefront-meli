@@ -194,7 +194,7 @@ test('todo `docker run` de un worker lleva --init y tope de procesos (MSF-736)',
 });
 
 test('los contenedores de larga vida usan init: true (MSF-736)', () => {
-  for (const [archivo, servicio] of [['infra/runner/compose.yaml', 'runner'], ['infra/playwright/compose.yaml', 'playwright'], ['infra/kestra/compose.yaml', 'kestra'], ['infra/superset/compose.yaml', 'superset'], ['infra/nango/compose.yaml', 'nango-server']]) {
+  for (const [archivo, servicio] of [['infra/runner/compose.yaml', 'supervisor'], ['infra/playwright/compose.yaml', 'playwright'], ['infra/kestra/compose.yaml', 'kestra'], ['infra/superset/compose.yaml', 'superset'], ['infra/nango/compose.yaml', 'nango-server']]) {
     const texto = readFileSync(archivo, 'utf8');
     const bloque = texto.match(new RegExp(`^  ${servicio}:\\n([\\s\\S]*?)(?=^  \\S|^\\S|(?![\\s\\S]))`, 'm'));
     assert.ok(bloque, `${archivo}: no se encontró el servicio ${servicio}`);

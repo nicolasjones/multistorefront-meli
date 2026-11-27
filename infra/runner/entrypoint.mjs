@@ -1,75 +1,58 @@
 import { existsSync } from 'node:fs';
-import { hostname } from 'node:os';
+import path from 'node:path';
 import { spawn } from 'node:child_process';
 
-import { restaurarBin } from '/restaurar-bin.mjs';
+import { exigirSinPat, leerConfiguracion } from './config-runner.mjs';
+import { restaurarBin } from './restaurar-bin.mjs';
 
-function required(name) {
-  const value = process.env[name]?.trim();
-  if (!value) throw new Error(`Falta ${name}.`);
-  return value;
-}
+// CONTENEDOR DE UN JOB (MSF-703/704, A1/A2). Lo lanza el supervisor con `docker run --rm` y recibe SOLO una configuración JIT de un solo uso
+// (RUNNER_JIT_CONFIG). Este proceso (PID 1) es root solo para iniciar el daemon de Docker interno; el listener y el job corren como `runner`.
+// Hace UN job y termina: el contenedor se destruye, así que no queda nada (imágenes, procesos, archivos) para el job siguiente.
+// No hay PAT en este contenedor: si llegara uno por entorno, se rechaza.
+const HOME = '/home/runner';
+exigirSinPat(process.env);
+const config = leerConfiguracion(process.env);
+const jit = (process.env.RUNNER_JIT_CONFIG ?? '').trim();
+if (jit === '' || /\s/.test(jit)) throw new Error('Falta RUNNER_JIT_CONFIG (la configuración JIT del runner).');
 
-function execute(command, args) {
+// El listener (y por herencia cada step) no recibe ni la configuración JIT: ya la tiene el listener por argumento.
+const entorno = { ...process.env, HOME, USER: 'runner', LOGNAME: 'runner' };
+delete entorno.RUNNER_JIT_CONFIG;
+delete entorno.RUNNER_ALLOW_RUNASROOT;
+
+function ejecutar(comando, args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: 'inherit' });
-    child.on('error', reject);
-    child.on('close', (code) => code === 0 ? resolve() : reject(new Error(`${command} terminó con código ${code ?? 'desconocido'}.`)));
+    const proceso = spawn(comando, args, { uid: config.uid, gid: config.gid, env: entorno, stdio: 'inherit', cwd: HOME });
+    proceso.on('error', reject);
+    proceso.on('close', (codigo) => resolve(codigo ?? 1));
   });
 }
 
-const repository = required('RUNNER_REPO');
-const pat = required('GH_PAT');
-const runnerName = `${process.env.RUNNER_NAME || 'automation-platform-template-docker'}-${hostname()}`;
-const labels = process.env.RUNNER_LABELS || 'self-hosted,platform-local';
-let configured = false;
-
-async function registrationToken() {
-  const response = await fetch(`https://api.github.com/repos/${repository}/actions/runners/registration-token`, {
-    method: 'POST', headers: { Authorization: `token ${pat}`, Accept: 'application/vnd.github+json' },
-  });
-  if (!response.ok) throw new Error(`GitHub no emitió el token de registro (HTTP ${response.status}).`);
-  const token = (await response.json()).token;
-  if (!token) throw new Error('GitHub devolvió una respuesta sin token de registro.');
-  return token;
+// Docker del propio contenedor (runtime sysbox): un daemon que NO es el del host. Se espera el socket hasta 60 s.
+async function iniciarDockerInterno() {
+  console.log('Iniciando el daemon de Docker interno (sysbox)...');
+  const demonio = spawn('dockerd', ['--host=unix:///var/run/docker.sock', `--group=${config.gid}`], { stdio: 'inherit' });
+  demonio.on('close', (codigo) => { console.error(`dockerd terminó (${codigo}).`); process.exit(1); });
+  for (let i = 0; i < 120; i += 1) {
+    if (existsSync('/var/run/docker.sock')) return;
+    await new Promise((resolver) => setTimeout(resolver, 500));
+  }
+  throw new Error('El daemon de Docker interno no abrió su socket en 60 s: ¿el contenedor corre con el runtime sysbox?');
 }
 
-async function removeRegistration() {
-  if (!configured && !existsSync('.runner')) return;
-  console.log('Desregistrando runner...');
-  try { await execute('./config.sh', ['remove', '--token', await registrationToken()]); } catch { /* La limpieza nunca bloquea el apagado. */ }
-  configured = false;
-}
-
-const cleanup = async () => { await removeRegistration(); process.exit(0); };
-process.once('SIGINT', cleanup); process.once('SIGTERM', cleanup);
-
-// El runner de GitHub se autoactualiza en el sitio: renombra `bin` a `bin.<version>` y
-// recién después deja el `bin` nuevo. Si el contenedor se reinicia en medio de ese swap
-// (host saturado, OOM, `docker compose up`), `bin` queda AUSENTE y el runner no puede
-// arrancar: `config.sh` muere con "./bin/Runner.Listener: No such file or directory" y
-// el contenedor entra en crash-loop. Peor: en GitHub el runner queda registrado como
-// OFFLINE+OCUPADO y el job que tenía tomado queda huérfano para siempre → el PR
-// espera un CI que nunca termina (MSF-223/MSF-326: 9 runs en cola, 2 h sin avanzar).
-// `restaurarBin` deja el runner como estaba antes de la actualización a medias.
 try {
-  const respaldo = restaurarBin(process.cwd());
-  if (respaldo) console.log(`Se restauró 'bin' desde '${respaldo}' (autoactualización interrumpida a medias).`);
+  const respaldo = restaurarBin(HOME);
+  if (respaldo) console.log(`Se restauró 'bin' desde '${respaldo}'.`);
 } catch (error) {
   console.error(`No se pudo restaurar 'bin': ${error instanceof Error ? error.message : String(error)}`);
 }
 
 try {
-  if (existsSync('.runner')) {
-    console.log('Registro previo sin desregistrar, limpiando...');
-    await removeRegistration();
-  }
-  await execute('./config.sh', ['--url', `https://github.com/${repository}`, '--token', await registrationToken(), '--name', runnerName, '--work', '_work', '--labels', labels, '--unattended', '--replace']);
-  configured = true;
-  await execute('./run.sh', []);
-  await removeRegistration();
+  if (config.dockerInterno) await iniciarDockerInterno();
+  // `run.sh --jitconfig`: el runner se registra con la configuración JIT, toma UN job y sale (el runner JIT es efímero).
+  const codigo = await ejecutar(path.join(HOME, 'run.sh'), ['--jitconfig', jit]);
+  process.exit(codigo);
 } catch (error) {
-  await removeRegistration();
   console.error(error instanceof Error ? error.message : 'El runner no pudo iniciarse.');
-  process.exitCode = 1;
+  process.exit(1);
 }

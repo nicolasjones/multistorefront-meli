@@ -58,7 +58,7 @@ jobs:
   # Este job también RESERVA el carril de admisión (si `CI_LANES` está seteada): los jobs pesados lo esperan
   # por `needs` y el job `liberar` lo suelta al final, así un PR ocupa un carril mientras corre.
   changes:
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PR || '["self-hosted","platform-local"]') }}
     timeout-minutes: 20
     outputs:
       code: ${{ steps.d.outputs.code }}
@@ -151,6 +151,9 @@ jobs:
       # MSF-925/926: acciones pineadas por SHA y todos los jobs con timeout-minutes (scripts/verificar-workflows.mjs).
       - name: workflows:check
         run: pnpm workflows:check
+      # MSF-648/705/703/704: puertos solo en loopback/Tailscale, credenciales por defecto obligatorias en el overlay estricto y runners endurecidos.
+      - name: infra:verificar
+        run: pnpm infra:verificar
       # Runbook de los pasos manuales de VPS2 (MSF-854): fija los comandos de los cuatro
       # pasos y exige que cada uno diga cómo se verifica y cómo se revierte.
       - name: test:docs:pasos-manuales
@@ -267,9 +270,9 @@ jobs:
                 # "error while loading shared libraries") hay que instalar SIEMPRE las deps del SO, aun con cache hit.
                 echo "chromium en cache -> binario + deps del SO"
                 pnpm --filter @platform/web exec playwright install chromium
-                pnpm --filter @platform/web exec playwright install-deps chromium
+                [ "$(id -u)" != 0 ] || pnpm --filter @platform/web exec playwright install-deps chromium
               else
-                pnpm --filter @platform/web exec playwright install --with-deps chromium
+                if [ "$(id -u)" = 0 ]; then pnpm --filter @platform/web exec playwright install --with-deps chromium; else pnpm --filter @platform/web exec playwright install chromium; fi
               fi
             )
             echo $? > "$RUNNER_TEMP/playwright-install.rc"
@@ -375,7 +378,7 @@ jobs:
   # artefacto `playwright-report-sesion` para que los importe el panel SDLC.
   e2e-visible-sesion:
     if: github.event_name == 'workflow_dispatch' && inputs.e2e_sesion
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PR || '["self-hosted","platform-local"]') }}
     timeout-minutes: 40
     env:
       SUPABASE_CI_LOCK_TTL_MIN: 75
@@ -397,7 +400,9 @@ jobs:
           if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
             echo "supabase 2.116.0 ya presente en el runner -> no descargo"
           else
-            curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+            bash scripts/instalar-binario-verificado.sh https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz 5b3031cb297d51b25be4c284e4c852254460ec722ec221d3b81b07d55acfd158 supabase "$RUNNER_TEMP/bin"
+            echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+            export PATH="$RUNNER_TEMP/bin:$PATH"
           fi
           supabase --version
       # Reserva una ranura como `e2e-tienda` y `database`: sin ella el stack `ci-…` choca con el de otro job de la
@@ -455,7 +460,7 @@ jobs:
             echo "chromium en cache -> sólo asegurar binario"
             pnpm --filter @platform/web exec playwright install chromium
           else
-            pnpm --filter @platform/web exec playwright install --with-deps chromium
+            if [ "$(id -u)" = 0 ]; then pnpm --filter @platform/web exec playwright install --with-deps chromium; else pnpm --filter @platform/web exec playwright install chromium; fi
           fi
       - name: test:e2e con sesión (visible)
         env:
@@ -623,7 +628,9 @@ jobs:
           if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
             echo "supabase 2.116.0 ya presente en el runner -> no descargo"
           else
-            curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+            bash scripts/instalar-binario-verificado.sh https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz 5b3031cb297d51b25be4c284e4c852254460ec722ec221d3b81b07d55acfd158 supabase "$RUNNER_TEMP/bin"
+            echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+            export PATH="$RUNNER_TEMP/bin:$PATH"
           fi
           supabase --version
       # Espera a lo sumo 10 min por una ranura (el default de `database` es 20): sin ranura el job falla y, como no
@@ -704,9 +711,9 @@ jobs:
             # El cache guarda el BINARIO, no las libs del SO: ver el paso homónimo del job `application`.
             echo "chromium en cache -> binario + deps del SO"
             pnpm --filter @platform/web exec playwright install chromium
-            pnpm --filter @platform/web exec playwright install-deps chromium
+            [ "$(id -u)" != 0 ] || pnpm --filter @platform/web exec playwright install-deps chromium
           else
-            pnpm --filter @platform/web exec playwright install --with-deps chromium
+            if [ "$(id -u)" = 0 ]; then pnpm --filter @platform/web exec playwright install --with-deps chromium; else pnpm --filter @platform/web exec playwright install chromium; fi
           fi
       # Los specs de la tienda cambian el estado de las dos tiendas del seed (pausan una empresa, editan sus datos):
       # UN worker, en serie. `--workers=1` va antes de los filtros y SIN `--` (el `--` de pnpm llega literal a
@@ -755,7 +762,7 @@ jobs:
   infrastructure:
     needs: changes
     if: ${{ needs.changes.outputs.infra == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PR || '["self-hosted","platform-local"]') }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -823,7 +830,9 @@ jobs:
           if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
             echo "supabase 2.116.0 ya presente en el runner -> no descargo"
           else
-            curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+            bash scripts/instalar-binario-verificado.sh https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz 5b3031cb297d51b25be4c284e4c852254460ec722ec221d3b81b07d55acfd158 supabase "$RUNNER_TEMP/bin"
+            echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+            export PATH="$RUNNER_TEMP/bin:$PATH"
           fi
           supabase --version
       - run: node --test scripts/supabase-ci.test.mjs
@@ -865,7 +874,7 @@ jobs:
   liberar:
     needs: [changes, application, chequeos, web, e2e-tienda, infrastructure, database]
     if: ${{ always() && vars.CI_LANES != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PR || '["self-hosted","platform-local"]') }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -885,7 +894,7 @@ jobs:
   validacion:
     needs: [changes, application, chequeos, web, e2e-tienda, infrastructure, database]
     if: always()
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PR || '["self-hosted","platform-local"]') }}
     timeout-minutes: 5
     steps:
       # Un PR de un fork NUNCA ejecuta su código en el runner self-hosted: se rechaza con un paso inline, sin checkout.

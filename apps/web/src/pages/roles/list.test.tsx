@@ -229,7 +229,7 @@ describe('RolesPermisos', () => {
     }))
   })
 
-  it('«Ver comisiones» (MSF-957) se edita aparte de «Ver costos» y solo existe en Servicio técnico', async () => {
+  it('«Ver comisiones» se edita aparte de «Ver costos» y solo existe en Servicio técnico', async () => {
     render(<RolesPermisos />)
     await screen.findByText('Descripción de operador')
     fireEvent.click(screen.getByRole('button', { name: 'Ver comisiones' }))

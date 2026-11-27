@@ -1,3 +1,4 @@
+import { comprobarConexion } from './comprobar-conexion-db.mjs';
 import { argumentValue, redactError, requireEnvironment, run, separarContrasena } from './operaciones.mjs';
 
 const args = process.argv.slice(2);
@@ -17,6 +18,8 @@ function sqlHabilitarRolAnalitica(clave) {
 }
 
 try {
+  // MSF-680: si el destino no acepta conexiones, el error dice cuál y qué revisar (antes: un `dial error` opaco del CLI).
+  await comprobarConexion(dbUrl, entorno);
   // La contraseña de la URL no viaja en argv (visible en `ps` y /proc/*/cmdline del runner): va por
   // PGPASSWORD, que `supabase` (pgx) y `psql` (libpq) leen del entorno.
   const { urlSinContrasena, env } = separarContrasena(dbUrl);

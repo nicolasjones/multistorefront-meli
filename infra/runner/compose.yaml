@@ -1,88 +1,61 @@
-name: multistorefront-meli-runner-dev
+name: multistorefront-meli-runner-pr
 
+# Pool de runners para los jobs de PR y de CI (MSF-703). Etiquetas `self-hosted,platform-local,platform-pr`.
+# ARQUITECTURA (revisión C+S del lote 99): este Compose levanta solo el SUPERVISOR. El supervisor lee el PAT del archivo de secretos, pide a
+# GitHub una configuración JIT por job y lanza un contenedor NUEVO por job (`docker run --rm`, ver supervisor.mjs y config-runner.mjs). Por eso:
+#   - el PAT vive SOLO en el supervisor, que nunca ejecuta código de un job; el contenedor del job no lo tiene ni lo puede montar;
+#   - cada job corre en un contenedor que se destruye al terminar: no persisten imágenes, procesos ni archivos de un job al siguiente;
+#   - el contenedor del job corre como usuario `runner` (no root), con el runtime sysbox (su propio dockerd; SIN el socket del host) y con
+#     topes de memoria, CPU y procesos (RUNNER_MEMORY_LIMIT, RUNNER_CPU_LIMIT, RUNNER_PIDS_LIMIT);
+#   - store y caché de pnpm propios de cada contenedor (nada compartido entre jobs, productos ni con el pool de deploy).
+# El único contenedor con el socket de Docker del host es este supervisor (necesita crear los contenedores de los jobs); es de confianza porque
+# solo ejecuta el código de esta imagen. Sin sysbox los jobs no arrancan: no hay modo inseguro.
+# Los jobs de deploy/migraciones/publicación NO van acá: el pool `platform-deploy` (compose.deploy.yaml). OJO: esa separación no es un límite de
+# confianza frente a un workflow modificado en un PR; ver config-runner.mjs y docs/endurecimiento-infra.md.
 services:
-  runner:
+  supervisor:
     build: .
-    # tini como PID 1: cosecha los zombies que dejan los procesos nietos
-    # (Chromium/vite/playwright) cuando un step termina o se cancela. Sin
-    # esto, el node del entrypoint queda como PID 1 y los zombies se acumulan
-    # hasta agotar los PIDs del host. Ver docs/control-ci.md.
+    image: multistorefront-meli-runner:local
+    entrypoint: ["node", "/supervisor.mjs"]
     init: true
-    deploy:
-      # Bajalo (1 o 2) con varios agentes activos, poca memoria o poca red;
-      # 0 no levanta runners de este repo. Ver docs/deployment.md.
-      replicas: ${RUNNER_REPLICAS:-3}
-      resources:
-        limits:
-          # Tope de lo que corre dentro del runner (pnpm, tsc, vite, vitest,
-          # pg_prove), medido en la spec 20260925-221701. No limita los
-          # contenedores que el job lanza por el socket (stack de Supabase).
-          memory: ${RUNNER_MEMORY_LIMIT:-3g}
-          # Tope de CPU por réplica: evita que un job (vitest es multi-núcleo)
-          # se coma la máquina y deje sin CPU a los demás runners, a los stacks
-          # de Supabase y a los agentes (Claude). `0` = sin tope. Ver
-          # docs/control-ci.md.
-          cpus: ${RUNNER_CPU_LIMIT:-2}
-          # Tope de procesos (PIDs) por réplica: `init: true` cosecha zombis,
-          # pero no frena un fork-bomb ni un chrome-headless que no cierra sus
-          # hijos; sin tope agotan los PIDs del host. La clave es
-          # `deploy.resources.limits.pids`, no `pids_limit` de servicio: compose
-          # los trata como el mismo límite y rechaza el proyecto si conviven. `-1` = sin tope. Ver
-          # docs/control-ci.md.
-          pids: ${RUNNER_PIDS_LIMIT:-4096}
+    # Endurecimiento del propio supervisor (no ejecuta código de jobs, pero tiene el socket del host): sin capacidades, sin escalada y de solo lectura.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp
     environment:
-      GH_PAT: ${GH_RUNNER_PAT}
+      RUNNER_ROLE: pr
       RUNNER_REPO: nicolasjones/multistorefront-meli
-      RUNNER_NAME: multistorefront-meli-docker
-      RUNNER_LABELS: self-hosted,platform-local
-      # El runner NO se autoactualiza dentro del contenedor. La autoactualización
-      # renombra `bin` a `bin.<version>` y deja el `bin` nuevo DESPUÉS: si el
-      # contenedor se reinicia en medio de ese swap (host saturado, OOM,
-      # `docker compose up`), `bin` queda ausente, el runner no arranca y el
-      # contenedor entra en crash-loop. En GitHub el runner queda OFFLINE+OCUPADO
-      # y el job que tenía tomado queda huérfano: el PR espera un CI que nunca
-      # termina (pasó el 2026-11-03: 9 runs en cola, 2 h sin avanzar, MSF-223 y
-      # MSF-326 trabados). La versión la fija la imagen (`RUNNER_VERSION` del
-      # Dockerfile): se actualiza reconstruyendo la imagen, no en caliente.
-      RUNNER_DISABLE_AUTO_UPDATE: "1"
-      # Los steps de los jobs heredan este entorno. pnpm 11 lee pnpm_config_*
-      # (no npm_config_*) y store_dir gana sobre el $PNPM_HOME/store que
-      # implica pnpm/action-setup, así validate.yml no cambia.
-      pnpm_config_store_dir: /pnpm/store
-      # Aun con el store lleno, pnpm 11 consulta la metadata de cada paquete
-      # en el registro para verificar el lockfile contra sus políticas de
-      # supply-chain, y cachea el resultado por hash del lockfile acá. Sin
-      # compartirlo, cada réplica repetía ~370 consultas por install.
-      pnpm_config_cache_dir: /pnpm/cache
-      # pnpm usa 64 descargas simultáneas en esta máquina; con varias
-      # réplicas y repos saturaba el Wi-Fi (ECONNRESET). Ver research.md R4.
-      pnpm_config_network_concurrency: ${RUNNER_PNPM_NETWORK_CONCURRENCY:-16}
-      pnpm_config_fetch_retries: 5
-      # El binario opcional @supabase/cli-linux-x64 pesa 57 MB: con el Wi-Fi
-      # lento superaba el timeout de 60 s, nunca llegaba al store y cada
-      # install lo reintentaba (~9 min y decenas de MB por réplica). Con 10
-      # min baja una vez y queda en el store compartido.
-      pnpm_config_fetch_timeout: 600000
-    extra_hosts:
-      # Igual motivo que infra/kestra/compose.yaml: pnpm test:db:ci y
-      # scripts/reset-db-ci.mjs corren dentro de este contenedor y conectan
-      # por host.docker.internal — sin esto, el job database del CI se
-      # rompe apenas el runner se mueva de Docker Desktop a Linux nativo.
-      - "host.docker.internal:host-gateway"
+      RUNNER_NAME: multistorefront-meli-pr
+      RUNNER_LABELS: self-hosted,platform-local,platform-pr
+      RUNNER_IMAGE: multistorefront-meli-runner:local
+      # Red DEDICADA de los jobs (subred fija, sin comunicación entre contenedores): el supervisor la crea si falta y el firewall (infra/vps/firewall-docker-user.sh,
+      # --subred-jobs-pr) la aísla del host, de la tailnet y de la red interna. Nunca docker0.
+      RUNNER_JOBS_NETWORK: ${RUNNER_JOBS_NETWORK_PR:-platform-runner-jobs-pr}
+      RUNNER_JOBS_BRIDGE: ${RUNNER_JOBS_BRIDGE_PR:-br-jobs-pr}
+      # Resolvedores de los jobs (el firewall descarta las redes privadas: un resolvedor privado dejaría a los jobs sin DNS).
+      RUNNER_JOBS_DNS: ${RUNNER_JOBS_DNS:-1.1.1.1,8.8.8.8}
+      RUNNER_JOBS_SUBNET: ${RUNNER_JOBS_SUBNET_PR:-172.29.250.0/24}
+      RUNNER_RUNTIME: ${RUNNER_RUNTIME:-sysbox-runc}
+      RUNNER_DOCKER_INTERNO: "1"
+      # Cuántos jobs de este repo corren a la vez (una ranura = un contenedor por vez). 0 no levanta runners. Ver docs/deployment.md.
+      RUNNER_SLOTS: ${RUNNER_REPLICAS:-3}
+      # Topes POR CONTENEDOR DE JOB (el stack de Supabase del job corre dentro de él).
+      RUNNER_MEMORY_LIMIT: ${RUNNER_MEMORY_LIMIT:-6g}
+      RUNNER_CPU_LIMIT: ${RUNNER_CPU_LIMIT:-2}
+      RUNNER_PIDS_LIMIT: ${RUNNER_PIDS_LIMIT:-4096}
+      RUNNER_PNPM_NETWORK_CONCURRENCY: ${RUNNER_PNPM_NETWORK_CONCURRENCY:-16}
+      RUNNER_PAT_FILE: /run/secrets/gh_runner_pat
+      # `read_only` + `cap_drop`: el cliente de docker escribe su configuración en un directorio que sí es escribible (tmpfs). NO probado con el socket real del host.
+      DOCKER_CONFIG: /tmp/.docker
     volumes:
-      # Docker-fuera-de-Docker: mismo patron que infra/kestra/compose.yaml.
-      # Los comandos docker que corren los jobs (docker compose, supabase
-      # start) terminan controlando el Docker del host, no uno anidado.
       - /var/run/docker.sock:/var/run/docker.sock
-      # Store y caché de pnpm únicos para todas las réplicas y, con el mismo
-      # nombre de volumen, para los runners de otros productos de la máquina:
-      # cada dependencia se descarga una vez. Es seguro en paralelo (escritura
-      # atómica por hash, índice SQLite en WAL, caché con temporal + rename)
-      # mientras sea un volumen local y nadie corra `pnpm store prune` con
-      # jobs en curso. Ver docs/deployment.md.
-      - pnpm-store:/pnpm
+    secrets:
+      - gh_runner_pat
     restart: unless-stopped
 
-volumes:
-  pnpm-store:
-    name: ${RUNNER_PNPM_STORE_VOLUME:-platform-runner-pnpm-store}
+secrets:
+  gh_runner_pat:
+    # Archivo del HOST con el PAT del runner: dueño root, modo 0400 (el supervisor rechaza un modo más abierto). Ver el runbook.
+    file: ${GH_RUNNER_PAT_FILE:-/etc/platform-runner/gh_runner_pat}

@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   limpiar:
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PR || '["self-hosted","platform-local"]') }}
     timeout-minutes: 15
     env:
       # Un job de e2e tiene timeout de 30 min; 45 deja margen para no tocar uno vivo.
