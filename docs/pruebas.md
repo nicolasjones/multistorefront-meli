@@ -5,6 +5,7 @@ sources:
   - scripts/tests-afectados.test.mjs
   - scripts/verificar-trampas-conocidas.mjs
   - scripts/verificar-migraciones.mjs
+  - scripts/verificar-inventario-suites.mjs
   - scripts/calidad.mjs
   - apps/web/vite.config.ts
   - apps/web/src/higieneReferenciasInternas.test.ts
@@ -70,7 +71,7 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
 
 - Es una selección **suficiente y determinista**, no “la mínima posible”: si
   tocás una página, corre toda la suite web (no sólo ese archivo).
-- El **gate del PR** corre en CI la suite web, la base de datos, el e2e público y los tests de scripts rápidos (`pnpm test:ci:scripts`); no corre los que necesitan Docker, un Superset vivo, `origin/main` o un stack (la lista y el motivo están en «Decisiones pendientes del lote 26» de `docs/control-ci.md`). Este plan es para iterar y para
+- El **gate del PR** corre en CI la suite web, la base de datos, el e2e público, los tests de scripts, workers y edge sin servicios (`pnpm test:ci:scripts` y `pnpm test:ci:suites-baratas`); no corre los que necesitan Docker, un Superset vivo, `origin/main` o un stack. Lo que corre y lo que queda fuera (con el motivo) lo verifica `pnpm test:suites:inventario` contra los workflows (MSF-679): una suite o un archivo de test que nadie corre rompe el job `chequeos`, y la lista está en «Qué tests corre el CI y cuáles deja fuera» de `docs/control-ci.md`. Este plan es para iterar y para
   saber de antemano qué va a validar el PR.
 - Los E2E con sesión (`permisos-por-empresa`, `stock-movimientos`) no entran acá:
   necesitan Supabase local (ver `docs/e2e-app.md`).

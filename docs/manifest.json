@@ -712,8 +712,8 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "fcd0e587cf87116bb862b65f2d718d8381ce7212e5a6e3628934f2f38e1612af",
-      "sourceHash": "36cd9bc67edae01b45835183c45c2f712dcbd8518e81d6efbdf94a715442ebb2",
+      "pageHash": "322d8715f8b1cd5c30f1c4864fb888ae2ed0bf5f494a54e28854dc25a7465521",
+      "sourceHash": "33b2f5c61a86c968dee07f01191375438304961278e02544046ce13a1dd20228",
       "sourceAt": "74577130c",
       "sources": [
         "infra/runner",
@@ -722,6 +722,8 @@
         "scripts/gate-integracion.mjs",
         "scripts/limpiar-ci.mjs",
         "scripts/verificar-workflows.mjs",
+        "scripts/verificar-inventario-suites.mjs",
+        "scripts/migraciones-reversion.mjs",
         "scripts/verificar-validacion.mjs",
         ".github/workflows/validate.yml"
       ],
@@ -928,9 +930,9 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "cb65e3d8a6d725f89cf67df7452590d87507d2ce52a072dc8f3babd29861d2f2",
-      "sourceHash": "7d47b45962d1b0d366180fc31ad35cfe8c3d019cfaeeb25a481c4d83a4db3441",
-      "sourceAt": "f5a33da5b",
+      "pageHash": "4c613b5084f01f3d2d56643d807dba3d893b46d1546d79025ffe20fa762ee2b3",
+      "sourceHash": "9839dd08a273aedaff848cdb1fc14f3ecc06202c088a1926d70f96d01d428e79",
+      "sourceAt": "42f4b0d5f",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
@@ -949,7 +951,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "f5a33da5b"
+      "commit": "42f4b0d5f"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
@@ -995,9 +997,9 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "7fba616b82df37ac5a1f518bcc114402deea5d3951e8619084e383678b5d4cba",
-      "sourceHash": "e69107d032305a22fcdc8e29fdbf1750ba309399b282f6ee608eacf7005826fd",
-      "sourceAt": "e1e6da5b9",
+      "pageHash": "d3f8fb259ebe724d2c106403928f6520920a91213ba10d98d5f46761a7938ec4",
+      "sourceHash": "2cbf3191db2d87c6a5843e1203b709ac9758ef6058c094b09ec08e84e37fa5b7",
+      "sourceAt": "f5a33da5b",
       "sources": [
         "apps/web/playwright.config.ts",
         "apps/web/e2e/verificar-dist.mjs",
@@ -1013,7 +1015,7 @@
         "scripts/e2e-cobertura-epicas.py"
       ],
       "owner": "tecnico",
-      "commit": "e1e6da5b9"
+      "commit": "f5a33da5b"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -2806,14 +2808,15 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "ffb1c69572ebd7e86b2240d17c3d9cb5f4120ba9a793c350fc7e7ab74012487e",
-      "sourceHash": "044a7c7c2da60182f44c27fce42a7eecd3e57703579046a26625b978cfcbd651",
-      "sourceAt": "863c32401",
+      "pageHash": "a9d83fb144c5435e7324e4f2d59c14f76b84111f68f8edda5b9444ba8ad750f3",
+      "sourceHash": "25e4f71a6dfd181a74925b58ef5745d77da76763777335f2b343123be645892f",
+      "sourceAt": "f5a33da5b",
       "sources": [
         "scripts/tests-afectados.mjs",
         "scripts/tests-afectados.test.mjs",
         "scripts/verificar-trampas-conocidas.mjs",
         "scripts/verificar-migraciones.mjs",
+        "scripts/verificar-inventario-suites.mjs",
         "scripts/calidad.mjs",
         "apps/web/vite.config.ts",
         "apps/web/src/higieneReferenciasInternas.test.ts",
@@ -2822,7 +2825,7 @@
         ".github/workflows/quality.yml"
       ],
       "owner": "plataforma",
-      "commit": "863c32401"
+      "commit": "f5a33da5b"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -6649,7 +6652,7 @@
     },
     "docs/verificar-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
-      "pageHash": "3cd60f4196ab53044b65a88dd6221a022ec6437441c8a98517ce80a0de421396",
+      "pageHash": "501c9984209b128e47e00dd625e05a7ad08bea35e8cb6771ebc5f5ca692f30c0",
       "sourceHash": "69fc4095ac1a90cbc9f06c45c54e5c58b0015528117ad97de1b6a9c8213df9a2",
       "sourceAt": "15b0ce4e6",
       "sources": [

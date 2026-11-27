@@ -11,7 +11,7 @@ let dir;
 const git = (cwd, ...args) => spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd, encoding: 'utf8' });
 
 // Repo temporal con un commit base y un segundo commit que escribe `archivos`.
-const comprobar = async (nombre, archivos, { env: extra = {}, args = [], base: baseFiles = {}, antes, nodeArgs = [] } = {}) => {
+const comprobar = async (nombre, archivos, { env: extra = {}, args = [], base: baseFiles = {}, antes, nodeArgs = [], mensaje = 'cambio' } = {}) => {
   const cwd = path.join(dir, nombre);
   await mkdir(cwd, { recursive: true });
   git(cwd, 'init', '-q');
@@ -29,7 +29,7 @@ const comprobar = async (nombre, archivos, { env: extra = {}, args = [], base: b
   }
   if (antes) await antes(cwd);
   git(cwd, 'add', '.');
-  git(cwd, 'commit', '-q', '-m', 'cambio');
+  git(cwd, 'commit', '-q', '-m', mensaje);
   const env = { ...process.env, DOCUMENTATION_CHECK_BASE: 'HEAD~1', ...extra };
   delete env.GITHUB_BASE_REF;
   return spawnSync('node', [...nodeArgs, script, ...args], { cwd, env, encoding: 'utf8' });
@@ -93,6 +93,24 @@ describe('verificar-documentacion-cambios', () => {
       assert.match(a.stderr, /::error file=docs\/a\.md::/);
       const b = await comprobar('corr-estricto-flag', ['scripts/a.mjs', 'docs/otro.md'], { base, args: ['--estricto'] });
       assert.equal(b.status, 1);
+    });
+
+    it('estricto: «Docs-no-aplica: <motivo>» en un commit exceptúa con aviso; motivo corto o ausente no', async () => {
+      const ok = await comprobar('corr-excepcion-trailer', ['scripts/a.mjs', 'docs/otro.md'], { base, args: ['--estricto'], mensaje: 'chore: x\n\nDocs-no-aplica: renombre interno sin efecto' });
+      assert.equal(ok.status, 0, ok.stderr);
+      assert.match(ok.stderr, /::warning file=docs\/a\.md::/);
+      assert.match(ok.stderr, /exceptuada por «Docs-no-aplica»: renombre interno sin efecto/);
+      assert.doesNotMatch(ok.stderr, /::error/);
+      const corto = await comprobar('corr-excepcion-corta', ['scripts/a.mjs', 'docs/otro.md'], { base, args: ['--estricto'], mensaje: 'chore: x\n\nDocs-no-aplica: no' });
+      assert.equal(corto.status, 1);
+      assert.match(corto.stderr, /::error file=docs\/a\.md::/);
+      assert.match(corto.stderr, /Docs-no-aplica: <motivo/);
+    });
+
+    it('la excepción no salta el control heredado (código sin ningún doc)', async () => {
+      const r = await comprobar('corr-excepcion-heredado', ['scripts/a.mjs'], { base, args: ['--estricto'], mensaje: 'chore: x\n\nDocs-no-aplica: renombre interno sin efecto' });
+      assert.equal(r.status, 1);
+      assert.match(r.stderr, /Fallo de documentación/);
     });
 
     it('sin aviso si el archivo no figura en ningún sources:, o es un test', async () => {

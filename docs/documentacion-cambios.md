@@ -38,7 +38,7 @@ La documentación debe registrar la decisión, el contrato afectado, los riesgos
 la validación ejecutada y cualquier limitación pendiente. Los archivos generados
 (por ejemplo `docs/schema.html`) no reemplazan la documentación fuente.
 
-## Correspondencia código-doc (MSF-869, modo aviso)
+## Correspondencia código-doc (MSF-688, MSF-869): estricta en los PR
 
 La regla de arriba se satisface con **cualquier** doc, aunque no tenga relación con el cambio (se elude tocando uno
 cualquiera: MSF-688). Por eso `verificar-documentacion-cambios.mjs` hace una segunda verificación, por correspondencia,
@@ -50,14 +50,24 @@ que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada 
   docs (por ruta exacta o dentro de una carpeta listada), esos docs deberían cambiar también. Si ninguno de ellos cambió, el
   archivo se reporta.
 - **No generan aviso:** archivos que no están en ningún `sources:`; tests (`*.test.*`, `*.spec.*`, `tests/`, `e2e/`, `fixtures/`),
-  snapshots, lockfiles y `supabase/migrations/` (las cubre `verificar-migraciones`); fuentes que abarcan un área entera
-  (`infra`, `.github/workflows`, una raíz de un solo segmento), porque no identifican un doc concreto; y docs con más de 40 fuentes.
-- **Modo aviso (por defecto):** emite una anotación `::warning file=<doc>::` por doc (agrupa sus archivos) y una lista legible
-  por doc en la salida, y **sale con 0**: no cambia ningún resultado de CI. El control heredado (código relevante sin ningún doc
-  → exit 1) queda idéntico.
-- **Modo estricto:** `DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1 node scripts/verificar-documentacion-cambios.mjs` (o el flag
-  `--estricto`) convierte los avisos en `::error` y sale con 1. Para activarlo en el CI, definir esa variable en el job `chequeos`
-  de `validate.yml`; conviene hacerlo solo cuando la tasa de ruido sea aceptable para el equipo.
+  snapshots, lockfiles, `*.md`, `.env.example` y `supabase/migrations/` (las cubre `verificar-migraciones`); fuentes que abarcan un
+  área entera (`infra/kestra`, `.github/workflows`, una raíz de un solo segmento), porque no identifican un doc concreto; y docs con más de 40 fuentes.
+- **Modo aviso (por defecto, local y fuera de un PR):** emite una anotación `::warning file=<doc>::` por doc (agrupa sus archivos) y una
+  lista legible por doc en la salida, y **sale con 0**. El control heredado (código relevante sin ningún doc → exit 1) queda idéntico.
+- **Modo estricto (activo en el CI de todo PR):** `DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1 node scripts/verificar-documentacion-cambios.mjs`
+  (o `--estricto`) convierte los avisos en `::error` y sale con 1. Desde el lote 96 el job `chequeos` de `validate.yml` lo activa en
+  `pull_request` (`github.event_name == 'pull_request'`); en `push`, `workflow_dispatch` y `merge_group` sigue en aviso porque no hay un
+  diff de PR que juzgar. Localmente se prueba con `DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1 pnpm docs:check`.
+- **Excepción auditable (`Docs-no-aplica`):** un cambio de código que de verdad no altera nada documentable (renombre interno, formato, una
+  dependencia) lo declara con una línea `Docs-no-aplica: <motivo de 15 caracteres o más>` en el mensaje de CUALQUIER commit del PR (se mira
+  `git log <base>..HEAD`). En estricto, con esa línea las anotaciones bajan a `::warning` y la salida nombra el motivo; sin ella, o con un
+  motivo corto, falla. La marca va al principio de la línea y con esa capitalización. El motivo se filtra contra lo degenerado (3 palabras de 2+ letras y más de una letra distinta; `aaaaaaaaaaaaaaa` no vale), pero no se juzga su contenido (las palabras se separan por cualquier blanco y cuenta toda letra Unicode, también CJK): **quien revisa el PR debe cuestionar el motivo**; un motivo vago es un hallazgo. **No** salta el control heredado (código sin ningún
+  doc) ni el aviso de `sources:`: solo evita el exit 1 de la correspondencia, y queda en el historial para que lo revise quien aprueba.
+- **Cómo se llegó a un estricto razonable (lote 96).** Medido sobre los últimos 40 merges de `dokploy`: con la regla original fallaban
+  14 (35 %); ruido estructural eliminado: los `*.md` (son documentación: `CONTRATO.md` no exige otro doc), los `.env.example` y la fuente
+  `infra/kestra` entera (90 archivos de un solo doc: el flow concreto ya figura en el `sources:` de su propio doc). Quedan 12 de 40
+  (30 %), todos con un doc propio que de verdad no se tocó (p. ej. `apps/web/src/lib/superadmin.ts` sin tocar `docs/tecnico/auditoria-y-soporte.md`):
+  eso es lo que la regla busca, y la salida indica el doc exacto. Los PR de lote ya traen su doc por la regla «documentá en el mismo cambio».
 - **Formatos de `sources:` aceptados:** lista en bloque, array en línea (`sources: [a, b]`), escalar (`sources: ruta`), `[]`,
   CRLF, comillas y comentarios finales (`- ruta # nota`). Produce el mismo mapa que `docs-manifest.mjs` para los 313 docs con fuentes.
 - **Escape de anotaciones:** los nombres de archivo y de doc vienen del PR, así que se escapan como `@actions/core` (mensaje:
