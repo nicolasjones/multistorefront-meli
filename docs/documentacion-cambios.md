@@ -61,7 +61,7 @@ que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada 
 - **Excepción auditable (`Docs-no-aplica`):** un cambio de código que de verdad no altera nada documentable (renombre interno, formato, una
   dependencia) lo declara con una línea `Docs-no-aplica: <motivo de 15 caracteres o más>` en el mensaje de CUALQUIER commit del PR (se mira
   `git log <base>..HEAD`). En estricto, con esa línea las anotaciones bajan a `::warning` y la salida nombra el motivo; sin ella, o con un
-  motivo corto, falla. La marca va al principio de la línea y con esa capitalización. El motivo se filtra contra lo degenerado (3 palabras de 2+ letras y más de una letra distinta; `aaaaaaaaaaaaaaa` no vale), pero no se juzga su contenido: **quien revisa el PR debe cuestionar el motivo**; un motivo vago es un hallazgo. **No** salta el control heredado (código sin ningún
+  motivo corto, falla. La marca va al principio de la línea y con esa capitalización. El motivo se filtra contra lo degenerado (3 palabras de 2+ letras y más de una letra distinta; `aaaaaaaaaaaaaaa` no vale), pero no se juzga su contenido (las palabras se separan por cualquier blanco y cuenta toda letra Unicode, también CJK): **quien revisa el PR debe cuestionar el motivo**; un motivo vago es un hallazgo. **No** salta el control heredado (código sin ningún
   doc) ni el aviso de `sources:`: solo evita el exit 1 de la correspondencia, y queda en el historial para que lo revise quien aprueba.
 - **Cómo se llegó a un estricto razonable (lote 96).** Medido sobre los últimos 40 merges de `dokploy`: con la regla original fallaban
   14 (35 %); ruido estructural eliminado: los `*.md` (son documentación: `CONTRATO.md` no exige otro doc), los `.env.example` y la fuente

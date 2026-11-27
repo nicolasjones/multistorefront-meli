@@ -43,13 +43,19 @@ export const ARCHIVOS_EXCLUIDOS = {
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-// Quita los comentarios YAML/shell: la línea que empieza con `#` y lo que sigue a ` #`. Un `# pnpm test:x` comentado no corre nada.
-// (Cortar en ` #` también recorta un ` #` dentro de una cadena: es raro y el efecto es conservador, la suite deja de contar.)
+// Quita los comentarios YAML/shell: la línea que empieza con `#` y lo que sigue a un `#` precedido de espacio, tab o `;`
+// (un `#` pegado a una palabra, `a#b`, no es comentario). Un `# pnpm test:x` comentado no corre nada.
+// LÍMITE (lado conservador): un ` #` dentro de una cadena recorta el resto de la línea, así que un `pnpm` posterior en esa
+// misma línea no cuenta como suite que corre. Los `#` de bloques `run: |` iguales a un comentario también se recortan: da igual,
+// el texto comentado de un shell tampoco corre.
+const SEPARADORES_PREVIOS = new Set([' ', '\t', ';']);
 export function sinComentarios(texto) {
   return String(texto).split('\n').map((linea) => {
     if (linea.trimStart().startsWith('#')) return '';
-    const i = linea.indexOf(' #');
-    return i >= 0 ? linea.slice(0, i) : linea;
+    for (let i = 1; i < linea.length; i += 1) {
+      if (linea[i] === '#' && SEPARADORES_PREVIOS.has(linea[i - 1])) return linea.slice(0, i).trimEnd();
+    }
+    return linea;
   }).join('\n');
 }
 

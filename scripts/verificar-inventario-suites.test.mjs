@@ -93,4 +93,9 @@ test('un comentario de workflow con `pnpm test:x` no cuenta como que corre', () 
 
 test('sinComentarios: línea completa, comentario tras espacio y # sin espacio previo se respetan', () => {
   assert.equal(sinComentarios('  # a\nrun: x # b\nrun: y#z'), '\nrun: x\nrun: y#z');
+  assert.equal(sinComentarios('run: x\t# b'), 'run: x');
+  assert.equal(sinComentarios('run: x;# b'), 'run: x;');
+  assert.equal(sinComentarios('run: x;#b pnpm test:z'), 'run: x;');
+  assert.equal(sinComentarios('run: echo "a #b" && pnpm test:z'), 'run: echo "a');  // límite conservador documentado
+  assert.equal(sinComentarios('# \n#x'), '\n');
 });

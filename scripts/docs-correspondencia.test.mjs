@@ -225,6 +225,16 @@ describe('motivoValido (fronteras y mutaciones)', () => {
     assert.equal(motivoValido('aaaaa aaaaa aaaab'), true);
   });
 
+  it('separa palabras por cualquier blanco (tab incluido)', () => {
+    assert.equal(motivoValido('renombre\tinterno\tsin efecto'), true);
+    assert.equal(motivoValido('renombre\tinterno'.padEnd(20, 'x')), false); // 2 palabras
+  });
+
+  it('acepta letras de alfabetos sin mayúsculas (CJK) y sigue rechazando el carácter repetido', () => {
+    assert.equal(motivoValido('内部重命名 没有任何影响 仅限格式'), true);
+    assert.equal(motivoValido('内内 内内 内内 内内 内内'), false);
+  });
+
   it('números y signos no cuentan como letras', () => {
     assert.equal(motivoValido('12 34 56 78 90 12 34'), false);
   });

@@ -270,7 +270,7 @@ así un fallo transitorio no queda fijado. La organización activa no se cachea:
   corre en `test:ci:scripts`) falla si una suite `test:*` de `package.json` o un archivo de test (`scripts/`, `supabase/functions/`,
   `infra/`, `workers/`, `packages/`) no lo ejecuta ningún workflow, salvo que figure en su tabla `EXCLUIDAS` con el motivo; también
   falla si una exclusión quedó vieja (la suite ya corre o ya no existe) o si esta sección no la nombra. «Corre en el CI» es
-  alcanzable desde el texto de los workflows (sin comentarios) siguiendo `pnpm <script>`. Primer barrido: estaban sin correr los tests de los cinco
+  alcanzable desde el texto de los workflows (sin comentarios: un `#` precedido de espacio, tab o `;` corta la línea; límite conservador: un ` #` dentro de una cadena corta también el resto de esa línea y un `pnpm` posterior en ella no cuenta) siguiendo `pnpm <script>`. Primer barrido: estaban sin correr los tests de los cinco
   workers (`pnpm test:workers:unit`, ~15 s, vitest sin servicios), `supabase/functions/_shared/log-seguro.test.ts` (ahora en
   `test:edge:compartido-ia`) y `scripts/prototipo-inventario.test.mjs` (ahora en `test:prototipo:inventario`). Lo caro o con servicios
   sigue fuera, con el motivo en la lista de abajo. El test del inventario (`test:suites:inventario:unit`) fija sus fronteras.

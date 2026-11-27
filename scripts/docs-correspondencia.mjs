@@ -113,11 +113,12 @@ export function motivosSinDoc(mensajesDeCommits) {
 // Un motivo vale si tiene >= 15 caracteres, al menos 3 palabras de 2+ letras y más de una letra distinta (rechaza «aaaa…»).
 // Es un filtro contra lo degenerado, no un juez del contenido: la revisión humana del PR debe cuestionar el motivo.
 export const PALABRAS_MINIMAS = 3;
-const esLetra = (c) => c.toLowerCase() !== c.toUpperCase();
+// `\p{L}`: cualquier letra Unicode (también CJK, que no tiene mayúsculas). Un solo carácter por prueba: tiempo lineal.
+const esLetra = (c) => /\p{L}/u.test(c);
 export function motivoValido(motivo) {
   if (motivo.length < MOTIVO_MINIMO) return false;
   const letras = [...motivo].filter(esLetra).map((c) => c.toLowerCase());
   if (new Set(letras).size < 2) return false;
-  const palabras = motivo.split(' ').filter((p) => [...p].filter(esLetra).length >= 2);
+  const palabras = motivo.split(/\s+/).filter((p) => [...p].filter(esLetra).length >= 2);
   return palabras.length >= PALABRAS_MINIMAS;
 }
