@@ -10,6 +10,12 @@ sources:
   - supabase/migrations/20261018190001_proveedores_tabla.sql
   - supabase/migrations/20261018190100_proveedores_rpc.sql
   - supabase/migrations/20270508000000_registro_de_envios_de_correo_a_proveedores.sql
+  - supabase/migrations/20270509000000_proveedores_condiciones_compra.sql
+  - supabase/migrations/20270509000100_productos_proveedores.sql
+  - apps/web/src/lib/condicionesCompra.ts
+  - apps/web/src/lib/productosProveedores.ts
+  - apps/web/src/components/proveedores/CondicionesDeCompra.tsx
+  - apps/web/src/components/productos/ProveedoresDelProducto.tsx
   - supabase/functions/enviar-correo-proveedor/handler.ts
   - supabase/functions/enviar-correo-proveedor/index.ts
 ---
@@ -27,7 +33,7 @@ MSF-367). Permisos: `docs/permisos-por-rol.md`; eventos: `docs/actividad.md`; ca
 El prototipo muestra y esta épica **no** entrega: condiciones de compra, «Compra para», «Enviar correo a proveedor»,
 importar/exportar proveedores, N.º correlativo, Último ingreso y Costo en la ficha (MSF-219/MSF-179), código de
 barras y varios proveedores por producto. Entregados después como seguimientos: «Compra para» (MSF-524), el
-importador (F-MIG-02), el N.º correlativo (MSF-527) y «Exportar» (MSF-526), descritos más abajo. «Desactivar» reemplaza a «Eliminar» del prototipo. Cada punto tiene su
+importador (F-MIG-02), el N.º correlativo (MSF-527), «Exportar» (MSF-526), las condiciones de compra (MSF-523) y varios proveedores por producto (MSF-530), descritos más abajo. «Desactivar» reemplaza a «Eliminar» del prototipo. Cada punto tiene su
 seguimiento en el tracker (T029): condiciones de compra MSF-523, «Compra para» MSF-524, «Enviar correo» MSF-525,
 importar/exportar MSF-526, N.º correlativo MSF-527, Último ingreso y Costo MSF-528, código de barras MSF-529 y
 varios proveedores por producto MSF-530.
@@ -219,6 +225,51 @@ El listado suma «Exportar» (componente `ExportarProveedores`) para quien tiene
 búsqueda, el estado y la tienda del listado (no solo lo cargado), con las columnas N.º, Razón social, CUIT, Compra para,
 Correo, Teléfono y Estado; las celdas que empiezan con `= + - @` se neutralizan como en la exportación de clientes. Se pide por
 lotes a `exportar_proveedores` con confirmación, progreso y cancelación.
+
+## Condiciones de compra (MSF-523, seguimiento de MSF-205)
+
+La ficha del proveedor suma la sección **Condiciones de compra**: plazo de pago (días, 0 = contado, hasta 365), mínimo de compra,
+moneda (ARS o USD) y notas (hasta 1000 caracteres). Todo es opcional; el mínimo exige moneda. **Sin historial** (decisión de producto): se
+guarda el valor vigente.
+
+- **Tabla** `dominio.proveedores_condiciones_compra` (`20270509000000_proveedores_condiciones_compra.sql`): una fila por proveedor (clave
+  `proveedor_id`, FK compuesta con la organización). RLS por organización y `nivel_seccion('proveedores')` (lectura o edición leen);
+  escritura solo por RPC; sin `DELETE` directo; `anon` sin acceso. No se agregan columnas a `dominio.proveedores`: no se tocan sus
+  lecturas, exportaciones ni grants por columna.
+- **RPC** `obtener_condiciones_compra_proveedor(p_proveedor_id)` (cero filas si todavía no hay) y
+  `guardar_condiciones_compra_proveedor(p_proveedor_id, p_plazo_pago_dias, p_minimo_compra, p_moneda, p_notas, p_actualizado)`: la segunda
+  exige edición en Proveedores y controla la concurrencia por `updated_at` (la persona manda el que vio al abrir; si cambió, error de
+  conflicto). Repetir lo mismo no escribe. Códigos de error: ver [Errores de negocio de las RPC](errores-negocio-postgrest.md).
+- **Pantalla**: `CondicionesDeCompra.tsx` (se carga aparte del resto de la ficha), diálogo «Editar condiciones de compra» solo con edición
+  en Proveedores.
+- Reversión: ver el comentario de la migración (drop de las dos funciones y de la tabla, exportando antes los datos).
+
+## Varios proveedores por producto (MSF-530, seguimiento de MSF-205)
+
+Un producto puede tener **varios proveedores con uno principal**; cada vínculo guarda su **código del proveedor** y su **costo**. Las tres
+decisiones que el análisis dejaba abiertas (detalle en `.specify/bugs/msf-530/fix.md`):
+
+1. **Principal opcional**: a lo sumo uno marcado por producto (índice único parcial). Quitar el principal no promueve a otro.
+2. **Atributos por vínculo: código y costo.** El plazo de pago es del proveedor (MSF-523), no del producto.
+3. **Sin rediseño del prototipo**: el selector «Proveedor» y el código del formulario siguen siendo el principal; el resto se administra en
+   la sección **Proveedores del producto** de la edición (`ProveedoresDelProducto.tsx`), fuera de la matriz del prototipo.
+
+- **Tabla** `dominio.productos_proveedores` (`20270509000100_productos_proveedores.sql`): `producto_id`, `proveedor_id`, `codigo_proveedor`,
+  `costo`, `principal`; único por producto y proveedor; FK compuestas por organización. RLS por organización y sección `productos`;
+  `authenticated` **no** lee la columna `costo` (se lee solo por `listar_proveedores_de_producto`, que la entrega a quien ve Rentabilidad);
+  escritura solo por RPC. Rellena desde `productos.proveedor_id` (el proveedor existente queda principal, con su costo actual).
+- **Compatibilidad**: `productos.proveedor_id` y `codigo_proveedor` pasan a ser el **espejo del principal** (reportes, exportaciones y las
+  firmas de `crear_producto`/`actualizar_producto` no cambian). Lo que entra por esas columnas se refleja en la tabla con la semántica de
+  siempre: elegir otro proveedor **reemplaza** al principal anterior y vaciarlo quita el principal; para conservar al anterior como
+  secundario se usa «Marcar como principal».
+- **Costo efectivo del producto = el del principal**: el costo del vínculo principal se copia a `producto_costos` y un cambio del costo
+  del producto se copia al vínculo principal (marca de sesión `catalogo.sincronizando_proveedores` contra bucles).
+- **RPC**: `listar_proveedores_de_producto`, `asignar_proveedor_producto` (agrega o actualiza código y costo; `p_principal` lo marca),
+  `quitar_proveedor_producto`, `marcar_proveedor_principal`. Exigen edición en Productos (el costo, edición en Rentabilidad). Un proveedor
+  desactivado no se asigna nuevo ni se marca principal. `productos_de_proveedor` lista ahora todos los productos donde el proveedor figura
+  (principal o no) con el costo del vínculo y pasó a `security definer` (valida permisos y organización adentro).
+- Las dos tablas entran a la exportación total (`20270509000600_exportacion_total_lote93.sql`).
+- Reversión: ver el comentario de la migración (no se borran las columnas viejas).
 
 ## Actividad
 

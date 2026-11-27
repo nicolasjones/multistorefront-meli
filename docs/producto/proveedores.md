@@ -2,6 +2,8 @@
 owner: producto
 sources:
   - apps/web/src/pages/proveedores
+  - apps/web/src/components/proveedores/CondicionesDeCompra.tsx
+  - apps/web/src/components/productos/ProveedoresDelProducto.tsx
 ---
 
 # Proveedores
@@ -184,6 +186,14 @@ En la ficha del producto (**Catálogo → Productos**, al crear o editar) hay do
 - **Código del proveedor**: el código con que ese proveedor conoce al producto (hasta 80 caracteres). Solo se puede cargar si hay un proveedor elegido; si quitás el proveedor, el código se borra.
 
 Si un proveedor se desactiva, los productos ya asignados lo conservan. Ver [Productos](catalogo-productos.md).
+
+## Las condiciones de compra
+
+En la ficha, la sección **Condiciones de compra** guarda cómo le comprás a ese proveedor: el **plazo de pago** en días (0 es contado), el **mínimo de compra** con su **moneda** (pesos o dólares) y **notas** libres. Todo es opcional. Quien edita proveedores toca **Editar condiciones**; si otra persona las cambió mientras las editabas, el sistema te avisa y no pisa nada. No guarda historial: queda el valor vigente.
+
+## Varios proveedores para un mismo producto
+
+Un producto puede comprarse a más de un proveedor. En **Editar producto**, la sección **Proveedores del producto** lista todos con su **código** y su **costo** (el costo solo lo ve y lo carga quien tiene Rentabilidad). Podés **agregar** un proveedor, **editar** su código y costo, **quitarlo** o **marcarlo como principal**. El principal es el del campo «Proveedor» del formulario y su costo es el costo del producto; si lo cambiás desde el campo, el principal anterior se reemplaza, y si querés conservarlo usá «Marcar como principal» en la lista. Quitar el principal deja el producto sin principal. Los cambios de esa sección se guardan al instante y recargan la ficha: guardá antes lo que estés editando. La ficha del proveedor lista los productos donde figura, sea principal o no.
 
 ## A qué empresas se asignan
 
