@@ -7,6 +7,7 @@
 // los productos siguen sin marca y el próximo barrido los vuelve a avisar (se prefiere un duplicado a
 // perder el aviso).
 import { tokenValido } from '../_shared/token.ts'
+import { errorDeBase, registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 import type { EnviarCorreo } from '../_shared/correo.ts'
 import { asuntoResumen, cuerpoResumen, enlaceStock, type ProductoResumen } from './contenido.ts'
 
@@ -16,7 +17,6 @@ const corsHeaders = { 'Access-Control-Allow-Headers': 'authorization, x-client-i
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
 export const MAX_INTENTOS = 5
-const ERROR_MAX = 300
 // A la tabla (legible por quien tiene Stock en lectura) solo va un texto genérico; el detalle SMTP queda en los registros.
 const ERROR_ENVIO_GENERICO = 'Falló el envío del correo; el detalle está en los registros de la función'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -47,25 +47,14 @@ export type Deps = {
   enviar: EnviarCorreo
 }
 
-// Al registro va el error sin host, IP ni correo: la librería SMTP puede incluir el servidor o el usuario.
-const mensajeDeError = (error: unknown) =>
-  (error instanceof Error ? error.message : String(error))
-    .replace(/[^\s@]+@[^\s@]+/g, '[correo]')
-    .replace(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, '[ip]')
-    .replace(/\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b/gi, '[host]')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, ERROR_MAX) || 'Error de envío sin detalle'
-
 async function cerrar(deps: Deps, resumen: string, enviado: boolean, error: string | null) {
   const cierre = await deps.datos.cerrar(resumen, enviado, error)
   if (cierre.error) {
-    console.error(
-      enviado
+    registrarErrorDeBase(
+      `${enviado
         ? 'enviar-resumen-reposicion: el correo salió pero no se pudo cerrar el resumen'
-        : 'enviar-resumen-reposicion: no se pudo registrar el fallo',
-      resumen,
-      cierre.error.message,
+        : 'enviar-resumen-reposicion: no se pudo registrar el fallo'} ${resumen}`,
+      cierre.error,
     )
   }
 }
@@ -73,7 +62,7 @@ async function cerrar(deps: Deps, resumen: string, enviado: boolean, error: stri
 /** Procesa el resumen de una organización: genera, envía y cierra. */
 export async function procesarOrganizacion(organizacion: string, deps: Deps): Promise<EstadoResumen> {
   const { data, error } = await deps.datos.generar(organizacion, MAX_INTENTOS)
-  if (error) throw new Error(`No se pudo generar el resumen: ${error.message}`)
+  if (error) throw errorDeBase('No se pudo generar el resumen', error)
   const fila = data?.[0]
   if (!fila) return 'sin_novedades'
 
@@ -93,8 +82,7 @@ export async function procesarOrganizacion(organizacion: string, deps: Deps): Pr
       texto: cuerpoResumen(fila.productos, enlaceStock(deps.panelUrl as string)),
     })
   } catch (falla) {
-    const detalle = mensajeDeError(falla)
-    console.error('enviar-resumen-reposicion: falló el envío', fila.resumen_id, detalle)
+    console.error('enviar-resumen-reposicion: falló el envío', fila.resumen_id, textoDeError(falla))
     await cerrar(deps, fila.resumen_id, false, ERROR_ENVIO_GENERICO)
     return 'fallido'
   }
@@ -121,7 +109,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   if (body?.barrer === true) {
     const { data: ids, error } = await deps.datos.organizaciones()
     if (error) {
-      console.error('enviar-resumen-reposicion: no se pudo listar las organizaciones', error.message)
+      registrarErrorDeBase('enviar-resumen-reposicion: no se pudo listar las organizaciones', error)
       return response({ error: 'No se pudieron leer los resúmenes pendientes.' }, 502)
     }
     const resultados: Partial<Record<EstadoResumen, number>> = {}
@@ -132,7 +120,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
         resultados[estado] = (resultados[estado] ?? 0) + 1
       } catch (falla) {
         errores += 1
-        console.error('enviar-resumen-reposicion: organización con error', id, mensajeDeError(falla))
+        console.error('enviar-resumen-reposicion: organización con error', id, textoDeError(falla))
       }
     }
     // Con errores o resúmenes fallidos responde 502 para que Kestra marque la ejecución (y reintente).
@@ -144,7 +132,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   try {
     return response({ estado: await procesarOrganizacion(body.organizacion_id, deps) })
   } catch (falla) {
-    console.error('enviar-resumen-reposicion: error inesperado', mensajeDeError(falla))
+    console.error('enviar-resumen-reposicion: error inesperado', textoDeError(falla))
     return response({ error: 'No se pudo procesar el resumen.' }, 502)
   }
 }

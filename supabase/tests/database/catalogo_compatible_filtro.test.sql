@@ -37,8 +37,8 @@ end $$;
 select is(
   (select attname::text from pg_attribute
     where attrelid = 'public.v_productos_listado'::regclass and attnum > 0 and not attisdropped
-    order by attnum desc limit 1),
-  'compatible_con', 'compatible_con es la última columna de v_productos_listado (aditiva)'
+    order by attnum desc offset 1 limit 1),
+  'compatible_con', 'compatible_con es la penúltima columna de v_productos_listado (aditiva; estado_stock, de MSF-611, la sigue)'
 );
 select is(
   (select format_type(atttypid, atttypmod) from pg_attribute

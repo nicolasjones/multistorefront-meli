@@ -7,7 +7,7 @@
 -- o «anon», igual que PostgREST.
 begin;
 
-select plan(62);
+select plan(63);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -248,7 +248,11 @@ select throws_ok(
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select throws_ok(
   $$select public.actualizar_consulta((select id from public.consultas_bandeja limit 1), 'bogus', null, null, now())$$,
-  '22023', null, 'estado inválido'
+  'PT404', 'El estado elegido no existe', 'un estado que la organización no tiene se rechaza (PT404)'
+);
+select throws_ok(
+  $$select public.actualizar_consulta((select id from public.consultas_bandeja limit 1), '  ', null, null, now())$$,
+  '22023', 'Estado inválido', 'un estado vacío se rechaza (22023)'
 );
 
 reset role;

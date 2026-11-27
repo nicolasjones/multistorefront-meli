@@ -53,7 +53,7 @@ MSF-940 (aviso al equipo), MSF-941 (presupuesto desde una consulta de pedido), M
 |---|---|---|
 | H-1 | El hash de IP de los cupos es reversible por fuerza bruta. | Fuera de este cambio: seguimiento MSF-945. |
 | H-2 | La baja de la cuenta web borraba el vínculo del presupuesto de la tienda (FK `on delete cascade`), y `fusionar_clientes` dejaba cliente de presupuestos y consultas apuntando al cliente archivado. | `20270507300000`: `cuenta_cliente_id` admite nulo y la FK pasa a `on delete set null (cuenta_cliente_id)`; las FK de cliente y comprobante pasan a `on delete cascade` para que la baja de la organización no se bloquee. `20270507300100`: la fusión repunta `cliente_id` de `presupuestos_tienda` y `consultas`, y pasa los presupuestos de la cuenta que se da de baja a la cuenta que sobrevive de la misma empresa (si la `clave_envio` choca, ese vínculo queda sin cuenta). El repunte de consultas hace avanzar su `updated_at`. |
-| H-3 | Las cinco RPC de «Mi cuenta» no tenían cupo de llamadas. | `20270507300200`: 120 llamadas por minuto y cuenta (`private.limite_llamadas_cuenta_por_minuto()`), tomadas después de resolver la cuenta y antes de leer, fuera del bloque con `exception when others`. Superado, responde `{estado: limite, espera_segundos}`; el front lo trata como error con reintento. Las cuatro que eran `stable` pasan a `volatile`. Quedan fuera de este cierre `acceso_cliente_por_dominio` y `precios_cliente_por_dominio` (sin cupo por cuenta, `stable`) y `mis_opiniones_por_dominio` (cupo por visitante, no por cuenta); decisión de diseño pendiente de Nicolás; seguimiento MSF-1001. |
+| H-3 | Las cinco RPC de «Mi cuenta» no tenían cupo de llamadas. | `20270507300200`: 120 llamadas por minuto y cuenta (`private.limite_llamadas_cuenta_por_minuto()`), tomadas después de resolver la cuenta y antes de leer, fuera del bloque con `exception when others`. Superado, responde `{estado: limite, espera_segundos}`; el front lo trata como error con reintento. Las cuatro que eran `stable` pasan a `volatile`. Quedaban fuera `acceso_cliente_por_dominio`, `precios_cliente_por_dominio` y `mis_opiniones_por_dominio`: se cerraron en `20270510000200` (MSF-1001, ver «Cupo por cuenta de acceso, precios y opiniones» más abajo). |
 | H-4 | El cupo de la lista de pedido y del envío se revertía con una excepción. | Ya estaba corregido en `20270430000000_tienda_menores_revision.sql`; `tienda_cierre_hallazgos.test.sql` lo vuelve a probar. |
 | H-5 | Funciones de `private` con `execute` para `authenticated`. | Documentado abajo; sin cambio de código. |
 | H-6 | El script de medición escribía sin guard de entorno y faltaban caracteres invisibles en las listas bloqueadas. | `20270507300300`: se suman U+00AD, U+180E y U+2061 a U+2064 en `enviar_lista_pedido` y `crear_presupuesto_tienda`; `tiendaPedido.ts` usa el mismo conjunto. `scripts/medir-tienda-favoritos.sql` aborta salvo que se pase `-v BASE_DESCARTABLE=si`, la sesión sea superusuario (el conteo no depende de RLS), el nombre de la base tenga `descartable`, `test` o `local` como palabra delimitada por `_` o `-` (`medicion_descartable` cumple, `latest` no; un nombre que contenga esas palabras delimitadas, aunque también diga `prod`, pasa el guard) y la base tenga 5 organizaciones o menos. Es una protección contra accidentes, no un control de seguridad: quien accede a la base puede saltearla. Prueba: `scripts/medir-tienda-favoritos.guard.test.mjs` (se omite sin `MEDIR_PSQL` y `MEDIR_PSQL_OTRA_BASE`; el job `database` del CI la corre con dos bases vacías que crea y borra `scripts/probar-guard-medicion.sh`, sin los dos casos que leen `organizaciones`; local, con el esquema completo, corren los siete). |
@@ -70,3 +70,26 @@ Las migraciones se derivan de las definiciones vigentes al momento del cambio (n
 ### `statement_timeout` (57014)
 
 `exception when others` no atrapa `query_canceled` (57014). Si una llamada excede el `statement_timeout` de su rol (el comentario de `20270321100200` anota `anon` 3 s y `authenticated` 8 s), la llamada falla entera y su transacción se revierte, con el incremento del cupo incluido; el cliente recibe el error de PostgREST.
+
+## Cupo por cuenta de acceso, precios y opiniones (MSF-1001)
+
+Decisión de diseño (2026-11-26, delegada): **cupo persistente y no caché**, con el mismo mecanismo que las cinco RPC de «Mi cuenta»
+(`private.registrar_pedido_publico`: contador por minuto en `public.limite_pedidos_publicos`, que sobrevive a reinicios y vale entre
+instancias) y un tope **más alto**, porque estas llamadas se hacen en cada carga de la tienda. No hay caché: el estado y el tipo de la
+cuenta rigen al instante (FR-035). Migración `20270510000200`:
+
+| RPC | Clave del contador | Tope por minuto |
+|---|---|---|
+| `publico.acceso_cliente_por_dominio` | `acceso\|<uid de Auth>` | 240 (`private.limite_acceso_cliente_por_minuto()`) |
+| `publico.precios_cliente_por_dominio` | `precios\|<uid de Auth>` | 240 (`private.limite_precios_cliente_por_minuto()`) |
+| `publico.mis_opiniones_por_dominio` | `opiniones_cuenta\|<cuenta>` (además del cupo por visitante, que se conserva) | 120 (`private.limite_llamadas_cuenta_por_minuto()`) |
+
+- Sin sesión no hay cuenta a la que contar: `acceso_cliente_por_dominio` responde igual y no escribe ningún contador.
+- `precios_cliente_por_dominio` ya no llama a la función pública de acceso (que tomaría un segundo cupo): usa
+  `private.acceso_cliente_resuelto`, el cuerpo de siempre sin cupo. Las dos pasan de `stable` a `volatile`.
+- Superado el tope responden `{estado: limite, espera_segundos}`, como las otras. Es la única diferencia de contrato y solo aparece ante un
+  abuso: la forma de las respuestas normales no cambia. La web lo trata como fallo reintentable en el ingreso y la sesión (`consultarAcceso` lanza,
+  `ingresarCliente` cierra la sesión recién abierta y `sesionActivaEnTienda` NO cierra una sesión ya activa) y cae al precio público en `leerPreciosCliente`.
+- Prueba: `cupo_por_cuenta_acceso_precios_opiniones.test.sql` (baja los topes a 3 en la transacción y recorre la frontera con llamadas reales)
+  y los tests de `tiendaCuenta` y `tiendaPreciosCliente`.
+

@@ -92,8 +92,8 @@ comentario «Decisión tomada» en su ticket.
 
 ### MSF-595 · Estados de consulta
 
-- **Estado:** Decidida, pendiente de implementar.
-- **Decisión:** los estados de consulta quedan **fijos** (tres). No se conecta `dominio.estados_consulta` con
+- **Estado:** Revertida el 2026-11-26 (lote 94): se conectó `dominio.estados_consulta` con `consultas.estado`; ver [`listas-configurables.md`](./listas-configurables.md).
+- **Decisión original (reemplazada):** los estados de consulta quedan **fijos** (tres). No se conecta `dominio.estados_consulta` con
   `consultas.estado`; se quita u oculta la configuración de estados y se documenta.
 - **Fundamento:** pasar de un `check` a una clave foránea y sembrar estados por organización agrega complejidad sin
   demanda concreta.

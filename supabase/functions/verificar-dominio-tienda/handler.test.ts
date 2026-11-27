@@ -4,6 +4,7 @@
 // (`pnpm test:edge:verificar-dominio-tienda`); el handler no importa nada de Deno.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 import { clasificarFalloTls, manejar, type Certificado, type Deps, type Preparacion, type ResultadoRegistro } from './handler.ts'
 
 const EMPRESA = 'e1000000-0000-4000-8000-000000000001'
@@ -222,5 +223,29 @@ describe('clasificarFalloTls', () => {
     assert.equal(clasificarFalloTls('Error certificate expired'), 'error')
     assert.equal(clasificarFalloTls('ConnectionRefused connection refused'), 'pendiente')
     assert.equal(clasificarFalloTls('Error timeout'), 'pendiente')
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  it('DNS, TLS y registro con errores hostiles dejan solo nombre y código', async () => {
+    const dns = montar(TODO_BIEN)
+    dns.deps.dns.resolverA = async () => { throw errorHostil() }
+    const a = await capturarLog(() => pedir(dns.deps))
+    assert.equal(a.resultado.status, 502)
+    assert.deepEqual(a.lineas, ['verificar-dominio-tienda: DNS no disponible Error'])
+
+    const tls = montar(TODO_BIEN)
+    tls.deps.tls.comprobar = async () => { throw errorHostil() }
+    const b = await capturarLog(() => pedir(tls.deps))
+    assert.equal(b.resultado.status, 200)
+    assert.deepEqual(b.lineas, ['verificar-dominio-tienda: comprobación TLS fallida Error'])
+
+    const registro = montar(TODO_BIEN)
+    registro.deps.admin.registrar = async () => ({ error: ERROR_BASE_HOSTIL })
+    const c = await capturarLog(() => pedir(registro.deps))
+    assert.equal(c.resultado.status, 400)
+    assert.equal(c.lineas.length, 1)
+    assert.match(c.lineas[0], /^verificar-dominio-tienda: no se pudo registrar el resultado 42501 /)
+    assert.doesNotMatch(c.lineas[0], /sk-secreta|db\.example\.com/)
   })
 })

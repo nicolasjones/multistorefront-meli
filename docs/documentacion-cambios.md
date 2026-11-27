@@ -3,6 +3,8 @@ owner: tecnico
 sources:
   - scripts/verificar-documentacion-cambios.mjs
   - scripts/verificar-documentacion-cambios.test.mjs
+  - scripts/docs-capturas-manual.mjs
+  - scripts/docs-capturas-manual.test.mjs
   - scripts/docs-correspondencia.mjs
   - scripts/docs-correspondencia.test.mjs
   - scripts/docs-lineas.mjs
@@ -200,6 +202,21 @@ ilustra. El comando es `pnpm docs:capturas` (raíz; delega en `pnpm --filter @pl
 (variable `CAPTURAS_DESTINO` para cambiar el destino). Si el PR no puede rehacerlas (p. ej. no hay stack), lo declara en
 su descripción y la página queda anotada como pendiente de recaptura.
 
+**Aviso automático (MSF-644).** `verificar-documentacion-cambios.mjs` (`scripts/docs-capturas-manual.mjs`) avisa en el CI cuando el
+diff cambia un `.tsx` de `apps/web/src/pages/` y no cambia ninguna imagen (`png`, `jpg`, `jpeg` o `webp`, sin distinguir mayúsculas) de
+`docs/producto/img/`.
+
+- **Qué no cuenta como pantalla:** un archivo `.test.*`, `.spec.*` o `.stories.*`, ni los de una carpeta `__tests__/`,
+  `__snapshots__/`, `test/`, `tests/` o `e2e/`. Los nombres de pantalla o de imagen con saltos de línea se reconocen igual (ambas regex usan el flag `s`).
+- **Borrados:** se ignoran (`--diff-filter=d`): quitar una pantalla no pide capturas y quitar una imagen no cuenta como rehacerla.
+  Si ese segundo `git diff` fallara, el script avisa con `::warning` y vuelve a la lista completa, que sí cuenta los borrados.
+- **Severidad:** es solo un aviso (`::warning`), porque el script no ve la descripción del PR, que es donde se declara que no
+  corresponde rehacer las capturas. Pasa a error con `CAPTURAS_MANUAL_ESTRICTO=1` o `--capturas-estricto`.
+
+**Limitación medida.** No distingue una pantalla de un componente auxiliar que vive en `pages/` (eso exigiría analizar código), ni sabe
+qué captura corresponde a qué pantalla. Sobre los últimos 80 merges de `dokploy` (medido el 2026-11-26) el aviso habría saltado en 22
+(27 %), todos sin imágenes nuevas; no se separó cuántos eran componentes auxiliares y cuántos pantallas sin recaptura.
+
 **Requisitos.** Stack local de Supabase con el dataset demo (`pnpm demo:dataset -- --reset`, ver `dataset-demo.md`) y la
 web servida (`E2E_BASE_URL`) o el build para `vite preview`; variables `SUPABASE_URL` y `SUPABASE_ANON_KEY`. Las
 capturas son de solo lectura (no confirman formularios). No corren con `pnpm test:e2e` ni en el CI público (config
@@ -218,6 +235,8 @@ c7860a7c y hoy `docs-check` pasa; MSF-570: el spec `40-catalogo-tiendas` suma la
 768 y 1440 px (`09-comparativo-<ancho>.png`), **pendiente de ejecutar** porque necesita el stack con el dataset demo y la
 revisión visual lado a lado con el sistema de diseño en STG. MSF-644 se trata en el PR #1226. Además, el comentario de
 `playwright.capturas.config.ts` remite a `docs/capturas-documentacion.md`, que ahora existe.
+
+Pendientes por el lote 94 (2026-11-26, MSF-595 y MSF-611): `docs/producto/img/consultas/` (filtro y selector de estados configurados, aclaración de «Nuevas») y las capturas del listado de productos (chip «Stock bajo», sin «Sin vincular a ML»).
 
 ## Ramas `main` y `dokploy`: estado y reconciliación de la documentación (MSF-590)
 

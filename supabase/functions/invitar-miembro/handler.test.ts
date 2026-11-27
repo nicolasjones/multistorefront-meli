@@ -3,6 +3,7 @@
 // (`pnpm test:edge:invitar-miembro`); el handler no importa nada de Deno ni de Supabase.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 import { manejar, type Deps } from './handler.ts'
 
 type Opciones = {
@@ -355,5 +356,29 @@ describe('invitar-miembro', () => {
 
     assert.equal(status, 400)
     assert.ok(!llamadas.rpc.some(([nombre]) => nombre === 'registrar_invitacion'))
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  const sinCorreo = /sk-secreta|db\.example\.com|persona@example\.com/
+
+  it('si no puede borrar la cuenta de la invitación cancelada deja solo el nombre y el código del error de Auth', async () => {
+    const { deps } = montar({ rpcData: { cancelar_invitacion: 'cuenta-sin-uso' } })
+    deps.admin.auth.admin.deleteUser = async () => ({ data: null, error: errorHostil() })
+    const { resultado, lineas } = await capturarLog(() => manejar(pedir({ accion: 'cancelar', invitacion_id: 'inv-1' }), deps))
+    assert.equal(resultado.status, 502)
+    assert.deepEqual(lineas, ['invitar-miembro: no se pudo borrar la cuenta de la invitación cancelada Error'])
+  })
+
+  it('si falla la compensación o el borrado tras vincular, deja el código y no el mensaje', async () => {
+    const { deps } = montar({ rpcError: { vincular_invitacion: { message: 'detalle', code: '23505' } } })
+    deps.admin.auth.admin.deleteUser = async () => ({ data: null, error: errorHostil() })
+    deps.admin.from = () => ({ delete: () => ({ eq: async () => ({ error: ERROR_BASE_HOSTIL }) }) }) as never
+    const { resultado, lineas } = await capturarLog(() => manejar(pedir(invitar), deps))
+    assert.equal(resultado.status, 409)
+    assert.equal(lineas.length, 2)
+    assert.equal(lineas[0], 'invitar-miembro: cuenta huérfana tras vincular_invitacion cuenta-nueva Error')
+    assert.match(lineas[1], /^invitar-miembro: no se pudo compensar la invitación inv-1 42501 /)
+    assert.doesNotMatch(lineas.join('\n'), sinCorreo)
   })
 })

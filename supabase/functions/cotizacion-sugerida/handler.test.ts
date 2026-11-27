@@ -2,7 +2,8 @@
 // (`pnpm test:edge:cotizacion-sugerida`); el handler no importa nada de Deno ni de Supabase.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { FUENTE_NOMBRE, leerSugerencia, manejar, VALOR_MAXIMO, type Deps } from './handler.ts'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
+import { FUENTE_NOMBRE, leerSugerencia, manejar, manejarSinCaida, VALOR_MAXIMO, type Deps } from './handler.ts'
 
 type Opciones = { nivel?: string | null; nivelError?: boolean; fuente?: unknown; fuenteCae?: boolean }
 
@@ -81,5 +82,32 @@ describe('cotizacion-sugerida', () => {
 
   it('leerSugerencia ignora una fecha ilegible', () => {
     assert.deepEqual(leerSugerencia({ venta: 10, fechaActualizacion: 'ayer' }), { valor: 10, fuente: FUENTE_NOMBRE, fecha: null })
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  it('un error del permiso deja el código y no el mensaje', async () => {
+    const { deps } = montar()
+    deps.caller = () => ({ nivelCotizacion: async () => ({ data: null, error: ERROR_BASE_HOSTIL }) })
+    const { resultado, lineas } = await capturarLog(() => pedir(deps))
+    assert.equal(resultado.status, 502)
+    assert.equal(lineas.length, 1)
+    assert.match(lineas[0], /^cotizacion-sugerida: no se pudo resolver el permiso 42501 /)
+    assert.doesNotMatch(lineas[0], /sk-secreta|db\.example\.com/)
+  })
+
+  it('una fuente caída o una excepción inesperada dejan solo el nombre del error', async () => {
+    const { deps } = montar()
+    deps.leerFuente = async () => { throw errorHostil() }
+    const fuente = await capturarLog(() => pedir(deps))
+    assert.equal(fuente.resultado.status, 502)
+    assert.deepEqual(fuente.lineas, ['cotizacion-sugerida: la fuente no respondió Error'])
+
+    deps.getUser = async () => { throw errorHostil() }
+    const caida = await capturarLog(() => manejarSinCaida(new Request('http://x/', { method: 'POST', headers: { Authorization: 'Bearer valido' } }), deps))
+    assert.equal(caida.resultado.status, 502)
+    assert.deepEqual(await caida.resultado.json(), { error: 'No se pudo verificar tu permiso.' })
+    assert.equal(caida.resultado.headers.get('Access-Control-Allow-Origin'), '*')
+    assert.deepEqual(caida.lineas, ['cotizacion-sugerida: falla inesperada Error'])
   })
 })
