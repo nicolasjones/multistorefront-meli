@@ -27,7 +27,7 @@ const permisos = ROLES_MATRIZ.flatMap((rol) =>
   SECCIONES_MATRIZ.map((s) => ({ rol_id: rol, seccion: s.clave, nivel: rol === 'administrador' ? 'edicion' : 'lectura' })),
 )
 const permisosAccion = ROLES_MATRIZ.flatMap((rol) =>
-  SECCIONES_MATRIZ.flatMap((s) => ['eliminar', 'exportar', 'ver_costos'].map((accion) => ({
+  SECCIONES_MATRIZ.flatMap((s) => ['eliminar', 'exportar', 'ver_costos', ...(s.clave === 'service_tecnico' ? ['ver_comisiones'] : [])].map((accion) => ({
     rol_id: rol, seccion: s.clave, accion, permitido: rol === 'administrador',
   }))),
 )
@@ -227,6 +227,23 @@ describe('RolesPermisos', () => {
       p_niveles: [],
       p_acciones: [{ rol_id: 'operador', seccion: 'productos', accion: 'exportar', permitido: true }],
     }))
+  })
+
+  it('«Ver comisiones» (MSF-957) se edita aparte de «Ver costos» y solo existe en Servicio técnico', async () => {
+    render(<RolesPermisos />)
+    await screen.findByText('Descripción de operador')
+    fireEvent.click(screen.getByRole('button', { name: 'Ver comisiones' }))
+    const filas = screen.getByRole('table', { name: 'Matriz de permisos por acción' })
+    expect(within(filas).getAllByRole('row')).toHaveLength(2) // encabezado + Servicio técnico
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Ver comisiones en Servicio técnico, Operador' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('guardar_matriz_permisos', {
+      p_niveles: [],
+      p_acciones: [{ rol_id: 'operador', seccion: 'service_tecnico', accion: 'ver_comisiones', permitido: true }],
+    }))
+    // «Ver costos» sigue mostrando todas las secciones y no mezcla la acción nueva.
+    fireEvent.click(screen.getByRole('button', { name: 'Ver costos' }))
+    expect(within(screen.getByRole('table', { name: 'Matriz de permisos por acción' })).getAllByRole('row')).toHaveLength(SECCIONES_MATRIZ.length + 1)
   })
 
   it('muestra el error del servidor y conserva los cambios pendientes', async () => {

@@ -142,6 +142,7 @@
     "/reportes/Tableros",
     "/roles/list",
     "/seguimiento",
+    "/service-tecnico/comisiones",
     "/service-tecnico/estados",
     "/service-tecnico/etiqueta",
     "/service-tecnico/modelos",
@@ -306,6 +307,7 @@
     "dominio.categorias_empresa",
     "dominio.categorias_tienda",
     "dominio.cobros_comprobante",
+    "dominio.comision_reglas",
     "dominio.comprobante_documentos",
     "dominio.comprobante_envios_correo",
     "dominio.comprobante_impresiones",
@@ -384,6 +386,8 @@
     "dominio.rentabilidad_config",
     "dominio.reparacion_adjuntos",
     "dominio.reparacion_avisos",
+    "dominio.reparacion_comision_historial",
+    "dominio.reparacion_comision_reparto",
     "dominio.reparacion_enlaces_consulta",
     "dominio.reparacion_historial",
     "dominio.reparacion_items",
@@ -1250,5 +1254,5 @@
       "titulo": "Feature Specification: Facturar presupuesto y retención de consultas"
     }
   ],
-  "paginas": 347
+  "paginas": 349
 }

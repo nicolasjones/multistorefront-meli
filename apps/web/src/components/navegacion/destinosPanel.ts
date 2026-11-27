@@ -38,6 +38,7 @@ import ImportExportIcon from '@mui/icons-material/ImportExport'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import ApiIcon from '@mui/icons-material/Api'
 import InsightsIcon from '@mui/icons-material/Insights'
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined'
 import MailOutlineIcon from '@mui/icons-material/MailOutline'
 import MarkEmailReadOutlinedIcon from '@mui/icons-material/MarkEmailReadOutlined'
 import BarChartIcon from '@mui/icons-material/BarChart'
@@ -181,6 +182,15 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
         etiqueta: 'Reportes',
         ruta: '/service-tecnico/reportes',
         icono: InsightsIcon,
+        audiencia: 'organizacion',
+        seccionPermiso: 'service_tecnico',
+        feature: 'service-tecnico',
+      },
+      {
+        id: 'service-tecnico-comisiones',
+        etiqueta: 'Comisiones',
+        ruta: '/service-tecnico/comisiones',
+        icono: PaymentsOutlinedIcon,
         audiencia: 'organizacion',
         seccionPermiso: 'service_tecnico',
         feature: 'service-tecnico',
