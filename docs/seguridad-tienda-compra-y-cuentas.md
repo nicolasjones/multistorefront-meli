@@ -89,7 +89,7 @@ cuenta rigen al instante (FR-035). Migración `20270510000200`:
   `private.acceso_cliente_resuelto`, el cuerpo de siempre sin cupo. Las dos pasan de `stable` a `volatile`.
 - Superado el tope responden `{estado: limite, espera_segundos}`, como las otras. Es la única diferencia de contrato y solo aparece ante un
   abuso: la forma de las respuestas normales no cambia. La web lo trata como fallo reintentable en el ingreso y la sesión (`consultarAcceso` lanza,
-  la sesión NO se cierra) y cae al precio público en `leerPreciosCliente`.
+  `ingresarCliente` cierra la sesión recién abierta y `sesionActivaEnTienda` NO cierra una sesión ya activa) y cae al precio público en `leerPreciosCliente`.
 - Prueba: `cupo_por_cuenta_acceso_precios_opiniones.test.sql` (baja los topes a 3 en la transacción y recorre la frontera con llamadas reales)
   y los tests de `tiendaCuenta` y `tiendaPreciosCliente`.
 

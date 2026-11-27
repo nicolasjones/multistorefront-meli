@@ -12,6 +12,8 @@
 --     el cuerpo de siempre sin cupo.
 --   * `mis_opiniones_por_dominio`: además del cupo por visitante (`opinion|lectura|…`, que se conserva), 120 por minuto y cuenta
 --     (clave `opiniones_cuenta|<cuenta>`, la misma constante que «Mi cuenta» pero un contador propio).
+-- Ojo: `mis_opiniones_por_dominio` conserva su `exception when others` de todo el cuerpo (20270419000000): ante un error inesperado revierte también el contador
+-- de cuenta (y el de visitante), igual que antes con este último; acá no se cambia.
 -- Superado el cupo: `{estado: limite, espera_segundos}`, como las demás. Es la única diferencia de contrato y solo aparece ante un abuso: la forma de
 -- las respuestas normales (activa|suspendida|sin_cuenta|no_habilitado|null; {tipo, precios}; {estado: ok|…}) no cambia. La web lo trata como error
 -- reintentable (`consultarAcceso`) o cae al precio público (`leerPreciosCliente`). El cupo se toma antes de cualquier lectura y NO antes de un `raise`:

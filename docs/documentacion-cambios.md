@@ -198,7 +198,7 @@ aparte a propósito, `apps/web/playwright.capturas.config.ts`).
 **Estado (MSF-877, 2026-11-17).** El repo tiene 262 imágenes versionadas bajo `docs/producto/img/`, en 44 carpetas.
 La guía de uso es [Capturas del manual de usuario](capturas-documentacion.md). Esta revisión de documentación **no regeneró imágenes**, porque hacerlo exige levantar el stack con el dataset demo.
 Las capturas de pantallas cambiadas hoy (Productos con Margen, Empresas, Migración de datos con pestañas, Actividad,
-Importaciones) quedan pendientes de recaptura con el comando de arriba. Además, el comentario de
+Importaciones) quedan pendientes de recaptura con el comando de arriba. Pendientes por el lote 94 (2026-11-26, MSF-595 y MSF-611): `docs/producto/img/consultas/` (filtro y selector de estados configurados, aclaración de «Nuevas») y las capturas del listado de productos (chip «Stock bajo», sin «Sin vincular a ML»). Además, el comentario de
 `playwright.capturas.config.ts` remite a `docs/capturas-documentacion.md`, que ahora existe.
 
 ## Ramas `main` y `dokploy`: estado y reconciliación de la documentación (MSF-590)

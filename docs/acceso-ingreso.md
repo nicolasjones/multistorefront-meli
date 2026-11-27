@@ -184,4 +184,4 @@ El cliente con cuenta web (F-CLI-05) ingresa y recupera su contraseña **en el d
 
 ## Cupo por cuenta del acceso a la tienda (MSF-1001)
 
-`publico.acceso_cliente_por_dominio` toma un cupo de 240 llamadas por minuto y cuenta de Auth; superado responde `{estado: limite}` y `consultarAcceso` lo trata como un fallo reintentable (no cierra la sesión). Detalle en [Revisión de seguridad de la tienda](seguridad-tienda-compra-y-cuentas.md).
+`publico.acceso_cliente_por_dominio` toma un cupo de 240 llamadas por minuto y cuenta de Auth; superado responde `{estado: limite}` y `consultarAcceso` lo trata como un fallo reintentable: al ingresar se cierra la sesión recién abierta (como ante cualquier fallo de verificación) y se muestra «No pudimos verificar tu acceso»; una sesión ya activa en la tienda NO se cierra. Detalle en [Revisión de seguridad de la tienda](seguridad-tienda-compra-y-cuentas.md).

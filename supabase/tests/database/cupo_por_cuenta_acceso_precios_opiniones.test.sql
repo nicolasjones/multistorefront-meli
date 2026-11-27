@@ -5,7 +5,7 @@
 -- persistido (fila en limite_pedidos_publicos) y que `precios` ya no gasta el cupo de `acceso`.
 begin;
 
-select plan(19);
+select plan(26);
 
 insert into organizaciones (id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
 insert into auth.users (id, email) values
@@ -37,6 +37,28 @@ end $$;
 select is(private.limite_acceso_cliente_por_minuto(), 240, 'el cupo real de acceso es de 240 llamadas por minuto y cuenta');
 select is(private.limite_precios_cliente_por_minuto(), 240, 'el cupo real de precios es de 240 llamadas por minuto y cuenta');
 select is(private.limite_llamadas_cuenta_por_minuto(), 120, 'el cupo real de opiniones por cuenta (el de «Mi cuenta») es de 120');
+
+-- La frontera REAL (240, 240 y 120), sin bajar nada: se deja el contador de la cuenta B en tope - 1 y se llama de verdad.
+insert into public.limite_pedidos_publicos (visitante, ventana, pedidos) values
+  ('acceso|f9400000-0000-0000-0000-000000000002', date_trunc('minute', now()), 239),
+  ('precios|f9400000-0000-0000-0000-000000000002', date_trunc('minute', now()), 239),
+  ('opiniones_cuenta|ca940000-0000-0000-0000-000000000002', date_trunc('minute', now()), 119);
+select pg_temp.como('f9400000-0000-0000-0000-000000000002');
+select is(publico.acceso_cliente_por_dominio('cupo.ejemplo.com') ->> 'estado', 'activa', 'real: la llamada 240 de acceso todavía responde');
+select is(publico.acceso_cliente_por_dominio('cupo.ejemplo.com') ->> 'estado', 'limite', 'real: la 241 de acceso supera el cupo');
+select is(publico.precios_cliente_por_dominio('cupo.ejemplo.com', '{}') ->> 'tipo', 'minorista', 'real: la llamada 240 de precios todavía responde');
+select is(publico.precios_cliente_por_dominio('cupo.ejemplo.com', '{}') ->> 'estado', 'limite', 'real: la 241 de precios supera el cupo');
+select is(publico.mis_opiniones_por_dominio('cupo.ejemplo.com') ->> 'estado', 'ok', 'real: la llamada 120 de opiniones todavía responde');
+select is(publico.mis_opiniones_por_dominio('cupo.ejemplo.com') ->> 'estado', 'limite', 'real: la 121 de opiniones supera el cupo por cuenta');
+reset role;
+
+-- Las tres escriben el contador: tienen que ser volátiles (con `stable` el contador se perdería o se cachearía).
+select is(
+  (select array_agg(provolatile::text order by proname) from pg_proc
+    where oid in ('publico.acceso_cliente_por_dominio(text)'::regprocedure,
+                  'publico.precios_cliente_por_dominio(text, uuid[])'::regprocedure,
+                  'publico.mis_opiniones_por_dominio(text, timestamptz, uuid, integer)'::regprocedure)),
+  array['v', 'v', 'v'], 'las tres funciones públicas son volatile');
 
 -- Se bajan a 3 solo en esta transacción.
 create or replace function private.limite_acceso_cliente_por_minuto() returns integer language sql immutable set search_path = '' as $$ select 3; $$;

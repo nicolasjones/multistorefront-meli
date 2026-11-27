@@ -137,4 +137,4 @@ Quien no tiene cuenta, o la tiene suspendida, sigue viendo los precios públicos
 
 Por ahora, el cliente no puede ver su historial de compras ni cambiar su correo desde la tienda.
 
-Si una cuenta hace demasiadas consultas seguidas a la tienda (más de 240 por minuto), la tienda le muestra el precio público o pide reintentar unos segundos después; la sesión no se cierra.
+Si una cuenta hace demasiadas consultas seguidas a la tienda (más de 240 por minuto), la tienda le muestra el precio público o pide reintentar unos segundos después. Una sesión ya iniciada no se cierra; si pasa justo al ingresar, tenés que volver a ingresar.

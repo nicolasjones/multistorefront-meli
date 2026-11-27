@@ -25,7 +25,8 @@
 --   drop trigger organizaciones_sembrar_estados_consulta on public.organizaciones;
 --   drop function private.sembrar_estados_consulta_organizacion();
 --   drop function private.sembrar_estados_consulta(uuid);
---   y volver a aplicar actualizar_consulta (20270507450000) y proteger_estado_consulta_sistema (20270507000400);
+--   y volver a aplicar, ANTES de quitar la columna, actualizar_consulta (20270507450000), proteger_estado_consulta_sistema (20270507000400)
+--   y normalizar_estado_consulta (20261210130000): la versión de esta migración lee `new.clave` y fallaría todo alta de estado sin la columna;
 --   las filas sembradas se pueden dejar (es_sistema) o borrar como postgres; después
 --   alter table dominio.estados_consulta drop column clave;
 

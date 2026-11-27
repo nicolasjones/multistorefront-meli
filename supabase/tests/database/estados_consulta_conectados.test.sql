@@ -6,7 +6,7 @@
 -- aislamiento entre organizaciones. El fixture corre como postgres; las verificaciones, como «authenticated».
 begin;
 
-select plan(26);
+select plan(29);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -23,6 +23,17 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
 insert into dominio.consultas (id, organizacion_id, empresa_id, origen, nombre, contacto, mensaje) values
   ('c5950000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'a5950000-0000-0000-0000-000000000001', 'formulario', 'Ana', 'ana@example.com', 'Hola'),
   ('c5950000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 'a5950000-0000-0000-0000-000000000002', 'formulario', 'Beto', 'beto@example.com', 'Hola');
+
+-- `detail` del error (la web lo usa para distinguir «estado desactivado» de «conflicto de edición»).
+create function pg_temp.detalle_de(p_sql text) returns text language plpgsql as $$
+declare v_detalle text;
+begin
+  execute p_sql;
+  return 'sin error';
+exception when others then
+  get stacked diagnostics v_detalle = pg_exception_detail;
+  return coalesce(v_detalle, 'sin detail');
+end $$;
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -189,6 +200,21 @@ select throws_ok(
     (select clave from dominio.estados_consulta where nombre = 'Descartada'),
     (select updated_at from dominio.consultas where id = 'c5950000-0000-0000-0000-000000000001')),
   'PT412', 'El estado elegido está desactivado', 'volver a un estado desactivado no se puede: PT412'
+);
+
+select is(
+  pg_temp.detalle_de($$select public.actualizar_consulta('c5950000-0000-0000-0000-000000000001', 'no_existe', null, null, now())$$),
+  'estado', 'PT404 trae detail = estado'
+);
+select is(
+  pg_temp.detalle_de(format($$select public.actualizar_consulta('c5950000-0000-0000-0000-000000000001', %L, null, null, %L)$$,
+    (select clave from dominio.estados_consulta where nombre = 'Descartada' and organizacion_id = '11111111-1111-1111-1111-111111111111'),
+    (select updated_at from dominio.consultas where id = 'c5950000-0000-0000-0000-000000000001'))),
+  'estado', 'PT412 por estado desactivado trae detail = estado'
+);
+select is(
+  pg_temp.detalle_de($$select public.actualizar_consulta('c5950000-0000-0000-0000-000000000001', 'resuelta', null, 'otra nota', '2000-01-01T00:00:00Z')$$),
+  'sin detail', 'el PT412 del conflicto de edición NO trae detail (la web lo distingue por eso)'
 );
 
 select * from finish();
