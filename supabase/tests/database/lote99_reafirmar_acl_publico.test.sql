@@ -1,6 +1,6 @@
 -- Lote 99 (MSF-653): `private.reafirmar_acl_rpc_internas_de_publico()` corrige la deriva del ACL de las RPC internas de `publico`.
 -- Escenario armado acá: se simula el estado del DEV (anon y authenticated con EXECUTE), se llama a la MISMA función que usa la migración
--- 20270514000000 y se mira el resultado. Si la función no revocara, revocara de más o no fuera idempotente, estas aserciones fallan.
+-- 20270517000000 y se mira el resultado. Si la función no revocara, revocara de más o no fuera idempotente, estas aserciones fallan.
 begin;
 
 select plan(13);

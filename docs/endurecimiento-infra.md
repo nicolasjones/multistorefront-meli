@@ -22,7 +22,7 @@ sources:
   - scripts/abrir-issue-alerta.mjs
   - scripts/reconciliar-base.mjs
   - scripts/verificar-workflows.mjs
-  - supabase/migrations/20270514000000_reafirmar_acl_rpc_internas_de_publico.sql
+  - supabase/migrations/20270517000000_reafirmar_acl_rpc_internas_de_publico.sql
   - supabase/tests/database/lote99_reafirmar_acl_publico.test.sql
   - .github/workflows/release-please.yml
   - .github/workflows/worker-images.yml
@@ -46,7 +46,7 @@ un plan o son de solo lectura, y los que escriben exigen un flag explícito. **N
 | MSF-712 binarios, imágenes y credenciales de Docker | Digest en las imágenes (ya estaba, doc corregida), Supabase CLI y gitleaks con SHA256 fijado, plugin scout y CLI con SHA256 en la imagen, `DOCKER_CONFIG` temporal con `logout` y `rmi` en `worker-images.yml`, `id-token` sin uso retirado | **TOTAL en el repo** (las acciones ya iban por SHA desde MSF-925) |
 | MSF-680 release-please y staging | Token propio por secret con aviso si falta, issue `alerta-ci` cuando falla release-please o el gate de staging, comprobación de conexión con mensaje accionable | **PARCIAL**: falta el secret (o el ajuste de GitHub) y revisar `SUPABASE_DB_URL` de staging |
 | MSF-685 `Validate` en push a `dokploy` | Ya resuelto en el lote 36 por decisión de Nicolás (corrida diaria `validate-diario.yml`; doc corregida) | **TOTAL**; la corrida diaria arranca cuando el workflow llegue a `main` |
-| MSF-653 ACL de `crear_consulta_publica` | Migración idempotente `20270514000000` con función reutilizable y pgTAP, `scripts/reconciliar-base.mjs` | **PARCIAL**: aplicar la migración en el DEV es del cron; el script se corre en VPS2 |
+| MSF-653 ACL de `crear_consulta_publica` | Migración idempotente `20270517000000` con función reutilizable y pgTAP, `scripts/reconciliar-base.mjs` | **PARCIAL**: aplicar la migración en el DEV es del cron; el script se corre en VPS2 |
 | MSF-658 / MSF-671 / MSF-915 deriva del DEV | `scripts/reconciliar-base.mjs` (diagnóstico de solo lectura; repara solo el ACL con `--aplicar --confirmo`), runbook | **PARCIAL**: reconciliar el registro y limpiar la organización de prueba exige decisión y acceso al DEV |
 | MSF-902 / MSF-898 | Solo diagnóstico (abajo) | **PARCIAL** por diseño |
 
@@ -352,7 +352,7 @@ la rama por defecto, **empieza cuando el workflow llegue a `main`** (los último
 
 ## Base de datos: MSF-653, MSF-658, MSF-671, MSF-915
 
-- **Migración `20270514000000`.** Crea `private.reafirmar_acl_rpc_internas_de_publico()` (idempotente; sin acceso para ningún rol de la API) y la invoca: repite el `revoke` de
+- **Migración `20270517000000`.** Crea `private.reafirmar_acl_rpc_internas_de_publico()` (idempotente; sin acceso para ningún rol de la API) y la invoca: repite el `revoke` de
   `publico.crear_consulta_publica` y `publico.registrar_interes_whatsapp` a `public`, `anon` y `authenticated` y el `grant` a `service_role`. Como el cron sí aplica las migraciones nuevas, la reparación llega
   al DEV aunque las anteriores figuren registradas sin haber corrido. El pgTAP `lote99_reafirmar_acl_publico.test.sql` simula la deriva y llama a la **misma** función (no copia el SQL);
   se verificó contra un Postgres 16 con pgTAP y una mutación (función sin `revoke`) lo hace fallar. Los índices de MSF-671 ya los crean `20270507190000` y `…190100`: en el DEV faltan
@@ -449,7 +449,7 @@ runners (9); 6 (la base alcanzable por Tailscale) va **antes** del firewall (8);
    quitar los «Published Ports» de los servicios de Supabase y mover el panel (3000) detrás de Tailscale o de TLS con autenticación.
 9. **Runners (MSF-703/704)**: seguir «Recrear los runners (runbook)» (instalar sysbox, archivo del PAT, `pnpm dev:runner`, `pnpm dev:runner:deploy`, variables `CI_RUNS_ON_PR` y `CI_RUNS_ON_DEPLOY`, los «Chequeos de aislamiento» y **retirar los runners viejos con root y `docker.sock`**). Solo con 4, 5, 7 y 8 hechos.
 10. **Base DEV (MSF-653/658/671/915)**: correr `node scripts/reconciliar-base.mjs --docker <contenedor-db-dev>` en VPS2 y pasarle el informe a quien decida las filas sin equivalente; después, cuando el cron aplique
-    `20270514000000`, volver a correrlo (el ACL debe dar OK); si hace falta antes, `--aplicar --confirmo`. Borrar `Org T019` con el procedimiento del runbook.
+    `20270517000000`, volver a correrlo (el ACL debe dar OK); si hace falta antes, `--aplicar --confirmo`. Borrar `Org T019` con el procedimiento del runbook.
 11. **Modo estricto de dev**: cuando el `.env.dev` esté completo y sin valores por defecto, definir `VPS_ESTRICTO=1` (ver «Pasar dev a modo estricto» en `docs/deployment.md`).
 12. **PR #1003 (MSF-902)**: rehacerlo sobre `dokploy` o cerrarlo.
 13. **`validate-diario.yml`** corre cuando llegue a `main`; mientras tanto, «Run workflow» manual sobre `dokploy`.

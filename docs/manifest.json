@@ -670,9 +670,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "bfa495ffa4ee13c4cda2ddff3e76d2e4e495b286d5cbd254115b6b8465e4daed",
+      "pageHash": "91d7cc5f7c82c26c00337d86c8836851cd43c4c80286a74679ffac177ca43b3d",
       "sourceHash": "f8e27351e9a99ed79821bc3c2cb2f232a09121a67299279d449b044bcde6000b",
-      "sourceAt": "74577130c",
+      "sourceAt": "6f3f4dc53",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -683,7 +683,7 @@
         "apps/web/src/lib/presupuestoDesdePedido.ts"
       ],
       "owner": "tecnico",
-      "commit": "74577130c"
+      "commit": "6f3f4dc53"
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -1083,9 +1083,9 @@
     },
     "docs/endurecimiento-infra.md": {
       "title": "Endurecimiento de la infraestructura (lote 99)",
-      "pageHash": "f23fbe6a9412262f3fe22c42abd344396cdb598c1fe9a896325df75a9ceef7a1",
-      "sourceHash": "912121bf7508d783c20dddba6029bcf27ca2cc955ad71c8df7964cb0e7adccb3",
-      "sourceAt": "3b1ed0cce",
+      "pageHash": "91c8edceea9aebc78a29776d215df8e70e7a03442795986e298dd84235b5d79d",
+      "sourceHash": "3cbe8cb9dfb9f008f3c72be6f566fe7a8bd354a990d33b705b1384d6a540972a",
+      "sourceAt": "f0ba86cd1",
       "sources": [
         "infra/vps/firewall-docker-user.sh",
         "infra/vps/obtener-clave-host.sh",
@@ -1108,13 +1108,13 @@
         "scripts/abrir-issue-alerta.mjs",
         "scripts/reconciliar-base.mjs",
         "scripts/verificar-workflows.mjs",
-        "supabase/migrations/20270514000000_reafirmar_acl_rpc_internas_de_publico.sql",
+        "supabase/migrations/20270517000000_reafirmar_acl_rpc_internas_de_publico.sql",
         "supabase/tests/database/lote99_reafirmar_acl_publico.test.sql",
         ".github/workflows/release-please.yml",
         ".github/workflows/worker-images.yml"
       ],
       "owner": "plataforma",
-      "commit": "3b1ed0cce"
+      "commit": "f0ba86cd1"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -1317,9 +1317,9 @@
     },
     "docs/higiene-base-datos.md": {
       "title": "Higiene y endurecimiento de la base de datos (lote 33)",
-      "pageHash": "3395cb29687252392ae76efa414ff342d5134e1bf08cff43842764468fa4d057",
-      "sourceHash": "ae1786fd3142c532f4011163ae1efac908637d5874770612bbca83dd5c825222",
-      "sourceAt": "74577130c",
+      "pageHash": "0bab0d65fbd3dac8937c42d3e2e8968caeb9857261e542e1667ad37287f72596",
+      "sourceHash": "c07b377c211c08c6435011f20e37ecd22b8bfd5bf3b10bd3d98340562be9172e",
+      "sourceAt": "6f3f4dc53",
       "sources": [
         "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
         "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
@@ -1337,10 +1337,10 @@
         "scripts/verificar-higiene-base.mjs",
         "scripts/analizar-definer-search-path.mjs",
         "scripts/reconciliar-base.mjs",
-        "supabase/migrations/20270514000000_reafirmar_acl_rpc_internas_de_publico.sql"
+        "supabase/migrations/20270517000000_reafirmar_acl_rpc_internas_de_publico.sql"
       ],
       "owner": "plataforma",
-      "commit": "74577130c"
+      "commit": "6f3f4dc53"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",

@@ -13,7 +13,7 @@
 //   - MSF-671      filas `aplicada-manual`, filas sin statements (informativo: el cron las inserta así), organizaciones de prueba vacías
 //                  (`Org T…` sin usuarios ni empresas) y los índices que faltan (los crean las migraciones 20270507190000/…190100).
 //   - MSF-653      funciones de `publico` ejecutables por anon fuera de la lista cerrada del pgTAP lote42 (deriva de ACL).
-// Qué repara con --aplicar (idempotente, reversible con el `grant` de la migración 20270514000000): el ACL de las dos RPC internas de
+// Qué repara con --aplicar (idempotente, reversible con el `grant` de la migración 20270517000000): el ACL de las dos RPC internas de
 // `publico` (revoke a public/anon/authenticated, grant a service_role). NADA MÁS: no borra filas de schema_migrations, no renombra registros,
 // no borra organizaciones ni crea índices; eso se imprime como PLAN para ejecutar a mano con aprobación (docs/endurecimiento-infra.md).
 import { spawnSync } from 'node:child_process';
