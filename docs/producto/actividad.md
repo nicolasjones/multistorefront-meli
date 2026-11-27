@@ -138,5 +138,3 @@ El detalle de los eventos nunca incluye costos ni importes de los productos ni d
 **¿Por qué no veo el botón Exportar?** Porque solo el Administrador puede descargar el historial. Consultá con un Administrador si necesitás el archivo.
 
 **«No pudimos cargar la actividad».** Usá el botón de reintentar; si sigue, avisá a un Administrador.
-
-**¿Qué dice la actividad cuando se asigna una lista de precios?** Aparece como «Lista de precios del cliente» (uno solo), «Lista de precios de varios clientes» (asignación masiva) o «Lista de precios por tipo de cliente» (asignada a todo un tipo).

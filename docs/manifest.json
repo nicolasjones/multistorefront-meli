@@ -1209,9 +1209,9 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "fe1ca9f7ce34887032c201881e9416d193cc2e4140aec36f61739ffdf313b0e6",
-      "sourceHash": "f54d32a3d3d4898ca0638a8d5dd1a2694a7e0d3f170fe8c971e84098c51a2716",
-      "sourceAt": "46dd13d89",
+      "pageHash": "9222a896741662e563102114e244e44d6ad2b7dd27300e89c2a330db85ced64c",
+      "sourceHash": "33057339fce56b489fef1f378302b5afe402feb6731fd127a32677e3f8f5f8aa",
+      "sourceAt": "70a6477cd",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/chat-ia-responder/handler.ts",
@@ -1225,6 +1225,7 @@
         "supabase/functions/_shared/embeddings.ts",
         "supabase/functions/_shared/fetch-ia.ts",
         "supabase/functions/_shared/cupo-ia.ts",
+        "supabase/functions/baja-correo-masivo/handler.ts",
         "supabase/functions/_shared/log-seguro.ts",
         "supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql",
         "supabase/migrations/20270508000000_registro_de_envios_de_correo_a_proveedores.sql",
@@ -1260,7 +1261,7 @@
         "supabase/functions/verificar-dominio-tienda/handler.ts"
       ],
       "owner": "plataforma",
-      "commit": "46dd13d89"
+      "commit": "70a6477cd"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",
@@ -1562,8 +1563,8 @@
     },
     "docs/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
-      "pageHash": "19da75cf360f9883d80db7873105cc400162c1531b3438034130b306475dc310",
-      "sourceHash": "e7de3bb1704a186f45fe88c36c74472fcecc9090c326eb53a3142c7394054f1b",
+      "pageHash": "684afb09622ab2de3890ebf3b884ee7c472ef56b8bfdb7b0ff1cbd04a87b9922",
+      "sourceHash": "ae9f0d353950ae6bfd8d9eb1d253491a5ceccc64f4c3f380b54c32c65778472f",
       "sourceAt": "e1e6da5b9",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
@@ -1578,6 +1579,11 @@
         "supabase/migrations/20270420000400_newsletter_envio.sql",
         "supabase/migrations/20270420000500_newsletter_lote.sql",
         "supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql",
+        "supabase/migrations/20270513000000_cupo_persistente_por_ip_newsletter_y_baja.sql",
+        "supabase/migrations/20270513000100_newsletter_imagenes_publicas.sql",
+        "supabase/functions/baja-correo-masivo",
+        "supabase/functions/_shared/ip-cliente.ts",
+        "apps/web/src/lib/newsletterImagenes.ts",
         "infra/kestra/flows/correo-masivo.yml",
         "apps/web/src/pages/clientes/newsletter",
         "apps/web/src/lib/newsletter.ts",
@@ -1803,15 +1809,15 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "b79ba7a47d4d14dbe00fc96b6889a7d219f9981c71c8a876e75ed67ff6aa56f8",
-      "sourceHash": "d08d89dc138ba70f65d3d8ff8de13630dd6622638368f4701ec81117bc2690ea",
-      "sourceAt": "7c49050f1",
+      "pageHash": "ebc1a0f55d1a317aa41cd9671806aec73e0ea86e7309f3ffc38306f835884586",
+      "sourceHash": "76e8a46bb8d9ce769bf9c058d605e7ec07b0737c537114fb62dfbb731f6affb8",
+      "sourceAt": "a8a120d35",
       "sources": [
         "apps/web/src/pages/actividad/list.tsx",
         "apps/web/src/lib/actividad.ts"
       ],
       "owner": "producto",
-      "commit": "7c49050f1"
+      "commit": "a8a120d35"
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
@@ -4710,8 +4716,8 @@
     },
     "docs/tecnico/newsletter.md": {
       "title": "Newsletter de la tienda (MSF-468)",
-      "pageHash": "319c04fcc64c40b5cd6e6fefc98825671a71cc9283d58ea792da9c26521baa34",
-      "sourceHash": "3d1ff2378a47c81a236e926e7c9fead8ed33cdcc0532cad291caa7c406359793",
+      "pageHash": "e2f41583cbb92dcd14a71349cc7a2a73b48a674855943b8b35e5e071c046f3e9",
+      "sourceHash": "e12dea2a14a142fdc0ef82f4927ef67059eaeede0539d5e946ae829f2f511e09",
       "sourceAt": "5800b0d79",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
@@ -4726,6 +4732,11 @@
         "supabase/migrations/20270420000400_newsletter_envio.sql",
         "supabase/migrations/20270420000500_newsletter_lote.sql",
         "supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql",
+        "supabase/migrations/20270513000000_cupo_persistente_por_ip_newsletter_y_baja.sql",
+        "supabase/migrations/20270513000100_newsletter_imagenes_publicas.sql",
+        "supabase/functions/baja-correo-masivo",
+        "supabase/functions/_shared/ip-cliente.ts",
+        "apps/web/src/lib/newsletterImagenes.ts",
         "infra/kestra/flows/newsletter-confirmaciones.yml",
         "apps/web/src/pages/clientes/newsletter",
         "apps/web/src/pages/tienda-publica/newsletter",
