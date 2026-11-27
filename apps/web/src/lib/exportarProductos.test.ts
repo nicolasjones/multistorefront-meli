@@ -64,7 +64,7 @@ describe('filtrosExportacion y nombreArchivoProductos', () => {
     expect(filtrosExportacion({ ...CONSULTA_INICIAL, texto: ' cable ' }, false).busqueda).toBe('cable')
   })
 
-  it('«Stock bajo» viaja como stock_bajo solo cuando está activo (MSF-611)', () => {
+  it('«Stock bajo» viaja como stock_bajo solo cuando está activo', () => {
     expect(filtrosExportacion({ ...CONSULTA_INICIAL, stockBajo: true }, false)).toMatchObject({ stock_bajo: true })
     expect('stock_bajo' in filtrosExportacion({ ...CONSULTA_INICIAL, stockBajo: false }, false)).toBe(false)
     expect(filtrosExportacion({ ...CONSULTA_INICIAL, stockBajo: true }, true)).toEqual({ todos: true })

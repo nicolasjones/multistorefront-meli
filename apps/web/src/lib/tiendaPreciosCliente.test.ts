@@ -29,7 +29,7 @@ beforeEach(() => {
 })
 
 describe('leerPreciosCliente', () => {
-  it('superado el cupo por cuenta (MSF-1001) la base responde `limite` y se cae al precio público sin romper', async () => {
+  it('superado el cupo por cuenta la base responde `limite` y se cae al precio público sin romper', async () => {
     mocks.rpc.mockResolvedValue({ data: { estado: 'limite', espera_segundos: 30 }, error: null })
     expect(await leerPreciosCliente('mundojc.localhost', ID)).toBeNull()
   })

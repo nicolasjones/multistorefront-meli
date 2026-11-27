@@ -461,8 +461,6 @@ export function ProductoList() {
                 onBuscar={buscarYa}
                 estado={consulta.estado}
                 onEstado={(estado) => setConsulta((actual) => ({ ...actual, estado, pagina: 1 }))}
-                stockBajo={consulta.stockBajo}
-                onStockBajo={veStock ? (stockBajo) => setConsulta((actual) => ({ ...actual, stockBajo, pagina: 1 })) : undefined}
                 columnaOrden={consulta.columnaOrden}
                 direccion={consulta.direccion}
                 onOrden={(columnaOrden, direccion) => setConsulta((actual) => ({ ...actual, columnaOrden, direccion, pagina: 1 }))}
@@ -475,6 +473,8 @@ export function ProductoList() {
                   setConsulta((actual) => ({ ...actual, pagina: 1 }))
                 }}
                 errorEmpresas={errorEmpresas}
+                stockBajo={consulta.stockBajo}
+                onStockBajo={veStock ? (stockBajo) => setConsulta((actual) => ({ ...actual, stockBajo, pagina: 1 })) : undefined}
                 categorias={categorias}
                 categoriaId={consulta.categoriaId}
                 onCategoria={(categoriaId) => setConsulta((actual) => ({ ...actual, categoriaId, pagina: 1 }))}

@@ -377,7 +377,7 @@ describe('ProductoList', () => {
     expect(mocks.llamadas.some(([m]) => m === 'eq')).toBe(false)
   })
 
-  it('«Stock bajo» filtra en el servidor, vuelve a la página 1 y «Limpiar filtros» lo quita; «Sin vincular a ML» ya no existe (MSF-611)', async () => {
+  it('«Stock bajo» filtra en el servidor, vuelve a la página 1 y «Limpiar filtros» lo quita; «Sin vincular a ML» ya no existe', async () => {
     abrir()
     await screen.findByText('Joystick')
     expect(screen.queryByText(/Sin vincular a ML/)).not.toBeInTheDocument()

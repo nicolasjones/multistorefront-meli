@@ -43,7 +43,7 @@ describe('tiendaCuenta · ingresarCliente (FR-020, FR-021)', () => {
     expect(mocks.signOut).not.toHaveBeenCalled()
   })
 
-  it('superado el cupo por cuenta (MSF-1001) el acceso no se confunde con «sin cuenta»: falla reintentable y cierra la sesión recién abierta', async () => {
+  it('superado el cupo por cuenta el acceso no se confunde con «sin cuenta»: falla reintentable y cierra la sesión recién abierta', async () => {
     mocks.rpc.mockResolvedValue({ data: { estado: 'limite', espera_segundos: 30 }, error: null })
     expect(await ingresarCliente(HOST, 'cli@example.com', 'Clave-12345!')).toEqual({ ok: false, mensaje: MENSAJE_INGRESO_FALLA })
   })
@@ -127,7 +127,7 @@ describe('tiendaCuenta · sesionActivaEnTienda', () => {
     expect(mocks.signOut).toHaveBeenCalledTimes(1)
   })
 
-  it('superado el cupo por cuenta (MSF-1001) NO cierra la sesión: se propaga como un fallo reintentable', async () => {
+  it('superado el cupo por cuenta NO cierra la sesión: se propaga como un fallo reintentable', async () => {
     mocks.getSession.mockResolvedValue({ data: { session: { user: { id: 'u' } } }, error: null })
     mocks.rpc.mockResolvedValue({ data: { estado: 'limite', espera_segundos: 12 }, error: null })
     await expect(sesionActivaEnTienda(HOST)).rejects.toThrow('limite')

@@ -75,7 +75,7 @@ describe('consultarProductos', () => {
   })
 })
 
-describe('filtro «Stock bajo» (MSF-611)', () => {
+describe('filtro «Stock bajo»', () => {
   const respuesta = { data: [], error: null, count: 0 }
 
   it('pide estado_stock = stock_bajo en el servidor solo cuando está activo', async () => {

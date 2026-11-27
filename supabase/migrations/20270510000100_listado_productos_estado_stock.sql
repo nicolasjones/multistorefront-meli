@@ -8,14 +8,6 @@
 -- antes, volviendo a crearla después) seguido de la definición de 20270206100101_catalogo_compatible_filtro.sql con sus `revoke`/`grant`;
 -- y volver a aplicar `exportar_productos` de 20270217200001_exportar_productos_cursor.sql.
 
-create or replace view` conserva todas las columnas vigentes y suma `compatible_con` AL FINAL.
--- Sin costo, sin `anon`.
--- REVERSIÓN: `drop index dominio.productos_compatible_con_gin;` y `drop view public.v_productos_listado;`
--- seguido de la definición de 20261022121000_catalogo_listado_codigo_barras.sql (con sus `revoke`/`grant`).
--- Ningún dato se pierde: la columna sigue en `dominio.productos`.
-
-create index if not exists productos_compatible_con_gin on dominio.productos using gin (compatible_con);
-
 create or replace view public.v_productos_listado
 with (security_invoker = true) as
 select
