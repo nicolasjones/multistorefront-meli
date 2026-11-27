@@ -65,7 +65,7 @@ test('sin --aplicar solo imprime el plan y no ejecuta ningún binario', async ()
   for (const puerto of ['22', '80', '443']) assert.match(r.stdout, new RegExp(`--ctorigdstport ${puerto} -j RETURN`));
   assert.match(r.stdout, /-A DOCKER-USER -i eth0 -j DROP/);
   assert.match(r.stdout, /ufw allow in on tailscale0/);
-  for (const sensible of ['7634', '7635', '7636', '4301', '9300', '3000', '4305']) assert.doesNotMatch(r.stdout, new RegExp(`ctorigdstport ${sensible}\\b`));
+  for (const sensible of ['7634', '7635', '7636', '4301', '9300', '3000', '4305']) assert.doesNotMatch(r.stdout, new RegExp(`-i eth0 [^\\n]*ctorigdstport ${sensible}\\b`), `${sensible} no se abre desde la interfaz externa`);
   assert.ok(r.stdout.indexOf('ctorigdstport 443') < r.stdout.indexOf('-i eth0 -j DROP'));
   // Reemplazo atómico: un solo bloque *filter ... COMMIT con el flush DENTRO (nunca un `iptables -F` suelto).
   assert.match(r.stdout, /\*filter\n:DOCKER-USER - \[0:0\]\n-F DOCKER-USER\n[\s\S]*\nCOMMIT/);
@@ -218,46 +218,78 @@ test('--sin-rollback (unidad systemd de arranque): aplica sin programar rollback
 
 // ---- Revisión C+S del #1238 ----
 
-test('A-1: las redes de jobs se aíslan: deny en ufw ANTES de los allow, y DROP en DOCKER-USER hacia tailnet, metadatos y red interna', async () => {
+test('A-1: las redes de jobs se aíslan por INTERFAZ: deny en ufw ANTES de los allow, anti-falsificación y DROP hacia tailnet, metadatos y red interna', async () => {
   const e = await entorno();
-  const r = correr(e, ['--interfaz-externa', 'eth0']);
-  const plan = r.stdout;
-  // ufw: el deny de la red de jobs de PR es lo primero y precede a cualquier allow desde las subredes de los servicios.
-  assert.match(plan, /ufw insert 1 deny from 172\.29\.250\.0\/24/);
-  assert.ok(plan.indexOf('ufw insert 1 deny from 172.29.250.0/24') < plan.indexOf('ufw allow from 172.16.0.0/12'), 'el deny de jobs va antes del allow amplio');
-  // deploy: solo los puertos de base que migra, y luego deny del resto.
-  assert.match(plan, /ufw insert 2 allow from 172\.29\.251\.0\/24 to any port 7635 proto tcp/);
-  assert.match(plan, /ufw insert 3 allow from 172\.29\.251\.0\/24 to any port 7636 proto tcp/);
-  assert.match(plan, /ufw insert 4 deny from 172\.29\.251\.0\/24/);
-  assert.doesNotMatch(plan, /ufw insert \d+ allow from 172\.29\.250\.0\/24/, 'la red de PR no recibe ningún puerto del host');
-  // DOCKER-USER: cada red de jobs descarta tailscale0, metadatos, tailnet y RFC1918; y solo Internet queda.
-  for (const j of ['172.29.250.0/24', '172.29.251.0/24']) {
-    for (const regla of [`-s ${j} -o tailscale0 -j DROP`, `-s ${j} -d 169.254.0.0/16 -j DROP`, `-s ${j} -d 100.64.0.0/10 -j DROP`, `-s ${j} -d 10.0.0.0/8 -j DROP`, `-s ${j} -d 172.16.0.0/12 -j DROP`, `-s ${j} -d 192.168.0.0/16 -j DROP`]) {
-      assert.ok(plan.includes(`-A DOCKER-USER ${regla}`), regla);
+  const plan = correr(e, ['--interfaz-externa', 'eth0']).stdout;
+  assert.match(plan, /ufw insert 1 deny in on br-jobs-pr/);
+  assert.ok(plan.indexOf('ufw insert 1 deny in on br-jobs-pr') < plan.indexOf('ufw allow from 172.16.0.0/12'), 'el deny de jobs va antes del allow amplio');
+  // deploy: solo los puertos de base y luego deny del resto, también por interfaz.
+  assert.match(plan, /ufw insert 2 allow in on br-jobs-deploy to any port 7635 proto tcp/);
+  assert.match(plan, /ufw insert 3 allow in on br-jobs-deploy to any port 7636 proto tcp/);
+  assert.match(plan, /ufw insert 4 deny in on br-jobs-deploy/);
+  assert.doesNotMatch(plan, /allow in on br-jobs-pr/, 'la red de PR no recibe ningún puerto del host');
+  // Anti-falsificación: por cada puente solo sale tráfico con el origen de SU subred.
+  assert.ok(plan.includes('-A DOCKER-USER -i br-jobs-pr ! -s 172.29.250.0/24 -j DROP'));
+  assert.ok(plan.includes('-A DOCKER-USER -i br-jobs-deploy ! -s 172.29.251.0/24 -j DROP'));
+  // Cada puente descarta tailscale0 y todos los rangos internos/especiales (B-6 de la ronda 2 incluye 192.0.0.0/24, 198.18.0.0/15 y 224.0.0.0/4).
+  for (const b of ['br-jobs-pr', 'br-jobs-deploy']) {
+    assert.ok(plan.includes(`-A DOCKER-USER -i ${b} -o tailscale0 -j DROP`), `${b} tailscale0`);
+    for (const destino of ['169.254.0.0/16', '100.64.0.0/10', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '192.0.0.0/24', '198.18.0.0/15', '224.0.0.0/4']) {
+      assert.ok(plan.includes(`-A DOCKER-USER -i ${b} -d ${destino} -j DROP`), `${b} ${destino}`);
     }
   }
-  // Las reglas de jobs van DESPUÉS del RETURN de conexiones establecidas y ANTES de cualquier RETURN de interfaz (lo, tailscale, externas).
-  const iEstablecidas = plan.indexOf('RELATED,ESTABLISHED');
-  const iJobs = plan.indexOf('-s 172.29.250.0/24 -o tailscale0');
-  assert.ok(iEstablecidas < iJobs && iJobs < plan.indexOf('-A DOCKER-USER -i lo -j RETURN'));
-  // La red de PR no tiene excepción hacia la tailnet; la de deploy solo las que se pidan.
-  assert.doesNotMatch(plan, /-s 172\.29\.250\.0\/24 -d 100\.\d+\.\d+\.\d+ -o tailscale0 -j RETURN/);
-  const con = correr(e, ['--interfaz-externa', 'eth0', '--destinos-tailnet-deploy', '100.64.0.9,100.64.0.10']).stdout;
-  assert.ok(con.includes('-A DOCKER-USER -s 172.29.251.0/24 -d 100.64.0.9 -o tailscale0 -j RETURN'));
-  assert.ok(con.indexOf('-d 100.64.0.9 -o tailscale0 -j RETURN') < con.indexOf('-s 172.29.251.0/24 -o tailscale0 -j DROP'), 'la excepción precede al DROP');
-  assert.ok(!con.includes('-s 172.29.250.0/24 -d 100.64.0.9'));
+  // Orden: establecidas -> anti-spoof -> (excepciones de deploy) -> DROP de jobs -> RETURN de lo/tailscale/externas.
+  const i = (t) => plan.indexOf(t);
+  assert.ok(i('RELATED,ESTABLISHED') < i('! -s 172.29.250.0/24') && i('! -s 172.29.251.0/24') < i('--ctorigdstport 7635 -j RETURN') && i('--ctorigdstport 7635 -j RETURN') < i('-i br-jobs-pr -o tailscale0') && i('-i br-jobs-deploy -d 224.0.0.0/4 -j DROP') < i('-A DOCKER-USER -i lo -j RETURN'));
 });
 
-test('A-1: parámetros de las redes de jobs: se respetan, se validan y no pueden coincidir', async () => {
+test('ALTA (QA): el deploy llega a la base publicada por Docker: RETURN por puerto original ANTES de los DROP, solo para la red de deploy y solo para los puertos listados', async () => {
   const e = await entorno();
-  const otro = correr(e, ['--interfaz-externa', 'eth0', '--subred-jobs-pr', '10.77.0.0/24', '--subred-jobs-deploy', '10.78.0.0/24', '--puertos-db-deploy', '5432']).stdout;
-  assert.match(otro, /ufw insert 1 deny from 10\.77\.0\.0\/24/);
-  assert.match(otro, /ufw insert 2 allow from 10\.78\.0\.0\/24 to any port 5432 proto tcp/);
-  assert.doesNotMatch(otro, /172\.29\.25/);
+  const plan = correr(e, ['--interfaz-externa', 'eth0']).stdout;
+  for (const p of ['7635', '7636']) {
+    const regla = `-A DOCKER-USER -i br-jobs-deploy -s 172.29.251.0/24 -p tcp -m conntrack --ctorigdstport ${p} -j RETURN`;
+    assert.ok(plan.includes(regla), regla);
+    assert.ok(plan.indexOf(regla) < plan.indexOf('-A DOCKER-USER -i br-jobs-deploy -d 172.16.0.0/12 -j DROP'), `el RETURN del puerto ${p} precede al DROP de 172.16/12`);
+  }
+  // Un puerto no listado NO tiene RETURN (7634 es el de DEV, que el deploy no migra); la red de PR no tiene ninguno.
+  assert.ok(!plan.includes('--ctorigdstport 7634 -j RETURN') || !plan.includes('-i br-jobs-deploy -s 172.29.251.0/24 -p tcp -m conntrack --ctorigdstport 7634'));
+  assert.ok(!/-i br-jobs-pr [^\n]*-j RETURN/.test(plan), 'ninguna excepción para la red de PR');
+  const otro = correr(e, ['--interfaz-externa', 'eth0', '--puertos-db-deploy', '5432']).stdout;
+  assert.ok(otro.includes('-i br-jobs-deploy -s 172.29.251.0/24 -p tcp -m conntrack --ctorigdstport 5432 -j RETURN'));
+  assert.ok(!otro.includes('--ctorigdstport 7635 -j RETURN') || !otro.includes('-i br-jobs-deploy -s 172.29.251.0/24 -p tcp -m conntrack --ctorigdstport 7635'));
+});
+
+test('MEDIA-2 (QA): el destino SSH del deploy: propio host por puerto en ufw, nodo de Tailscale por ip:puerto en DOCKER-USER', async () => {
+  const e = await entorno();
+  const base = correr(e, ['--interfaz-externa', 'eth0']).stdout;
+  assert.ok(!base.includes('to any port 22 proto tcp') || !/allow in on br-jobs-deploy to any port 22/.test(base), 'sin flag no se abre el 22 a los jobs');
+  const host = correr(e, ['--interfaz-externa', 'eth0', '--puertos-host-deploy', '22']).stdout;
+  assert.match(host, /ufw insert \d allow in on br-jobs-deploy to any port 22 proto tcp/);
+  assert.ok(host.indexOf('allow in on br-jobs-deploy to any port 22') < host.indexOf('deny in on br-jobs-deploy'));
+  const nodo = correr(e, ['--interfaz-externa', 'eth0', '--destinos-tailnet-deploy', '100.64.0.9:22,100.64.0.10:5432']).stdout;
+  assert.ok(nodo.includes('-A DOCKER-USER -i br-jobs-deploy -s 172.29.251.0/24 -d 100.64.0.9 -p tcp --dport 22 -o tailscale0 -j RETURN'));
+  assert.ok(nodo.includes('-d 100.64.0.10 -p tcp --dport 5432 -o tailscale0 -j RETURN'));
+  assert.ok(nodo.indexOf('-d 100.64.0.9 -p tcp --dport 22') < nodo.indexOf('-i br-jobs-deploy -o tailscale0 -j DROP'), 'la excepción precede al DROP');
+  assert.ok(!/-i br-jobs-pr [^\n]*-d 100\.64\.0\.9/.test(nodo), 'la red de PR no recibe destinos de tailnet');
+  // Acotado POR PUERTO: la IP sola no vale.
+  for (const malo of ['100.64.0.9', '100.64.0.9:', '100.64.0.9:0', '100.64.0.9:70000', '100.64.0.9:22:1', ':22', 'abc:22', '100.64.0.9:2a']) {
+    assert.equal(correr(e, ['--interfaz-externa', 'eth0', '--destinos-tailnet-deploy', malo]).status, 2, malo);
+  }
+});
+
+test('A-1: parámetros de redes y puentes: se respetan, se validan y no pueden coincidir', async () => {
+  const e = await entorno();
+  const otro = correr(e, ['--interfaz-externa', 'eth0', '--subred-jobs-pr', '10.77.0.0/24', '--subred-jobs-deploy', '10.78.0.0/24', '--bridge-jobs-pr', 'brp', '--bridge-jobs-deploy', 'brd', '--puertos-db-deploy', '5432']).stdout;
+  assert.match(otro, /ufw insert 1 deny in on brp/);
+  assert.match(otro, /ufw insert 2 allow in on brd to any port 5432 proto tcp/);
+  assert.ok(otro.includes('-i brp ! -s 10.77.0.0/24 -j DROP') && otro.includes('-i brd ! -s 10.78.0.0/24 -j DROP'));
+  assert.doesNotMatch(otro, /172\.29\.25|br-jobs/);
   for (const malo of [['--subred-jobs-pr', '10.0.0.0/24;ls'], ['--subred-jobs-pr', 'x'], ['--subred-jobs-pr', '10.0.0.0'], ['--subred-jobs-deploy', '/24'], ['--subred-jobs-deploy', '10.0.0.0/'],
-    ['--subred-jobs-pr', '172.29.251.0/24'], ['--puertos-db-deploy', '7635;x'], ['--puertos-db-deploy', ''], ['--destinos-tailnet-deploy', '100.64.0.9;x'], ['--destinos-tailnet-deploy', 'abc']]) {
+    ['--subred-jobs-pr', '172.29.251.0/24'], ['--puertos-db-deploy', '7635;x'], ['--puertos-db-deploy', ''], ['--puertos-host-deploy', '22;x'],
+    ['--bridge-jobs-pr', '-x'], ['--bridge-jobs-pr', 'a b'], ['--bridge-jobs-pr', 'x'.repeat(16)], ['--bridge-jobs-deploy', 'br-jobs-pr'], ['--bridge-jobs-deploy', 'a;b']]) {
     assert.equal(correr(e, ['--interfaz-externa', 'eth0', ...malo]).status, 2, malo.join(' '));
   }
+  assert.equal(correr(e, ['--interfaz-externa', 'eth0', '--bridge-jobs-pr', 'x'.repeat(15)]).status, 0, 'frontera: 15 caracteres vale');
   assert.deepEqual(await llamadas(e), []);
 });
 
@@ -267,7 +299,7 @@ test('A-1: las reglas de jobs son IPv4: el DOCKER-USER de IPv6 no las lleva', as
   const registro = await readFile(e.registro, 'utf8');
   const bloques = registro.split('*filter').slice(1);
   assert.equal(bloques.length, 2, 'un bloque para v4 y otro para v6');
-  assert.ok(bloques[0].includes('-s 172.29.250.0/24') && !bloques[1].includes('172.29.25'));
+  assert.ok(bloques[0].includes('br-jobs-pr') && !bloques[1].includes('br-jobs') && !bloques[1].includes('172.29.25'));
 });
 
 test('A-1: sin posición válida en ufw (lista vacía) `ufw insert` cae a agregar la regla al final', async () => {
@@ -275,9 +307,9 @@ test('A-1: sin posición válida en ufw (lista vacía) `ufw insert` cae a agrega
   const r = correr(e, ['--aplicar', '--interfaz-externa', 'eth0', '--rollback-segundos', '30']);
   assert.equal(r.status, 0, r.stderr);
   const reglas = await readFile(path.join(e.ufwDir, 'user.rules'), 'utf8');
-  assert.match(reglas, /deny from 172\.29\.250\.0\/24/);
-  assert.match(reglas, /allow from 172\.29\.251\.0\/24 to any port 7635 proto tcp/);
-  assert.ok(reglas.indexOf('deny from 172.29.250.0/24') < reglas.indexOf('allow from 172.16.0.0/12 to any port 7634'), 'el orden se conserva');
+  assert.match(reglas, /deny in on br-jobs-pr/);
+  assert.match(reglas, /allow in on br-jobs-deploy to any port 7635 proto tcp/);
+  assert.ok(reglas.indexOf('deny in on br-jobs-pr') < reglas.indexOf('allow from 172.16.0.0/12 to any port 7634'), 'el orden se conserva');
 });
 
 test('M-2: los puertos de sshd salen de sshd -T Y de lo que de verdad escucha (ssh.socket); todos deben estar permitidos', async () => {

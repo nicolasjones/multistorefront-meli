@@ -5,11 +5,14 @@
 # Tres capas, porque `ufw` no filtra los puertos que publica Docker:
 #   1. ufw (cadena INPUT, tráfico del host): default deny incoming; permite los puertos públicos, la interfaz de Tailscale y, EXPLÍCITAMENTE, a las
 #      subredes de los SERVICIOS de Docker (Kestra, Superset...) hacia lo que usan por host.docker.internal (Postgres, Storage, SMTP...).
-#      Las redes de los JOBS de CI (código de PRs) se EXCLUYEN: `deny from <subred de jobs>` va PRIMERO (ufw insert), así que ningún job alcanza los
-#      puertos del host (revisión C+S del #1238, A-1). Solo la red de jobs de DEPLOY recibe los puertos de base de datos que migra (--puertos-db-deploy).
+#      Las redes de los JOBS de CI (código de PRs) se EXCLUYEN: `deny in on <puente de jobs>` va PRIMERO (ufw insert) y se filtra por la INTERFAZ de entrada,
+#      no solo por IP (un job es root-equivalente en su red y puede falsificar el origen): ningún job alcanza los puertos del host (revisión C+S del #1238).
+#      Solo la red de jobs de DEPLOY recibe los puertos que migra/usa (--puertos-db-deploy, --puertos-host-deploy).
 #   2. DOCKER-USER (puertos publicados por Docker y tráfico reenviado, tras el DNAT): por el puerto ORIGINAL (`conntrack --ctorigdstport`) y por CADA
-#      interfaz externa. A las redes de jobs se les DENIEGA salir hacia tailscale0, hacia 100.64.0.0/10 (la tailnet), hacia 169.254.0.0/16 (metadatos del
-#      proveedor) y hacia 10/8, 172.16/12 y 192.168/16 (la red interna): solo Internet. La cadena se reemplaza de forma ATÓMICA con
+#      interfaz externa. De las redes de jobs se descarta todo origen que no sea su subred (anti-falsificación, `-i <puente> ! -s <subred>`) y se les
+#      DENIEGA salir hacia tailscale0, 100.64.0.0/10 (la tailnet), 169.254.0.0/16 (metadatos), 10/8, 172.16/12, 192.168/16, 192.0.0.0/24, 198.18.0.0/15 y
+#      224.0.0.0/4: solo Internet. La red de DEPLOY tiene excepciones puntuales: los puertos de base de datos que Docker publica (FORWARD tras el DNAT, por
+#      `--ctorigdstport`) y los destinos `ip:puerto` de la tailnet que se indiquen. La cadena se reemplaza de forma ATÓMICA con
 #      `iptables-restore --noflush` (nunca queda vacía ni a medias).
 #   3. IPv6: el filtrado v6 de los puertos que publica docker-proxy depende de ufw (IPV6=yes en /etc/default/ufw, que el script EXIGE); DOCKER-USER se
 #      replica con ip6tables si existe (sin las reglas de jobs, que son IPv4: la red de jobs no tiene IPv6).
@@ -27,6 +30,9 @@
 # ADVERTENCIAS DE USO:
 #   - `--chequeo` se ejecuta con `bash -c` como root: es un `eval` escrito por el OPERADOR. Nunca le pases datos de terceros; ningún workflow ni script
 #     del repo lo usa.
+#   - Un job NO alcanza servicios del propio VPS por su IP pública ni por su dominio (el paquete llega al host por INPUT y se descarta): lo que necesite
+#     del host tiene que declararse (--puertos-db-deploy, --puertos-host-deploy). El destino SSH del deploy: propio host -> --puertos-host-deploy 22;
+#     nodo de Tailscale -> --destinos-tailnet-deploy <ip>:22; otra máquina con IP pública no necesita regla.
 #   - Al cambiar --subredes-docker o --subred-jobs-*, el script NO retira reglas `ufw allow/deny` viejas: revisá `ufw status numbered` y borralas a mano.
 #   - La interfaz externa se autodetecta con la ruta por defecto IPv4 e IPv6; con varias salidas pasalas con --interfaz-externa eth0,eth1.
 # Persistencia tras un reinicio: docs/endurecimiento-infra.md, «Firewall del VPS».
@@ -34,8 +40,9 @@
 # Uso: infra/vps/firewall-docker-user.sh [--aplicar] [--interfaz-externa eth0[,eth1]] [--interfaz-tailscale tailscale0]
 #          [--puertos-publicos 22,80,443] [--subredes-docker 172.16.0.0/12]
 #          [--puertos-host-desde-docker 7634,7635,7636,9300,9301,9302,587,25,8098]
-#          [--subred-jobs-pr 172.29.250.0/24] [--subred-jobs-deploy 172.29.251.0/24] [--puertos-db-deploy 7635,7636]
-#          [--destinos-tailnet-deploy 100.64.0.10[,...]] [--chequeo '<comando>']... [--rollback-segundos 120] [--sin-rollback]
+#          [--subred-jobs-pr 172.29.250.0/24] [--subred-jobs-deploy 172.29.251.0/24] [--bridge-jobs-pr br-jobs-pr] [--bridge-jobs-deploy br-jobs-deploy]
+#          [--puertos-db-deploy 7635,7636] [--puertos-host-deploy 22] [--destinos-tailnet-deploy 100.64.0.10:5432[,ip:puerto...]]
+#          [--chequeo '<comando>']... [--rollback-segundos 120] [--sin-rollback]
 # --sin-rollback (solo con --aplicar) es para la unidad systemd que reaplica las reglas al arrancar: sin rollback ni confirmación.
 # Variables de prueba: IPTABLES, IP6TABLES, IPTABLES_SAVE, IP6TABLES_SAVE, IPTABLES_RESTORE, IP6TABLES_RESTORE, UFW, SSHD, SS, UFW_DIR, UFW_DEFAULT,
 # ARCHIVO_CONFIRMACION, DIR_RESPALDO, CHEQUEO_TIMEOUT.
@@ -64,7 +71,10 @@ subredes_docker="172.16.0.0/12"
 puertos_docker="7634,7635,7636,9300,9301,9302,587,25,8098"
 subred_jobs_pr="172.29.250.0/24"
 subred_jobs_deploy="172.29.251.0/24"
+bridge_jobs_pr="br-jobs-pr"
+bridge_jobs_deploy="br-jobs-deploy"
 puertos_db_deploy="7635,7636"
+puertos_host_deploy=""
 destinos_tailnet_deploy=""
 rollback=120
 sin_rollback=0
@@ -80,12 +90,15 @@ while [ $# -gt 0 ]; do
     --puertos-host-desde-docker) puertos_docker="${2:-}"; shift 2 ;;
     --subred-jobs-pr) subred_jobs_pr="${2:-}"; shift 2 ;;
     --subred-jobs-deploy) subred_jobs_deploy="${2:-}"; shift 2 ;;
+    --bridge-jobs-pr) bridge_jobs_pr="${2:-}"; shift 2 ;;
+    --bridge-jobs-deploy) bridge_jobs_deploy="${2:-}"; shift 2 ;;
     --puertos-db-deploy) puertos_db_deploy="${2:-}"; shift 2 ;;
+    --puertos-host-deploy) puertos_host_deploy="${2:-}"; shift 2 ;;
     --destinos-tailnet-deploy) destinos_tailnet_deploy="${2:-}"; shift 2 ;;
     --chequeo) chequeos+=("${2:-}"); shift 2 ;;
     --rollback-segundos) rollback="${2:-}"; shift 2 ;;
     --sin-rollback) sin_rollback=1; shift ;;
-    -h|--help) sed -n '2,50p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,60p' "$0"; exit 0 ;;
     *) echo "Argumento desconocido: $1" >&2; exit 2 ;;
   esac
 done
@@ -105,7 +118,12 @@ nombre_valido "$tailscale" || error "nombre de interfaz de Tailscale inválido"
 IFS=',' read -r -a lista_publicos <<< "$publicos"
 IFS=',' read -r -a lista_docker <<< "$puertos_docker"
 IFS=',' read -r -a lista_db_deploy <<< "$puertos_db_deploy"
-for p in "${lista_publicos[@]}" "${lista_docker[@]}" "${lista_db_deploy[@]}"; do
+lista_host_deploy=()
+if [ -n "$puertos_host_deploy" ]; then
+  lista_de_puertos "$puertos_host_deploy" || error "--puertos-host-deploy debe ser una lista de números separada por comas"
+  IFS=',' read -r -a lista_host_deploy <<< "$puertos_host_deploy"
+fi
+for p in "${lista_publicos[@]}" "${lista_docker[@]}" "${lista_db_deploy[@]}" "${lista_host_deploy[@]}"; do
   [ "$p" -ge 1 ] && [ "$p" -le 65535 ] || error "puerto fuera de rango: $p"
 done
 subred_valida() { case "$1" in ''|*[!0-9./]*|/*|*/|*//*) return 1 ;; esac; case "$1" in */*) ;; *) return 1 ;; esac; }
@@ -114,10 +132,20 @@ for s in "${lista_subredes[@]}"; do subred_valida "$s" || error "--subredes-dock
 subred_valida "$subred_jobs_pr" || error "--subred-jobs-pr: subred inválida"
 subred_valida "$subred_jobs_deploy" || error "--subred-jobs-deploy: subred inválida"
 [ "$subred_jobs_pr" != "$subred_jobs_deploy" ] || error "las redes de jobs de PR y de deploy tienen que ser distintas"
+# El nombre del puente (com.docker.network.bridge.name) lo fija el supervisor al crear la red; Linux limita los nombres de interfaz a 15 caracteres.
+puente_valido() { nombre_valido "$1" && [ "${#1}" -le 15 ]; }
+puente_valido "$bridge_jobs_pr" || error "--bridge-jobs-pr: nombre de interfaz inválido (hasta 15 caracteres)"
+puente_valido "$bridge_jobs_deploy" || error "--bridge-jobs-deploy: nombre de interfaz inválido (hasta 15 caracteres)"
+[ "$bridge_jobs_pr" != "$bridge_jobs_deploy" ] || error "los puentes de jobs de PR y de deploy tienen que ser distintos"
 lista_destinos=()
 if [ -n "$destinos_tailnet_deploy" ]; then
   IFS=',' read -r -a lista_destinos <<< "$destinos_tailnet_deploy"
-  for d in "${lista_destinos[@]}"; do case "$d" in ''|*[!0-9.]*) error "--destinos-tailnet-deploy: IPv4 inválida" ;; esac; done
+  for d in "${lista_destinos[@]}"; do
+    case "$d" in *:*:*|:*|*:) error "--destinos-tailnet-deploy: usá ip:puerto" ;; esac
+    case "${d%%:*}" in ''|*[!0-9.]*) error "--destinos-tailnet-deploy: IPv4 inválida" ;; esac
+    case "${d#*:}" in ''|*[!0-9]*) error "--destinos-tailnet-deploy: cada destino lleva puerto (ip:puerto): se acota POR PUERTO" ;; esac
+    [ "${d#*:}" -ge 1 ] && [ "${d#*:}" -le 65535 ] || error "--destinos-tailnet-deploy: puerto fuera de rango"
+  done
 fi
 
 # Interfaces externas: las de las rutas por defecto (IPv4 e IPv6) salvo que se indiquen; admite una lista (VLAN, bond, segunda NIC).
@@ -154,13 +182,17 @@ reglas_docker_user() {
   echo "-F DOCKER-USER"
   echo "-A DOCKER-USER -m conntrack --ctstate RELATED,ESTABLISHED -j RETURN"
   if [ "$familia" = 4 ]; then
-    # Redes de JOBS (código de PRs): solo Internet. Nada hacia la tailnet, los metadatos del proveedor ni la red interna.
-    for j in "$subred_jobs_pr" "$subred_jobs_deploy"; do
-      if [ "$j" = "$subred_jobs_deploy" ]; then
-        for d in "${lista_destinos[@]}"; do echo "-A DOCKER-USER -s $j -d $d -o $tailscale -j RETURN"; done
-      fi
-      echo "-A DOCKER-USER -s $j -o $tailscale -j DROP"
-      for destino in 169.254.0.0/16 100.64.0.0/10 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16; do echo "-A DOCKER-USER -s $j -d $destino -j DROP"; done
+    # Redes de JOBS (código de PRs). 1) Anti-falsificación: por el puente solo sale tráfico con el origen de su subred (un job es root en su red y
+    # podría usar una IP de la red de servicios que ufw permite). 2) Excepciones puntuales de DEPLOY. 3) Solo Internet: nada hacia la tailnet, los
+    # metadatos del proveedor ni la red interna.
+    echo "-A DOCKER-USER -i $bridge_jobs_pr ! -s $subred_jobs_pr -j DROP"
+    echo "-A DOCKER-USER -i $bridge_jobs_deploy ! -s $subred_jobs_deploy -j DROP"
+    # Postgres publicado por Docker entra por FORWARD tras el DNAT (no por INPUT): se permite por el puerto ORIGINAL de destino.
+    for p in "${lista_db_deploy[@]}"; do echo "-A DOCKER-USER -i $bridge_jobs_deploy -s $subred_jobs_deploy -p tcp -m conntrack --ctorigdstport $p -j RETURN"; done
+    for d in "${lista_destinos[@]}"; do echo "-A DOCKER-USER -i $bridge_jobs_deploy -s $subred_jobs_deploy -d ${d%%:*} -p tcp --dport ${d#*:} -o $tailscale -j RETURN"; done
+    for b in "$bridge_jobs_pr" "$bridge_jobs_deploy"; do
+      echo "-A DOCKER-USER -i $b -o $tailscale -j DROP"
+      for destino in 169.254.0.0/16 100.64.0.0/10 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 192.0.0.0/24 198.18.0.0/15 224.0.0.0/4; do echo "-A DOCKER-USER -i $b -d $destino -j DROP"; done
     done
   fi
   echo "-A DOCKER-USER -i lo -j RETURN"
@@ -175,12 +207,13 @@ reglas_docker_user() {
   echo "COMMIT"
 }
 
-# Reglas de ufw en el orden en que se evalúan. `insert N` deja las de las redes de jobs PRIMERO (antes de cualquier allow amplio).
+# Reglas de ufw en el orden en que se evalúan. `insert N` deja las de las redes de jobs PRIMERO (antes de cualquier allow amplio) y por INTERFAZ de
+# entrada (el puente de cada red): filtrar solo por IP de origen se evade falsificándola.
 ufw_reglas() {
-  local n=1
-  echo "$UFW insert $n deny from $subred_jobs_pr"; n=$((n + 1))
-  for p in "${lista_db_deploy[@]}"; do echo "$UFW insert $n allow from $subred_jobs_deploy to any port $p proto tcp"; n=$((n + 1)); done
-  echo "$UFW insert $n deny from $subred_jobs_deploy"
+  local n=1 p
+  echo "$UFW insert $n deny in on $bridge_jobs_pr"; n=$((n + 1))
+  for p in "${lista_db_deploy[@]}" "${lista_host_deploy[@]}"; do echo "$UFW insert $n allow in on $bridge_jobs_deploy to any port $p proto tcp"; n=$((n + 1)); done
+  echo "$UFW insert $n deny in on $bridge_jobs_deploy"
 }
 
 plan() {
@@ -216,7 +249,7 @@ ejecutar_ufw() {
 }
 
 if [ "$aplicar" = 0 ]; then
-  echo "# Plan (no se ejecutó nada). Externas: $externas · Tailscale: $tailscale · públicos: $publicos · servicios Docker→host: $subredes_docker puertos $puertos_docker · jobs PR: $subred_jobs_pr · jobs deploy: $subred_jobs_deploy (DB: $puertos_db_deploy)"
+  echo "# Plan (no se ejecutó nada). Externas: $externas · Tailscale: $tailscale · públicos: $publicos · servicios Docker→host: $subredes_docker puertos $puertos_docker · jobs PR: $subred_jobs_pr ($bridge_jobs_pr) · jobs deploy: $subred_jobs_deploy ($bridge_jobs_deploy; DB: $puertos_db_deploy; host: ${puertos_host_deploy:-ninguno})"
   plan
   echo "# Para aplicarlo con rollback automático: $0 --aplicar"
   exit 0
