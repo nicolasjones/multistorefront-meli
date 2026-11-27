@@ -1,6 +1,6 @@
 // MSF-680: antes de correr `supabase db push` se comprueba que el destino del SUPABASE_DB_URL acepta conexiones TCP. Si no, el error dice QUÉ
-// destino (host y puerto, sin usuario ni contraseña) y QUÉ revisar, en vez de un `dial error ... ECONNREFUSED` opaco del CLI (los runs de
-// staging fallaban desde el 21/10 con «connect ECONNREFUSED 172.17.0.1:7635» y nadie lo vio). Nunca imprime la URL completa.
+// destino (el PUERTO; el host se enmascara en el log con `::add-mask::`: el repo es público y puede ser la IP del VPS) y QUÉ revisar, en vez de
+// un `dial error ... ECONNREFUSED` opaco del CLI (los runs de staging fallaban desde el 21/10 y nadie lo vio). Nunca imprime la URL completa.
 import net from 'node:net';
 
 // { host, puerto } de una URL de conexión (postgres://, postgresql://). Lanza sin incluir la URL en el mensaje.
@@ -23,14 +23,16 @@ export function conectarTcp(host, puerto, timeoutMs) {
   });
 }
 
-export async function comprobarConexion(url, entorno, { conectar = conectarTcp, timeoutMs = 10_000 } = {}) {
+export async function comprobarConexion(url, entorno, { conectar = conectarTcp, timeoutMs = 10_000, enmascarar = (valor) => console.log(`::add-mask::${valor}`) } = {}) {
   const { host, puerto } = destinoDeUrl(url);
   const motivo = await conectar(host, puerto, timeoutMs);
   if (motivo === null) return { host, puerto };
+  // GitHub Actions oculta ese valor en todo el log siguiente (incluido el error de abajo, que no lo repite).
+  enmascarar(host);
   throw new Error([
-    `No se pudo conectar a ${host}:${puerto} (${motivo}), el destino del SUPABASE_DB_URL del Environment migraciones-cloud-${entorno}.`,
+    `No se pudo conectar al host del SUPABASE_DB_URL (puerto ${puerto}) del Environment migraciones-cloud-${entorno}: ${motivo}.`,
     'Revisá: (1) que el secret apunte a la base de ESE entorno (dev 7634, staging 7635, producción 7636); (2) que el runner de deploy alcance el host:',
-    'un runner en contenedor NO llega a 172.17.0.1 ni a localhost del VPS: usá la IP de Tailscale del VPS (y publicá Postgres también en esa IP);',
+    'un runner en contenedor NO llega a la IP del bridge de Docker ni a localhost del VPS: usá la IP de Tailscale del VPS (y publicá Postgres también en esa IP);',
     '(3) que el firewall del VPS deje pasar a la red de Tailscale (docs/endurecimiento-infra.md, «Firewall del VPS»).',
   ].join('\n'));
 }

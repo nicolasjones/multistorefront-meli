@@ -15,21 +15,44 @@ function valorDe(lineas, clave) {
   return undefined;
 }
 
+// Bloque (líneas) de un servicio de primer nivel `  nombre:` dentro de `services:`; null si no existe.
+function bloqueDeServicio(lineas, nombre) {
+  const i = lineas.findIndex((l) => new RegExp(`^ {2}${nombre}:\\s*$`).test(l));
+  if (i === -1) return null;
+  let j = i + 1;
+  while (j < lineas.length && (lineas[j] === '' || /^ {3,}/.test(lineas[j]))) j += 1;
+  return { desde: i, hasta: j, lineas: lineas.slice(i, j) };
+}
+
+// Arquitectura nueva (revisión C+S del lote 99): el Compose solo levanta el SUPERVISOR; los contenedores de los jobs los crea él con `docker run
+// --rm` (argumentosDockerRun, probado aparte). El único lugar donde puede aparecer el socket de Docker es el supervisor.
 export function analizarCompose(nombre, texto, rol) {
   const lineas = sinComentarios(texto);
   const hallazgos = [];
   const regla = (condicion, mensaje) => { if (condicion) hallazgos.push(`${nombre}: ${mensaje}`); };
+  const inicioServicios = lineas.findIndex((l) => /^services:\s*$/.test(l));
+  let finServicios = inicioServicios + 1;
+  while (inicioServicios !== -1 && finServicios < lineas.length && (lineas[finServicios] === '' || /^\s/.test(lineas[finServicios]))) finServicios += 1;
+  const servicios = inicioServicios === -1 ? [] : lineas.slice(inicioServicios + 1, finServicios).filter((l) => /^ {2}[A-Za-z0-9_-]+:\s*$/.test(l)).map((l) => l.trim().slice(0, -1));
+  const superv = bloqueDeServicio(lineas, 'supervisor');
+  regla(!superv || servicios.length !== 1, 'el único servicio es `supervisor`: los contenedores de los jobs los crea él, uno nuevo por job.');
+  const fuera = superv ? [...lineas.slice(0, superv.desde), ...lineas.slice(superv.hasta)].join('\n') : lineas.join('\n');
+  const dentro = superv ? superv.lineas.join('\n') : '';
   const todo = lineas.join('\n');
-  regla(/docker\.sock/.test(todo), 'monta el socket de Docker del host (MSF-703): cada runner usa su daemon interno con sysbox.');
-  regla(/(^|\n)\s*volumes:\s*\n\s*-/.test(todo) || /(^|\n)volumes:/.test(todo), 'declara volúmenes: el store de pnpm no se comparte ni persiste fuera del contenedor (MSF-704).');
-  regla(/(^|\s)(GH_PAT|GH_RUNNER_PAT)\s*:/.test(todo), 'pasa el PAT por variable de entorno: los jobs lo heredan (MSF-703). Usá el secreto RUNNER_PAT_FILE.');
+  regla(/docker\.sock/.test(fuera), 'el socket de Docker del host solo puede estar en el supervisor (MSF-703).');
+  regla(/docker\.sock/.test(dentro.replace('- /var/run/docker.sock:/var/run/docker.sock', '')), 'el socket de Docker del host solo puede estar en el supervisor, y solo como volumen (MSF-703).');
+  const volumenes = (dentro.match(/^ {4}volumes:\s*\n((?: {6}- .*\n?)+)/m)?.[1] ?? '').split('\n').filter(Boolean).map((l) => l.replace(/^ {6}- /, '').replace(/^["']|["']$/g, ''));
+  regla(volumenes.some((v) => v !== '/var/run/docker.sock:/var/run/docker.sock'), 'el supervisor solo monta el socket de Docker: ningún otro volumen (MSF-704).');
+  regla(/(^|\n)volumes:/.test(todo), 'declara volúmenes de primer nivel: no se comparte nada entre jobs (MSF-704).');
+  regla(/(^|\s)(GH_PAT|GH_RUNNER_PAT)\s*:/.test(todo), 'pasa el PAT por variable de entorno (MSF-703). Usá el secreto RUNNER_PAT_FILE.');
   regla(/^\s*privileged:\s*true/m.test(todo), 'privileged: true.');
   regla(/^\s*(pid|network_mode|ipc|userns_mode):\s*["']?host/m.test(todo), 'comparte un espacio de nombres con el host.');
   regla(/^\s*cap_add:/m.test(todo), 'cap_add: capacidades extra.');
-  regla(valorDe(lineas, 'runtime') === undefined, 'sin `runtime:` (sysbox): el daemon interno quedaría con acceso real al host.');
-  regla(valorDe(lineas, 'RUNNER_DOCKER_INTERNO') !== '1', 'RUNNER_DOCKER_INTERNO debe ser "1".');
-  regla(valorDe(lineas, 'RUNNER_EPHEMERAL') !== '1', 'RUNNER_EPHEMERAL debe ser "1" (runner de un solo job).');
+  regla(valorDe(lineas, 'entrypoint') !== '["node", "/supervisor.mjs"]', 'el entrypoint del servicio debe ser el supervisor.');
+  regla(valorDe(lineas, 'RUNNER_RUNTIME') !== '${RUNNER_RUNTIME:-sysbox-runc}', 'RUNNER_RUNTIME debe tener por defecto sysbox-runc (sin sysbox no hay modo inseguro).');
+  regla(valorDe(lineas, 'RUNNER_DOCKER_INTERNO') !== '1', 'RUNNER_DOCKER_INTERNO debe ser "1" (el job usa su propio daemon, no el del host).');
   regla(valorDe(lineas, 'RUNNER_PAT_FILE') !== '/run/secrets/gh_runner_pat', 'RUNNER_PAT_FILE debe apuntar al secreto de Compose.');
+  regla(valorDe(lineas, 'RUNNER_IMAGE') === undefined, 'falta RUNNER_IMAGE: imagen con la que el supervisor crea los contenedores de los jobs.');
   regla(valorDe(lineas, 'RUNNER_ROLE') !== rol, `RUNNER_ROLE debe ser ${rol}.`);
   const etiquetas = (valorDe(lineas, 'RUNNER_LABELS') ?? '').split(',').map((e) => e.trim());
   if (rol === 'pr') {
@@ -51,7 +74,7 @@ export function analizarDockerfile(texto) {
   if (!/useradd[^\n]*\brunner\b/.test(todo)) hallazgos.push('Dockerfile: falta crear el usuario `runner`.');
   if (!/chown -R runner:runner \/home\/runner/.test(todo)) hallazgos.push('Dockerfile: /home/runner debe pertenecer al usuario runner.');
   if (/\/root\/\.docker/.test(todo)) hallazgos.push('Dockerfile: los plugins de Docker van en el directorio del sistema, no en /root.');
-  if (!/chmod 0555 \/entrypoint\.mjs/.test(todo)) hallazgos.push('Dockerfile: los módulos del entrypoint deben quedar de solo lectura (0555).');
+  if (!/chmod 0555 \/entrypoint\.mjs \/supervisor\.mjs/.test(todo)) hallazgos.push('Dockerfile: los módulos del entrypoint y del supervisor deben quedar de solo lectura (0555).');
   if ((todo.match(/--no-same-owner/g) ?? []).length < 2) hallazgos.push('Dockerfile: los binarios extraídos (scout, supabase) deben quedar de root (--no-same-owner): si no, el usuario runner podría reemplazarlos.');
   return hallazgos;
 }
@@ -69,5 +92,5 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
   const hallazgos = analizarRaiz(process.argv[2] ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..'));
   for (const h of hallazgos) console.error(h);
   if (hallazgos.length > 0) process.exit(1);
-  console.log('Runners: usuario no root, sin socket del host, sin store compartido, PAT por archivo y pools separados.');
+  console.log('Runners: supervisor con PAT, un contenedor nuevo por job sin socket del host ni volúmenes, y pools separados.');
 }

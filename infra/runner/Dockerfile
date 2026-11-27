@@ -9,9 +9,13 @@ ARG SUPABASE_CLI_SHA256=5b3031cb297d51b25be4c284e4c852254460ec722ec221d3b81b07d5
 ARG PLAYWRIGHT_VERSION=1.61.0
 ARG RUNNER_UID=1001
 ARG RUNNER_GID=1001
-# MSF-703: el runner de GitHub y TODOS los jobs corren como el usuario `runner` (no root). El único proceso root es el entrypoint (PID 1), que lee
-# el PAT de un archivo de secretos y arranca el listener ya sin privilegios (ver entrypoint.mjs / config-runner.mjs). No hay RUNNER_ALLOW_RUNASROOT.
+# MSF-703: el runner de GitHub y TODOS los jobs corren como el usuario `runner` (no root). Esta imagen sirve a dos procesos: el SUPERVISOR
+# (supervisor.mjs, el único que ve el PAT) y el contenedor de UN job (entrypoint.mjs, root solo para iniciar dockerd; recibe una configuración JIT
+# de un solo uso y se destruye al terminar). Ver config-runner.mjs. No hay RUNNER_ALLOW_RUNASROOT.
 
+# DEUDA DECLARADA (preexistente, revisión C+S B4): el repo de apt de NodeSource se instala con `curl ... | bash -` y Playwright con `npx` sin
+# verificar el contenido; el resto de los binarios de la imagen sí se verifican por SHA256. Cerrarlo = fijar la clave GPG de NodeSource y su
+# repo en el Dockerfile (o una imagen base con Node ya verificada). Se declara acá en vez de dejarlo implícito.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       curl ca-certificates jq git gnupg lsb-release \
     && install -m 0755 -d /etc/apt/keyrings \
@@ -66,7 +70,7 @@ RUN curl -fsSL -o actions-runner.tar.gz \
     && chown -R runner:runner /home/runner
 
 # Los módulos del entrypoint van en `/` y de solo lectura: ni el usuario `runner` ni un job pueden alterarlos.
-COPY entrypoint.mjs config-runner.mjs restaurar-bin.mjs /
-RUN chmod 0555 /entrypoint.mjs /config-runner.mjs /restaurar-bin.mjs
+COPY entrypoint.mjs supervisor.mjs config-runner.mjs restaurar-bin.mjs /
+RUN chmod 0555 /entrypoint.mjs /supervisor.mjs /config-runner.mjs /restaurar-bin.mjs
 
 ENTRYPOINT ["node", "/entrypoint.mjs"]

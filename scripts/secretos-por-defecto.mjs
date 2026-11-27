@@ -11,6 +11,9 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export const JWT_SECRET_PUBLICO = 'super-secret-jwt-token-with-at-least-32-characters-long';
+// Valores públicos del `.env.example` del Supabase self-hosted (docker/.env.example): quien los copia sin cambiarlos queda con claves conocidas.
+export const SECRETOS_JWT_PUBLICOS = [JWT_SECRET_PUBLICO, `your-${JWT_SECRET_PUBLICO}`];
+const PREFIJOS_PUBLICOS = ['your-super-secret', 'your-encryption-key', 'this_password_is_insecure'];
 
 // Valores fijos que viajan en el repo (infra/nango/compose.yaml) y por eso son públicos.
 export const VALORES_FIJOS_DEL_REPO = new Set([
@@ -20,17 +23,22 @@ export const VALORES_FIJOS_DEL_REPO = new Set([
 
 const CONTRASENAS_TRIVIALES = new Set(['postgres', 'password', 'admin', 'root', 'secret', '123456', 'changeme', 'supabase']);
 
-// Una variable es sensible por su NOMBRE: se compara por segmentos separados por `_`, sin regex.
+// Una variable es sensible por su NOMBRE: por segmentos separados por `_` o porque TERMINA en una palabra sensible (`PGPASSWORD`, `APIKEY`), sin regex.
 const SEGMENTOS_SENSIBLES = new Set(['PASSWORD', 'PASSWD', 'SECRET', 'TOKEN', 'KEY', 'JWT', 'APIKEY']);
+const SUFIJOS_SENSIBLES = ['PASSWORD', 'PASSWD', 'SECRET', 'TOKEN', 'APIKEY'];
 export function esNombreSensible(nombre) {
-  return String(nombre).toUpperCase().split('_').some((segmento) => SEGMENTOS_SENSIBLES.has(segmento));
+  const mayusculas = String(nombre).toUpperCase();
+  return mayusculas.split('_').some((segmento) => SEGMENTOS_SENSIBLES.has(segmento)) || SUFIJOS_SENSIBLES.some((sufijo) => mayusculas.endsWith(sufijo));
 }
 
 function base64urlADecodificado(parte) {
   return Buffer.from(parte.replaceAll('-', '+').replaceAll('_', '/'), 'base64');
 }
 
+const ALGORITMOS = { HS256: 'sha256', HS384: 'sha384', HS512: 'sha512' };
+
 // Un JWT tiene tres partes base64url separadas por punto. Devuelve { payload, firmadoConSecretoPublico } o null si no lo es.
+// La firma se verifica con HS256, HS384 y HS512 contra cada secreto público: quien conoce el secreto forja el token con cualquiera.
 export function inspeccionarJwt(valor) {
   const partes = String(valor).split('.');
   if (partes.length !== 3 || partes.some((p) => p.length === 0)) return null;
@@ -38,9 +46,15 @@ export function inspeccionarJwt(valor) {
     const cabecera = JSON.parse(base64urlADecodificado(partes[0]).toString('utf8'));
     const payload = JSON.parse(base64urlADecodificado(partes[1]).toString('utf8'));
     if (cabecera === null || typeof cabecera !== 'object' || payload === null || typeof payload !== 'object') return null;
-    const esperada = createHmac('sha256', JWT_SECRET_PUBLICO).update(`${partes[0]}.${partes[1]}`).digest();
     const recibida = base64urlADecodificado(partes[2]);
-    const firmadoConSecretoPublico = cabecera.alg === 'HS256' && recibida.length === esperada.length && timingSafeEqual(recibida, esperada);
+    const algoritmo = Object.hasOwn(ALGORITMOS, cabecera.alg) ? ALGORITMOS[cabecera.alg] : null;
+    let firmadoConSecretoPublico = false;
+    if (algoritmo) {
+      for (const secreto of SECRETOS_JWT_PUBLICOS) {
+        const esperada = createHmac(algoritmo, secreto).update(`${partes[0]}.${partes[1]}`).digest();
+        if (recibida.length === esperada.length && timingSafeEqual(recibida, esperada)) firmadoConSecretoPublico = true;
+      }
+    }
     return { payload, firmadoConSecretoPublico };
   } catch {
     return null;
@@ -50,7 +64,7 @@ export function inspeccionarJwt(valor) {
 function esContrasenaPorDefecto(valor) {
   const v = String(valor);
   const minuscula = v.toLowerCase();
-  return CONTRASENAS_TRIVIALES.has(minuscula) || minuscula.startsWith('change-me') || minuscula.startsWith('changeme') || minuscula.endsWith('-local');
+  return CONTRASENAS_TRIVIALES.has(minuscula) || PREFIJOS_PUBLICOS.some((prefijo) => minuscula.startsWith(prefijo)) || minuscula.startsWith('change-me') || minuscula.startsWith('changeme') || minuscula.endsWith('-local');
 }
 
 // Contraseña dentro de una URL de conexión (`postgres://usuario:clave@host/db`, `jdbc:postgresql://...`). null si no hay.
@@ -70,11 +84,11 @@ export function contrasenaDeUrl(valor) {
 export function motivoPorDefecto(nombre, valor) {
   const v = String(valor ?? '').trim();
   if (v === '') return null;
-  if (v === JWT_SECRET_PUBLICO) return 'secreto JWT público de Supabase local';
+  if (SECRETOS_JWT_PUBLICOS.includes(v)) return 'secreto JWT público de Supabase';
   if (VALORES_FIJOS_DEL_REPO.has(v)) return 'valor fijo y público del repositorio';
   const jwt = inspeccionarJwt(v);
   if (jwt) {
-    if (jwt.firmadoConSecretoPublico) return 'JWT firmado con el secreto público de Supabase local';
+    if (jwt.firmadoConSecretoPublico) return 'JWT firmado con un secreto público de Supabase';
     if (jwt.payload.iss === 'supabase-demo') return 'JWT de demostración de Supabase local';
     return null;
   }
@@ -85,6 +99,19 @@ export function motivoPorDefecto(nombre, valor) {
 }
 
 // KEY=valor de un .env (sin expandir variables). Mismo formato que scripts/preflight-deploy-vps.mjs.
+// Valor de una línea de .env: entre comillas se toma lo de adentro (lo que sigue al cierre es un comentario); sin comillas se corta en ` #`.
+export function valorDeLinea(resto) {
+  const v = resto.trim();
+  const comilla = v[0];
+  if (comilla === '"' || comilla === "'") {
+    const cierre = v.indexOf(comilla, 1);
+    return cierre === -1 ? v.slice(1) : v.slice(1, cierre);
+  }
+  const marca = v.search(/\s#/);
+  return (marca === -1 ? v : v.slice(0, marca)).trim();
+}
+
+// KEY=valor de un .env (sin expandir variables). Mismo formato que scripts/preflight-deploy-vps.mjs.
 export function leerPares(contenido) {
   const pares = [];
   for (const linea of String(contenido).split(/\r?\n/)) {
@@ -92,9 +119,7 @@ export function leerPares(contenido) {
     if (igual <= 0 || linea.trimStart().startsWith('#')) continue;
     const nombre = linea.slice(0, igual).trim().replace(/^export\s+/, '');
     if (nombre === '' || nombre.includes(' ')) continue;
-    let valor = linea.slice(igual + 1).trim();
-    if (valor.length >= 2 && (valor[0] === '"' || valor[0] === "'") && valor.at(-1) === valor[0]) valor = valor.slice(1, -1);
-    pares.push([nombre, valor]);
+    pares.push([nombre, valorDeLinea(linea.slice(igual + 1))]);
   }
   return pares;
 }

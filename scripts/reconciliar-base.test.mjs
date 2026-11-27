@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { INDICES_ESPERADOS, SQL_REVOKE_ACL, clasificar, destinoDe, diagnosticar, hallazgos, informe, listaCerradaDePublico, migracionesDelRepo, parsearRegistro, validarAplicar } from './reconciliar-base.mjs';
+import { INDICES_ESPERADOS, SQL_REVOKE_ACL, clasificar, comandoPsql, nombreDeContenedorValido, destinoDe, diagnosticar, hallazgos, informe, listaCerradaDePublico, migracionesDelRepo, parsearRegistro, validarAplicar } from './reconciliar-base.mjs';
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const script = path.join(aqui, 'reconciliar-base.mjs');
@@ -161,4 +161,17 @@ test('CLI: con --aplicar --confirmo la sesión de reparación es de escritura y 
   assert.match(escritura[0], /begin;[\s\S]*reafirmar_acl_rpc_internas_de_publico[\s\S]*commit;/);
   assert.doesNotMatch(escritura[0], /\b(delete|drop|truncate)\b/i);
   assert.match(r.stdout, /Modo: REPARACIÓN/);
+});
+
+test('B2: el nombre del contenedor no puede ser una opción de docker y la contraseña de DATABASE_URL no viaja en argv', () => {
+  for (const bueno of ['db', 'supabase_db_x-1.dev', 'A1']) assert.equal(nombreDeContenedorValido(bueno), true, bueno);
+  for (const malo of ['', '-it', '--privileged', 'a b', 'a;b', '$(id)', 'x'.repeat(129), undefined, null]) assert.equal(nombreDeContenedorValido(malo), false, String(malo));
+  assert.throws(() => comandoPsql(['--docker', '--privileged']), /nombre de contenedor válido/);
+  assert.throws(() => validarAplicar(['--docker', '-x', '--aplicar', '--confirmo', '-x']), /nombre de contenedor válido/);
+  assert.deepEqual(comandoPsql(['--docker', 'db']).args.slice(0, 4), ['exec', '-i', 'db', 'psql']);
+  const r = comandoPsql([], { DATABASE_URL: 'postgresql://usuario:ClaveSecreta9@host:5432/base' });
+  assert.equal(r.comando, 'psql');
+  assert.ok(!r.args.join(' ').includes('ClaveSecreta9'), 'la contraseña no está en argv');
+  assert.equal(r.env.PGPASSWORD, 'ClaveSecreta9');
+  assert.throws(() => comandoPsql([], {}), /Falta --docker/);
 });

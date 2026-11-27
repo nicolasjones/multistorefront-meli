@@ -206,7 +206,8 @@
       "paths": [
         "infra/runner/compose.yaml",
         "infra/runner/compose.deploy.yaml",
-        "infra/runner/config-runner.mjs"
+        "infra/runner/config-runner.mjs",
+        "infra/runner/supervisor.mjs"
       ]
     },
     {

@@ -13,17 +13,18 @@ test('destinoDeUrl: host y puerto; puerto por defecto; IPv6; rechaza lo que no e
   }
 });
 
-test('comprobarConexion: conectado devuelve el destino; cada fallo lanza un mensaje accionable sin credenciales', async () => {
-  const ok = await comprobarConexion('postgresql://u:p@h:7635/x', 'staging', { conectar: async () => null });
+test('comprobarConexion: conectado devuelve el destino; cada fallo lanza un mensaje accionable sin credenciales ni host, y enmascara el host', async () => {
+  const ok = await comprobarConexion('postgresql://u:p@h:7635/x', 'staging', { conectar: async () => null, enmascarar: () => assert.fail('no enmascara si conecta') });
   assert.deepEqual(ok, { host: 'h', puerto: 7635 });
   for (const motivo of ['ECONNREFUSED', 'timeout', 'EHOSTUNREACH']) {
-    await assert.rejects(comprobarConexion('postgresql://usuario:ClaveSecreta1@172.17.0.1:7635/x', 'staging', { conectar: async () => motivo }), (e) => {
-      assert.match(e.message, new RegExp(`172\\.17\\.0\\.1:7635 \\(${motivo}\\)`));
-      assert.match(e.message, /migraciones-cloud-staging/);
+    const enmascarados = [];
+    await assert.rejects(comprobarConexion('postgresql://usuario:ClaveSecreta1@172.17.0.1:7635/x', 'staging', { conectar: async () => motivo, enmascarar: (v) => enmascarados.push(v) }), (e) => {
+      assert.match(e.message, new RegExp(`puerto 7635\\) del Environment migraciones-cloud-staging: ${motivo}`));
       assert.match(e.message, /Tailscale/);
-      assert.ok(!e.message.includes('ClaveSecreta1') && !e.message.includes('usuario'), 'sin credenciales');
+      assert.ok(!e.message.includes('ClaveSecreta1') && !e.message.includes('usuario') && !e.message.includes('172.17.0.1'), 'sin credenciales ni host');
       return true;
     });
+    assert.deepEqual(enmascarados, ['172.17.0.1'], 'el host se enmascara en el log de Actions');
   }
 });
 

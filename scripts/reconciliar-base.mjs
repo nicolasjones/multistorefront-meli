@@ -20,6 +20,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { separarContrasena } from './operaciones.mjs';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -158,15 +159,29 @@ export function hallazgos(d) {
 }
 
 // ---- psql ----
-function psql(argv, sql, escritura) {
+// El nombre del contenedor va a `docker exec -i <nombre>`: uno que empiece con `-` se tomaría por una opción de docker.
+export function nombreDeContenedorValido(nombre) {
+  return typeof nombre === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(nombre);
+}
+
+// Comando y entorno de psql. La contraseña de DATABASE_URL NO viaja en argv (visible en `ps`): va por PGPASSWORD, como en migrar-supabase-cloud.
+export function comandoPsql(argv, env = process.env) {
   const i = argv.indexOf('--docker');
+  const args = ['-tAX', '-F', '|', '-v', 'ON_ERROR_STOP=1'];
+  if (i >= 0) {
+    if (!nombreDeContenedorValido(argv[i + 1])) throw new Error('--docker necesita un nombre de contenedor válido (letras, números, punto, guion; sin guion inicial).');
+    return { comando: 'docker', args: ['exec', '-i', argv[i + 1], 'psql', '-U', 'postgres', ...args], env: process.env };
+  }
+  if (!env.DATABASE_URL) throw new Error('Falta --docker <contenedor> o DATABASE_URL.');
+  const { urlSinContrasena, env: extra } = separarContrasena(env.DATABASE_URL);
+  return { comando: 'psql', args: [urlSinContrasena, ...args], env: { ...process.env, ...extra } };
+}
+
+function psql(argv, sql, escritura) {
   const sesion = escritura ? 'set default_transaction_read_only = off;\nbegin;\n' : 'set default_transaction_read_only = on;\n';
   const cierre = escritura ? '\ncommit;\n' : '';
-  const args = ['-tAX', '-F', '|', '-v', 'ON_ERROR_STOP=1'];
-  const entrada = `${sesion}${sql}${cierre}`;
-  const r = i >= 0
-    ? spawnSync('docker', ['exec', '-i', argv[i + 1], 'psql', '-U', 'postgres', ...args], { input: entrada, encoding: 'utf8' })
-    : spawnSync('psql', [process.env.DATABASE_URL ?? '', ...args], { input: entrada, encoding: 'utf8' });
+  const { comando, args, env } = comandoPsql(argv);
+  const r = spawnSync(comando, args, { input: `${sesion}${sql}${cierre}`, encoding: 'utf8', env });
   if (r.status !== 0) throw new Error((r.stderr || 'psql falló').split('\n')[0]);
   return r.stdout.split('\n').filter((x) => x.trim() !== '' && x.trim() !== 'SET' && x.trim() !== 'BEGIN' && x.trim() !== 'COMMIT');
 }
@@ -182,6 +197,7 @@ export function validarAplicar(argv) {
   const i = argv.indexOf('--confirmo');
   const confirmo = i >= 0 ? argv[i + 1] : undefined;
   const destino = destinoDe(argv);
+  if (destino !== 'DATABASE_URL' && !nombreDeContenedorValido(destino)) throw new Error('--docker necesita un nombre de contenedor válido (letras, números, punto, guion; sin guion inicial).');
   if (!confirmo || confirmo !== destino) throw new Error(`--aplicar exige --confirmo ${destino} (el mismo destino que --docker): es una confirmación explícita de que escribís en ESA base.`);
   if (destino === 'DATABASE_URL' && !process.env.DATABASE_URL) throw new Error('Falta --docker <contenedor> o DATABASE_URL.');
   return true;

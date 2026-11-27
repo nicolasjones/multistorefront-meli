@@ -197,8 +197,8 @@ que ata un contenedor a un repo puntual son las variables de entorno
 y `GH_RUNNER_PAT` en `.env`) — para reutilizarlo en otro proyecto, se copia
 la carpeta tal cual y solo cambia `RUNNER_REPO`.
 
-Desde el lote 99 (MSF-703/704) los runners ya **no** montan el socket de Docker del host: cada runner corre como usuario no root,
-es efímero y levanta su propio daemon de Docker con el runtime sysbox; hay un pool de PR (`infra/runner/compose.yaml`) y otro de deploy
+Desde el lote 99 (MSF-703/704) los jobs ya **no** corren con el socket de Docker del host: un supervisor (el único que ve el PAT) lanza un contenedor nuevo por job,
+que corre como usuario no root, con su propio daemon de Docker (runtime sysbox) y se destruye al terminar; hay un pool de PR (`infra/runner/compose.yaml`) y otro de deploy
 (`infra/runner/compose.deploy.yaml`). Diseño, runbook para recrearlos y acciones pendientes: `docs/endurecimiento-infra.md`.
 
 Detalle a tener en cuenta: dentro del contenedor del runner, `127.0.0.1` es el contenedor mismo, no el host. El stack de Supabase de los
@@ -212,7 +212,7 @@ medición y el análisis de concurrencia). Variables en `.env` (todas opcionales
 con default en `infra/runner/compose.yaml`; contrato en
 `specs/20260925-221701-optimizar-runners-locales/contracts/variables-runner.md`):
 
-- `RUNNER_REPLICAS` (default `3`): cuántos jobs de este repo corren a la vez.
+- `RUNNER_REPLICAS` (default `3`, son las «ranuras» del supervisor): cuántos jobs de este repo corren a la vez.
   Cada corrida de Validate usa tres runners (application, infrastructure,
   database) más uno para `Verificar alcance de plataforma`. Conviene bajarla a
   `1` o `2` cuando hay varios agentes activos con sus stacks (Supabase, Kestra)

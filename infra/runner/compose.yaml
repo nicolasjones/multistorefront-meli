@@ -1,60 +1,47 @@
 name: multistorefront-meli-runner-pr
 
-# Pool de runners para los jobs de PR y de CI (MSF-703). Etiquetas `self-hosted,platform-local,platform-pr`. Hardening:
-#   - los jobs corren como el usuario `runner` (uid 1001), no root; el entrypoint (root) solo supervisa (config-runner.mjs);
-#   - SIN `/var/run/docker.sock` del host: cada runner levanta su propio daemon de Docker dentro del contenedor, con el runtime
-#     sysbox (RUNNER_RUNTIME, `sysbox-runc` por defecto). Sin sysbox el contenedor no arranca: es a propósito (no hay modo inseguro);
-#   - runner efímero (un job y se descarta) y directorio de trabajo limpio entre jobs;
-#   - el PAT va en un archivo de secretos 0400 de root (GH_RUNNER_PAT_FILE), nunca en el entorno de los jobs;
-#   - store y caché de pnpm PROPIOS de cada contenedor (sin volumen compartido con otras réplicas, otros productos ni el pool de deploy).
-# Los jobs de deploy/migraciones/publicación NO corren acá: van al pool `platform-deploy` (compose.deploy.yaml). Runbook: docs/endurecimiento-infra.md.
+# Pool de runners para los jobs de PR y de CI (MSF-703). Etiquetas `self-hosted,platform-local,platform-pr`.
+# ARQUITECTURA (revisión C+S del lote 99): este Compose levanta solo el SUPERVISOR. El supervisor lee el PAT del archivo de secretos, pide a
+# GitHub una configuración JIT por job y lanza un contenedor NUEVO por job (`docker run --rm`, ver supervisor.mjs y config-runner.mjs). Por eso:
+#   - el PAT vive SOLO en el supervisor, que nunca ejecuta código de un job; el contenedor del job no lo tiene ni lo puede montar;
+#   - cada job corre en un contenedor que se destruye al terminar: no persisten imágenes, procesos ni archivos de un job al siguiente;
+#   - el contenedor del job corre como usuario `runner` (no root), con el runtime sysbox (su propio dockerd; SIN el socket del host) y con
+#     topes de memoria, CPU y procesos (RUNNER_MEMORY_LIMIT, RUNNER_CPU_LIMIT, RUNNER_PIDS_LIMIT);
+#   - store y caché de pnpm propios de cada contenedor (nada compartido entre jobs, productos ni con el pool de deploy).
+# El único contenedor con el socket de Docker del host es este supervisor (necesita crear los contenedores de los jobs); es de confianza porque
+# solo ejecuta el código de esta imagen. Sin sysbox los jobs no arrancan: no hay modo inseguro.
+# Los jobs de deploy/migraciones/publicación NO van acá: el pool `platform-deploy` (compose.deploy.yaml). OJO: esa separación no es un límite de
+# confianza frente a un workflow modificado en un PR; ver config-runner.mjs y docs/endurecimiento-infra.md.
 services:
-  runner:
+  supervisor:
     build: .
-    # tini como PID 1: cosecha los zombies que dejan los procesos nietos (Chromium/vite/playwright). Ver docs/control-ci.md.
+    image: multistorefront-meli-runner:local
+    entrypoint: ["node", "/supervisor.mjs"]
     init: true
-    runtime: ${RUNNER_RUNTIME:-sysbox-runc}
-    deploy:
-      # Bajalo (1 o 2) con varios agentes activos, poca memoria o poca red; 0 no levanta runners de este repo. Ver docs/deployment.md.
-      replicas: ${RUNNER_REPLICAS:-3}
-      resources:
-        limits:
-          # Tope de lo que corre dentro del runner (pnpm, tsc, vite, vitest, pg_prove y, ahora, también el stack de Supabase de los jobs,
-          # porque su daemon es el interno del contenedor).
-          memory: ${RUNNER_MEMORY_LIMIT:-6g}
-          # Tope de CPU por réplica: evita que un job (vitest es multi-núcleo) deje sin CPU a los demás runners. `0` = sin tope.
-          cpus: ${RUNNER_CPU_LIMIT:-2}
-          # Tope de procesos (PIDs) por réplica: frena un fork-bomb o un chrome-headless que no cierra sus hijos. `-1` = sin tope.
-          # La clave es `deploy.resources.limits.pids`, no `pids_limit` de servicio (compose los trata como el mismo límite).
-          pids: ${RUNNER_PIDS_LIMIT:-4096}
     environment:
       RUNNER_ROLE: pr
       RUNNER_REPO: nicolasjones/multistorefront-meli
       RUNNER_NAME: multistorefront-meli-pr
       RUNNER_LABELS: self-hosted,platform-local,platform-pr
+      RUNNER_IMAGE: multistorefront-meli-runner:local
+      RUNNER_RUNTIME: ${RUNNER_RUNTIME:-sysbox-runc}
       RUNNER_DOCKER_INTERNO: "1"
-      RUNNER_EPHEMERAL: "1"
-      # 0 = el store de pnpm sobrevive entre los jobs de ESTE contenedor (rápido); 1 = vacío en cada job.
+      # Cuántos jobs de este repo corren a la vez (una ranura = un contenedor por vez). 0 no levanta runners. Ver docs/deployment.md.
+      RUNNER_SLOTS: ${RUNNER_REPLICAS:-3}
+      # Topes POR CONTENEDOR DE JOB (el stack de Supabase del job corre dentro de él).
+      RUNNER_MEMORY_LIMIT: ${RUNNER_MEMORY_LIMIT:-6g}
+      RUNNER_CPU_LIMIT: ${RUNNER_CPU_LIMIT:-2}
+      RUNNER_PIDS_LIMIT: ${RUNNER_PIDS_LIMIT:-4096}
       RUNNER_LIMPIAR_STORE: ${RUNNER_LIMPIAR_STORE:-0}
+      RUNNER_PNPM_NETWORK_CONCURRENCY: ${RUNNER_PNPM_NETWORK_CONCURRENCY:-16}
       RUNNER_PAT_FILE: /run/secrets/gh_runner_pat
-      # El runner NO se autoactualiza dentro del contenedor (renombra `bin` y un reinicio a medias lo deja en crash-loop). La versión la fija
-      # la imagen (`RUNNER_VERSION` del Dockerfile): se actualiza reconstruyendo la imagen.
-      RUNNER_DISABLE_AUTO_UPDATE: "1"
-      # pnpm 11 lee pnpm_config_*. Store y caché dentro del HOME del runner: propios de cada contenedor.
-      pnpm_config_store_dir: /home/runner/.pnpm-store
-      pnpm_config_cache_dir: /home/runner/.cache/pnpm
-      pnpm_config_network_concurrency: ${RUNNER_PNPM_NETWORK_CONCURRENCY:-16}
-      pnpm_config_fetch_retries: 5
-      pnpm_config_fetch_timeout: 600000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     secrets:
       - gh_runner_pat
-    extra_hosts:
-      # pnpm test:db:ci y scripts/reset-db-ci.mjs conectan por host.docker.internal. El stack de Supabase del job corre en el daemon INTERNO
-      # y publica sus puertos en el propio contenedor: host.docker.internal es el loopback del contenedor.
-      - "host.docker.internal:127.0.0.1"
     restart: unless-stopped
 
 secrets:
   gh_runner_pat:
-    # Archivo del HOST con el PAT del runner: dueño root, modo 0400 (el entrypoint rechaza un modo más abierto). Ver el runbook.
+    # Archivo del HOST con el PAT del runner: dueño root, modo 0400 (el supervisor rechaza un modo más abierto). Ver el runbook.
     file: ${GH_RUNNER_PAT_FILE:-/etc/platform-runner/gh_runner_pat}

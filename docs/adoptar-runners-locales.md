@@ -9,9 +9,8 @@ sources:
 
 # Adoptar los runners locales optimizados
 
-Capacidad `local-ci-runners` de `template-capabilities.json`. Desde la versión 1.1.0 (lote 99, MSF-703/704) los runners corren como usuario no
-root, efímeros, sin el socket de Docker del host (daemon propio con sysbox), con el PAT en un archivo 0400 y **sin store de pnpm compartido**
-(cada contenedor tiene el suyo); hay un pool de PR y otro de deploy (`infra/runner/compose.yaml` y `compose.deploy.yaml`; ver
+Capacidad `local-ci-runners` de `template-capabilities.json`. Desde la versión 1.1.0 (lote 99, MSF-703/704) un supervisor (el único que ve el PAT) lanza un contenedor nuevo por job: no root, sin el socket de Docker del host
+(daemon propio con sysbox), configuración JIT de un solo uso y **sin store de pnpm compartido** (cada contenedor tiene el suyo); hay un pool de PR y otro de deploy (`infra/runner/compose.yaml` y `compose.deploy.yaml`; ver
 `docs/endurecimiento-infra.md`). La capacidad original hacía que las réplicas compartieran un store persistente
 (también con los runners de otros productos de la máquina); hoy eso se retiró por seguridad. Además limita la memoria
 de cada réplica y la cantidad de descargas simultáneas de `pnpm install`, y
@@ -20,7 +19,7 @@ en `docs/deployment.md` ("Réplicas, memoria, red y store de pnpm del runner");
 el porqué, en `specs/20260925-221701-optimizar-runners-locales/research.md`.
 
 Un producto que no la adopte sigue con los runners anteriores (con root y socket del host): conviene adoptar la versión 1.1.0 completa
-(`compose.yaml`, `compose.deploy.yaml`, `Dockerfile`, `entrypoint.mjs`, `config-runner.mjs`).
+(`compose.yaml`, `compose.deploy.yaml`, `Dockerfile`, `entrypoint.mjs`, `supervisor.mjs`, `config-runner.mjs`).
 
 ## Qué traer
 

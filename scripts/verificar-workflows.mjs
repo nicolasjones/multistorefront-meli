@@ -4,11 +4,13 @@
 //     runners self-hosted sin que nadie lo revise. Las acciones locales (`./...`) y los workflows reutilizables locales no aplican.
 //   - MSF-926: todo job que corre pasos (`runs-on`) declara `timeout-minutes`: el default de GitHub son 360 min y un job colgado
 //     ocuparía un runner self-hosted horas. Los jobs que solo llaman a un workflow reutilizable (`uses:` a nivel de job) no lo admiten.
-//   - MSF-703/704: separación de pools de runners. Ningún `runs-on` lleva la etiqueta `self-hosted` literal: va por una variable de repo
-//     (`vars.CI_RUNS_ON_PR` para PR/CI, `vars.CI_RUNS_ON_DEPLOY` para deploys, `vars.CI_RUNS_ON_PESADO` para los jobs pesados). Los jobs con
-//     `environment:` (secretos de staging/producción) y el de release-please van SIEMPRE en el pool de deploy, y ningún otro job lo usa: así
-//     el código de un PR nunca corre en el runner que despliega con las claves de producción. Un workflow disparado por `pull_request` no
-//     puede tener jobs con `environment:`.
+//   - MSF-703/704: higiene de los pools de runners (NO es un control de seguridad frente a un autor hostil: en un `pull_request` GitHub usa el
+//     workflow del propio PR, que puede cambiar `runs-on`, y este guard corre desde ese mismo PR). Ningún `runs-on` lleva la etiqueta `self-hosted`
+//     literal: va por una variable de repo (`vars.CI_RUNS_ON_PR` para PR/CI, `vars.CI_RUNS_ON_DEPLOY` para deploys, `vars.CI_RUNS_ON_PESADO` para los
+//     jobs pesados). Los jobs con `environment:` y el de release-please van SIEMPRE en el pool de deploy y ningún otro job lo usa; un workflow
+//     disparado por `pull_request` no puede tener jobs con `environment:`. Sirve para que un error honesto de un mantenedor no mezcle los pools.
+//     Lo que protege los secretos de producción es que los Environments estén restringidos a ramas protegidas y que cada job corra en un contenedor
+//     que se destruye al terminar (docs/endurecimiento-infra.md, «Control principal»).
 // Uso: node scripts/verificar-workflows.mjs [directorio] (por defecto .github/workflows). Sale 1 con la lista de hallazgos.
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';

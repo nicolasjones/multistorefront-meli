@@ -7,7 +7,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { JWT_SECRET_PUBLICO, contrasenaDeUrl, esNombreSensible, hallazgosPorDefecto, inspeccionarJwt, leerPares, motivoPorDefecto } from './secretos-por-defecto.mjs';
+import { createHmac } from 'node:crypto';
+import { JWT_SECRET_PUBLICO, SECRETOS_JWT_PUBLICOS, contrasenaDeUrl, esNombreSensible, hallazgosPorDefecto, inspeccionarJwt, leerPares, motivoPorDefecto } from './secretos-por-defecto.mjs';
 import { aleatorio, firmarJwt, generarSecretos, validarSalida } from './generar-secretos-entorno.mjs';
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
@@ -37,7 +38,7 @@ test('motivoPorDefecto: cada valor por defecto conocido se detecta (mutantes que
     ['SUPERSET_DB_PASSWORD', 'superset-local', /contraseña/],
     ['SUPABASE_DB_URL', 'postgres://postgres:postgres@host.docker.internal:7634/postgres', /URL/],
     ['KESTRA_BACKUPS_DB_URL', 'jdbc:postgresql://u:change-me-local@db:5432/x', /URL/],
-    ['ANON_KEY', jwtCon(JWT_SECRET_PUBLICO), /firmado con el secreto público/],
+    ['ANON_KEY', jwtCon(JWT_SECRET_PUBLICO), /firmado con un secreto público/],
     ['ANON_KEY', jwtCon('otro-secreto-distinto', { role: 'anon', iss: 'supabase-demo' }), /demostración/],
   ];
   for (const [nombre, valor, motivo] of casos) assert.match(String(motivoPorDefecto(nombre, valor)), motivo, `${nombre}=${valor.slice(0, 12)}…`);
@@ -164,4 +165,68 @@ test('CLI generador: archivo 0600 fuera del repo, no imprime valores y no sobres
   // Salida dentro del repositorio real: rechazada.
   const enRepo = spawnSync(process.execPath, [generador, '--entorno', 'dev', '--salida', path.join(aqui, '..', 'secretos-prueba.env')], { encoding: 'utf8' });
   assert.equal(enRepo.status, 1);
+});
+
+// ---- Revisión C+S (M4): falsos negativos del detector, cubiertos con casos malos Y buenos ----
+
+const jwtAlg = (alg, secreto, payload = { role: 'anon', iss: 'supabase' }) => {
+  const b = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const cuerpo = `${b({ alg, typ: 'JWT' })}.${b(payload)}`;
+  const hash = { HS256: 'sha256', HS384: 'sha384', HS512: 'sha512' }[alg];
+  return `${cuerpo}.${createHmac(hash, secreto).update(cuerpo).digest('base64url')}`;
+};
+const SELF_HOSTED_JWT = 'your-super-secret-jwt-token-with-at-least-32-characters-long';
+
+test('M4: cada falso negativo verificado por la revisión ahora se detecta', () => {
+  const malos = [
+    'PGPASSWORD=postgres',
+    `JWT_SECRET=${JWT_SECRET_PUBLICO} # el de Supabase`,
+    'POSTGRES_PASSWORD="postgres" # contraseña local',
+    "POSTGRES_PASSWORD='postgres'   # con espacios",
+    `JWT_SECRET=${SELF_HOSTED_JWT}`,
+    'POSTGRES_PASSWORD=your-super-secret-and-long-postgres-password',
+    'DASHBOARD_PASSWORD=this_password_is_insecure_and_should_be_updated',
+    'VAULT_ENC_KEY=your-encryption-key-32-chars-min',
+    `ANON_KEY=${jwtAlg('HS384', JWT_SECRET_PUBLICO)}`,
+    `ANON_KEY=${jwtAlg('HS512', JWT_SECRET_PUBLICO)}`,
+    `ANON_KEY=${jwtAlg('HS256', SELF_HOSTED_JWT)}`,
+    `SERVICE_ROLE_KEY=${jwtAlg('HS512', SELF_HOSTED_JWT)}`,
+    'export PGPASSWORD=postgres',
+    'DB_APIKEY=change-me-local',
+    'SMTP_PASSWD=password',
+  ];
+  for (const linea of malos) assert.equal(hallazgosPorDefecto(linea).length, 1, linea.slice(0, 60));
+});
+
+test('M4: los casos buenos cercanos NO se marcan (el comentario no cuenta, valores propios con cualquier algoritmo)', () => {
+  const buenos = [
+    'POSTGRES_PASSWORD=Xk29vLq0aa81 # antes era postgres',
+    'POSTGRES_PASSWORD="Xk29vLq0aa81" # postgres',
+    'A_PASSWORD="ab #postgres"',
+    'PGPASSWORD=Zx81kLm02Qq',
+    `ANON_KEY=${jwtAlg('HS384', 'un-secreto-propio-largo-y-aleatorio-9988')}`,
+    `ANON_KEY=${jwtAlg('HS512', 'un-secreto-propio-largo-y-aleatorio-9988')}`,
+    'KEYBOARD_LAYOUT=postgres', 'TOKENIZER_MODE=postgres', 'WEB_PORT=4300', 'RUNNER_NAME=your-runner',
+    'JWT_EXP=3600',
+  ];
+  for (const linea of buenos) assert.deepEqual(hallazgosPorDefecto(linea), [], linea);
+});
+
+test('M4: tabla de nombres sensibles (frontera entre sufijo/segmento y subcadena)', () => {
+  const casos = [['PGPASSWORD', true], ['DB_PASSWD', true], ['APIKEY', true], ['MYAPIKEY', true], ['SERVICE_ROLE_KEY', true], ['AUTH_JWT', true],
+    ['PASSWORDLESS_MODE', false], ['KEYBOARD', false], ['SECRETARY_NAME', false], ['TOKENIZER', false], ['MONKEY', false], ['', false]];
+  for (const [nombre, esperado] of casos) assert.equal(esNombreSensible(nombre), esperado, nombre);
+});
+
+test('M4: los dos secretos JWT públicos están en la lista y un JWT HS512 alterado no cae', () => {
+  assert.deepEqual(SECRETOS_JWT_PUBLICOS, [JWT_SECRET_PUBLICO, SELF_HOSTED_JWT]);
+  const bueno = jwtAlg('HS512', JWT_SECRET_PUBLICO);
+  const alterado = `${bueno.slice(0, -2)}${bueno.at(-2) === 'A' ? 'B' : 'A'}${bueno.at(-1)}`;
+  assert.equal(inspeccionarJwt(alterado).firmadoConSecretoPublico, false);
+  assert.equal(inspeccionarJwt(bueno).firmadoConSecretoPublico, true);
+  assert.equal(inspeccionarJwt(jwtAlg('HS256', 'otro-secreto-distinto-de-los-publicos')).firmadoConSecretoPublico, false);
+  // alg `none` o desconocido: no se intenta verificar y no lanza
+  const b = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  assert.equal(inspeccionarJwt(`${b({ alg: 'none' })}.${b({ role: 'x' })}.firma`).firmadoConSecretoPublico, false);
+  assert.equal(inspeccionarJwt(`${b({ alg: 'constructor' })}.${b({ role: 'x' })}.firma`).firmadoConSecretoPublico, false);
 });
