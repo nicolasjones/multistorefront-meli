@@ -50,21 +50,30 @@ function dockerConSalida(args) {
   });
 }
 
-// La red dedicada de jobs tiene que existir con la subred FIJA esperada: el firewall la trata distinta de docker0. Si existe con otra subred, se corta.
+// La red dedicada de jobs tiene que existir y ser EXACTAMENTE lo que el firewall espera: driver bridge, ICC desactivado, puente con el nombre fijo y la subred fija. Una red
+// PREEXISTENTE que no coincida es un fallo (fallar cerrado): el aislamiento es lo que protege al host de código de PRs.
 export async function asegurarRed({ cfg, consultar = dockerConSalida }) {
-  const existente = await consultar(['network', 'inspect', '--format', '{{range .IPAM.Config}}{{.Subnet}} {{end}}', cfg.red]);
+  const plantilla = '{{.Driver}}|{{index .Options "com.docker.network.bridge.enable_icc"}}|{{index .Options "com.docker.network.bridge.name"}}|{{range .IPAM.Config}}{{.Subnet}} {{end}}';
+  const existente = await consultar(['network', 'inspect', '--format', plantilla, cfg.red]);
   if (existente.codigo === 0) {
-    if (!existente.salida.split(/\s+/).includes(cfg.subred)) throw new Error(`La red ${cfg.red} existe con otra subred (${existente.salida || 'ninguna'}): se esperaba ${cfg.subred}. Borrala (docker network rm) o ajustá RUNNER_JOBS_SUBNET y el firewall.`);
+    const [driver, icc, puente, subredes = ''] = existente.salida.split('|');
+    const problemas = [];
+    if (driver !== 'bridge') problemas.push(`driver ${driver || 'desconocido'} (se esperaba bridge)`);
+    if (icc !== 'false') problemas.push('ICC activado (los jobs podrían hablar entre sí)');
+    if (puente !== cfg.puente) problemas.push(`puente ${puente || 'sin nombre fijo'} (se esperaba ${cfg.puente})`);
+    if (!subredes.trim().split(/\s+/).includes(cfg.subred)) problemas.push(`subred ${subredes.trim() || 'ninguna'} (se esperaba ${cfg.subred})`);
+    if (problemas.length > 0) throw new Error(`La red ${cfg.red} existe pero no coincide con lo que espera el firewall: ${problemas.join('; ')}. Borrala (docker network rm) y dejá que el supervisor la cree, o ajustá RUNNER_JOBS_* y el firewall.`);
     return 'existente';
   }
   const creada = await consultar(argumentosCrearRed(cfg));
-  if (creada.codigo !== 0) throw new Error(`No se pudo crear la red ${cfg.red} (${cfg.subred}): ¿la subred ya está en uso por otra red de Docker?`);
+  if (creada.codigo !== 0) throw new Error(`No se pudo crear la red ${cfg.red} (${cfg.subred}): ¿la subred o el nombre de puente ya están en uso por otra red de Docker?`);
   return 'creada';
 }
 
-// Si el supervisor murió o se reinició, los `docker run` de jobs anteriores siguen vivos hasta terminar su job: al arrancar se eliminan los de ESTE rol.
+// Contenedores de jobs que ya NO corren (creados o muertos que quedaron de un arranque anterior). Los que SIGUEN corriendo se dejan terminar su job: matarlos cortaría
+// jobs sanos de otras ranuras; terminan solos y `--rm` los elimina (la JIT es de un solo uso, así que no pueden tomar otro job).
 export async function limpiarHuerfanos({ cfg, consultar = dockerConSalida }) {
-  const lista = await consultar(['ps', '-aq', '--filter', 'label=platform-runner=1', '--filter', `label=platform-runner-rol=${cfg.rol}`]);
+  const lista = await consultar(['ps', '-aq', '--filter', 'label=platform-runner=1', '--filter', `label=platform-runner-rol=${cfg.rol}`, '--filter', 'status=created', '--filter', 'status=dead', '--filter', 'status=exited']);
   const ids = lista.salida.split(/\s+/).filter((id) => /^[0-9a-f]{6,64}$/.test(id));
   if (ids.length > 0) await consultar(['rm', '-f', ...ids]);
   return ids.length;
@@ -83,31 +92,35 @@ export async function ciclo({ cfg, pat, ranura, ejecutarDocker = docker, fetchFn
   return Date.now() - inicio;
 }
 
+// Bucle de UNA ranura: ciclos hasta que se pide parar. Tras 5 fallos seguidos SOLO esa ranura se corta (las demás siguen con sus jobs). `parando()` y `dormir` se inyectan.
+export async function bucleRanura({ cfg, pat, ranura, parando, ejecutarCiclo = ciclo, dormir = (ms) => new Promise((r) => setTimeout(r, ms)), registrar = console.error }) {
+  let fallos = 0;
+  while (!parando()) {
+    try {
+      const duracion = await ejecutarCiclo({ cfg, pat, ranura });
+      fallos = duracion < 2000 ? fallos + 1 : 0;
+    } catch (error) {
+      fallos += 1;
+      registrar(error instanceof Error ? error.message : 'El ciclo del runner falló.');
+    }
+    if (fallos >= 5) { registrar(`La ranura ${ranura} falló ${fallos} veces seguidas: se corta (las demás siguen).`); return 'cortada'; }
+    if (fallos > 0) await dormir(10_000);
+  }
+  return 'detenida';
+}
+
 async function main() {
   const cfg = leerConfiguracionSupervisor(process.env);
   const pat = leerPat(process.env, { leer: (ruta) => readFileSync(ruta, 'utf8'), modoDe: (ruta) => statSync(ruta).mode });
   const huerfanos = await limpiarHuerfanos({ cfg });
-  if (huerfanos > 0) console.log(`Se eliminaron ${huerfanos} contenedor(es) de jobs huérfanos de un arranque anterior.`);
+  if (huerfanos > 0) console.log(`Se eliminaron ${huerfanos} contenedor(es) de jobs que habían quedado sin correr.`);
   await asegurarRed({ cfg });
   let parando = false;
   const detener = () => { parando = true; };
   process.once('SIGINT', detener); process.once('SIGTERM', detener);
   if (cfg.slots === 0) { console.log('RUNNER_SLOTS=0: no se levanta ningún runner.'); await new Promise((resolver) => { const t = setInterval(() => { if (parando) { clearInterval(t); resolver(); } }, 1000); }); return; }
-  const ranuras = Array.from({ length: cfg.slots }, (_, i) => i + 1);
-  await Promise.all(ranuras.map(async (ranura) => {
-    let fallos = 0;
-    while (!parando) {
-      try {
-        const duracion = await ciclo({ cfg, pat, ranura });
-        fallos = duracion < 2000 ? fallos + 1 : 0;
-      } catch (error) {
-        fallos += 1;
-        console.error(error instanceof Error ? error.message : 'El ciclo del runner falló.');
-      }
-      if (fallos >= 5) throw new Error(`La ranura ${ranura} falló ${fallos} veces seguidas: se corta para no girar en vacío.`);
-      if (fallos > 0) await new Promise((resolver) => setTimeout(resolver, 10_000));
-    }
-  }));
+  const resultados = await Promise.all(Array.from({ length: cfg.slots }, (_, i) => bucleRanura({ cfg, pat, ranura: i + 1, parando: () => parando })));
+  if (resultados.every((r) => r === 'cortada')) throw new Error('Todas las ranuras fallaron: se corta el supervisor.');
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {

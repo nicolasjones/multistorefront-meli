@@ -32,6 +32,7 @@ const NOMBRE_VALIDO = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const REPO_VALIDO = /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/;
 const IMAGEN_VALIDA = /^[a-z0-9][a-z0-9._/-]{0,120}(:[A-Za-z0-9._-]{1,128})?$/;
 const RUNTIME_VALIDO = /^[a-z0-9][a-z0-9-]{0,40}$/;
+const IPV4_VALIDA = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
 const RED_VALIDA = /^[a-z0-9][a-z0-9_.-]{0,62}$/;
 // Redes que NO se pueden usar para los jobs: la de por defecto de Docker (docker0, con ICC y alcance al host), la del host y ninguna.
 const REDES_PROHIBIDAS = new Set(['host', 'bridge', 'none', 'default']);
@@ -96,11 +97,18 @@ export function leerConfiguracionSupervisor(env) {
   // que el firewall pueda tratarla distinta (infra/vps/firewall-docker-user.sh, --subred-jobs-pr / --subred-jobs-deploy).
   const red = (env.RUNNER_JOBS_NETWORK ?? `platform-runner-jobs-${base.rol}`).trim();
   if (!RED_VALIDA.test(red) || REDES_PROHIBIDAS.has(red)) throw new Error('RUNNER_JOBS_NETWORK inválida: no puede ser host, bridge, none ni default.');
+  // Nombre FIJO del puente de la red (com.docker.network.bridge.name): el firewall filtra por interfaz de entrada, no solo por IP (un job puede falsificar el
+  // origen). Linux limita los nombres de interfaz a 15 caracteres.
+  const puente = (env.RUNNER_JOBS_BRIDGE ?? `br-jobs-${base.rol}`).trim();
+  if (!/^[a-z][a-z0-9-]{0,14}$/.test(puente) || puente === 'docker0') throw new Error('RUNNER_JOBS_BRIDGE inválido: hasta 15 caracteres [a-z0-9-], sin empezar con guion y distinto de docker0.');
+  // Resolvedores DNS de los jobs: las reglas del firewall descartan las redes privadas, así que si el resolvedor del host fuera privado los jobs perderían DNS.
+  const dns = etiquetas(env.RUNNER_JOBS_DNS ?? '1.1.1.1,8.8.8.8');
+  if (dns.length === 0 || dns.length > 3 || dns.some((ip) => !IPV4_VALIDA.test(ip) || ip.split('.').some((o) => Number(o) > 255))) throw new Error('RUNNER_JOBS_DNS debe ser una lista de 1 a 3 direcciones IPv4 separadas por coma.');
   const subred = (env.RUNNER_JOBS_SUBNET ?? (base.rol === 'pr' ? '172.29.250.0/24' : '172.29.251.0/24')).trim();
   if (!subredValida(subred)) throw new Error('RUNNER_JOBS_SUBNET debe ser una subred IPv4 CIDR (/16 a /30), por ejemplo 172.29.250.0/24.');
   return {
     ...base,
-    imagen, runtime, cpus, memoria, red, subred,
+    imagen, runtime, cpus, memoria, red, subred, puente, dns,
     slots: entero(env.RUNNER_SLOTS ?? 1, 0, 32, 'RUNNER_SLOTS'),
     pids: entero(env.RUNNER_PIDS_LIMIT ?? 4096, 64, 4_000_000, 'RUNNER_PIDS_LIMIT'),
     pnpmConcurrencia: entero(env.RUNNER_PNPM_NETWORK_CONCURRENCY ?? 16, 1, 64, 'RUNNER_PNPM_NETWORK_CONCURRENCY'),
@@ -149,6 +157,7 @@ export function argumentosDockerRun(cfg, { nombre, jit }) {
   const args = [
     'run', '--rm', '--init', '--name', nombre, '--label', 'platform-runner=1', '--label', `platform-runner-rol=${cfg.rol}`,
     '--network', cfg.red,
+    ...cfg.dns.flatMap((ip) => ['--dns', ip]),
     '--runtime', cfg.runtime, '--memory', cfg.memoria, '--pids-limit', String(cfg.pids),
     ...(cfg.cpus > 0 ? ['--cpus', String(cfg.cpus)] : []),
     // Con el stack de Supabase del job en el daemon interno, host.docker.internal es el loopback del propio contenedor.
@@ -165,9 +174,9 @@ export function entornoDockerRun(jit, base = process.env) {
   return { ...base, RUNNER_JIT_CONFIG: jit };
 }
 
-// Argumentos para crear la red dedicada de jobs: subred FIJA y sin comunicación entre contenedores (ICC desactivado).
+// Argumentos para crear la red dedicada de jobs: subred FIJA, nombre de puente FIJO y sin comunicación entre contenedores (ICC desactivado).
 export function argumentosCrearRed(cfg) {
-  return ['network', 'create', '--driver', 'bridge', '--subnet', cfg.subred, '-o', 'com.docker.network.bridge.enable_icc=false', '--label', 'platform-runner=1', cfg.red];
+  return ['network', 'create', '--driver', 'bridge', '--subnet', cfg.subred, '-o', 'com.docker.network.bridge.enable_icc=false', '-o', `com.docker.network.bridge.name=${cfg.puente}`, '--label', 'platform-runner=1', cfg.red];
 }
 
 // Un nombre de contenedor único por ciclo: sin reutilizar nunca el de un contenedor anterior.

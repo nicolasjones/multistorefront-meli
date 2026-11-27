@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { leerConfiguracionSupervisor } from './config-runner.mjs';
-import { asegurarRed, borrarRunner, ciclo, crearRunnerJit, limpiarHuerfanos } from './supervisor.mjs';
+import { asegurarRed, bucleRanura, borrarRunner, ciclo, crearRunnerJit, limpiarHuerfanos } from './supervisor.mjs';
 
 const cfg = leerConfiguracionSupervisor({ RUNNER_ROLE: 'pr', RUNNER_REPO: 'org/repo', RUNNER_LABELS: 'self-hosted,platform-local,platform-pr', RUNNER_IMAGE: 'img:local' });
 const PAT = 'ghp_PAT_SECRETO_DE_PRUEBA';
@@ -61,26 +61,71 @@ test('borrarRunner nunca lanza (un 404 o un error de red no rompe el ciclo)', as
   await borrarRunner({ cfg, pat: PAT, id: 1, fetchFn: async () => ({ ok: false, status: 404 }) });
 });
 
-test('asegurarRed (A-1): crea la red dedicada si falta, acepta la existente con la subred esperada y corta si tiene otra', async () => {
+const BUENA = 'bridge|false|br-jobs-pr|172.29.250.0/24 ';
+
+test('asegurarRed (A-1): crea la red si falta (subred, ICC y puente fijos) y acepta la existente SOLO si coincide en todo', async () => {
   const llamadas = [];
   const consulta = (respuestas) => async (args) => { llamadas.push(args); return respuestas.shift(); };
   assert.equal(await asegurarRed({ cfg, consultar: consulta([{ codigo: 1, salida: '' }, { codigo: 0, salida: '' }]) }), 'creada');
   assert.deepEqual(llamadas[0].slice(0, 2), ['network', 'inspect']);
   assert.deepEqual(llamadas[1].slice(0, 2), ['network', 'create']);
-  assert.ok(llamadas[1].includes('com.docker.network.bridge.enable_icc=false') && llamadas[1].includes('172.29.250.0/24'));
-  assert.equal(await asegurarRed({ cfg, consultar: consulta([{ codigo: 0, salida: '172.29.250.0/24' }]) }), 'existente');
-  await assert.rejects(asegurarRed({ cfg, consultar: consulta([{ codigo: 0, salida: '172.17.0.0/16' }]) }), /otra subred/);
-  await assert.rejects(asegurarRed({ cfg, consultar: consulta([{ codigo: 0, salida: '' }]) }), /otra subred/);
+  assert.ok(llamadas[1].includes('com.docker.network.bridge.enable_icc=false') && llamadas[1].includes('172.29.250.0/24') && llamadas[1].includes('com.docker.network.bridge.name=br-jobs-pr'));
+  assert.equal(await asegurarRed({ cfg, consultar: consulta([{ codigo: 0, salida: BUENA }]) }), 'existente');
   await assert.rejects(asegurarRed({ cfg, consultar: consulta([{ codigo: 1, salida: '' }, { codigo: 1, salida: '' }]) }), /No se pudo crear la red/);
 });
 
-test('limpiarHuerfanos (B-3): elimina solo los contenedores de ESTE rol y valida los ids', async () => {
+test('asegurarRed (C+S B-1): una red PREEXISTENTE con otro driver, ICC activo, otro puente o otra subred falla cerrado (una condición por mutante)', async () => {
+  const mutantes = [
+    ['driver', 'macvlan|false|br-jobs-pr|172.29.250.0/24 ', /driver macvlan/],
+    ['icc activado', 'bridge|true|br-jobs-pr|172.29.250.0/24 ', /ICC activado/],
+    ['icc ausente', 'bridge||br-jobs-pr|172.29.250.0/24 ', /ICC activado/],
+    ['puente', 'bridge|false|docker0|172.29.250.0/24 ', /puente docker0/],
+    ['puente sin nombre fijo', 'bridge|false||172.29.250.0/24 ', /sin nombre fijo/],
+    ['subred', 'bridge|false|br-jobs-pr|172.17.0.0/16 ', /subred 172\.17\.0\.0\/16/],
+    ['sin subred', 'bridge|false|br-jobs-pr|', /subred ninguna/],
+  ];
+  for (const [nombre, salida, patron] of mutantes) {
+    await assert.rejects(asegurarRed({ cfg, consultar: async () => ({ codigo: 0, salida }) }), (e) => patron.test(e.message) && /no coincide con lo que espera el firewall/.test(e.message), nombre);
+  }
+  // Varios problemas a la vez se listan todos.
+  await assert.rejects(asegurarRed({ cfg, consultar: async () => ({ codigo: 0, salida: 'macvlan|true|x|1.2.3.0/24 ' }) }), (e) => /driver/.test(e.message) && /ICC/.test(e.message) && /puente x/.test(e.message) && /subred/.test(e.message));
+});
+
+test('limpiarHuerfanos (B-7): solo contenedores de ESTE rol que ya NO corren; los que corren se dejan terminar', async () => {
   const llamadas = [];
   const consultar = async (args) => { llamadas.push(args); return args[0] === 'ps' ? { codigo: 0, salida: 'abcdef123456\n0123456789ab\n; rm -rf /\nXYZ' } : { codigo: 0, salida: '' }; };
   assert.equal(await limpiarHuerfanos({ cfg, consultar }), 2);
-  assert.ok(llamadas[0].includes('label=platform-runner-rol=pr'));
+  const ps = llamadas[0];
+  assert.ok(ps.includes('label=platform-runner-rol=pr'));
+  const estados = ps.filter((a, i) => ps[i - 1] === '--filter' && a.startsWith('status=')).sort();
+  assert.deepEqual(estados, ['status=created', 'status=dead', 'status=exited'], 'nunca status=running');
+  assert.ok(!ps.some((a) => a === 'status=running' || a === 'status=paused'));
   assert.deepEqual(llamadas[1], ['rm', '-f', 'abcdef123456', '0123456789ab']);
   const vacio = [];
   assert.equal(await limpiarHuerfanos({ cfg, consultar: async (a) => { vacio.push(a); return { codigo: 0, salida: '' }; } }), 0);
   assert.equal(vacio.length, 1, 'sin huérfanos no se llama a rm');
+});
+
+test('bucleRanura (B-7): tras 5 fallos seguidos SOLO esa ranura se corta; un ciclo largo reinicia la cuenta; las demás ranuras no se tocan', async () => {
+  const dormidas = [];
+  const dormir = async (ms) => { dormidas.push(ms); };
+  const registros = [];
+  // Falla siempre: se corta a la 5.ª y duerme entre intentos.
+  let n = 0;
+  const r = await bucleRanura({ cfg, pat: PAT, ranura: 1, parando: () => false, ejecutarCiclo: async () => { n += 1; throw new Error('boom'); }, dormir, registrar: (m) => registros.push(m) });
+  assert.equal(r, 'cortada');
+  assert.equal(n, 5);
+  assert.equal(dormidas.length, 4, 'duerme entre intentos, no tras el último');
+  assert.match(registros.at(-1), /ranura 1 falló 5 veces seguidas: se corta \(las demás siguen\)/);
+  // Ciclos cortos (< 2 s sin tomar job) también cuentan como fallo; uno largo reinicia.
+  let m = 0;
+  const duraciones = [100, 100, 5000, 100, 100, 100, 100, 100];
+  const r2 = await bucleRanura({ cfg, pat: PAT, ranura: 2, parando: () => false, ejecutarCiclo: async () => duraciones[m++], dormir, registrar: () => {} });
+  assert.equal(r2, 'cortada');
+  assert.equal(m, 8, '2 cortos, uno largo que reinicia, y 5 cortos hasta cortar');
+  // Parar detiene el bucle sin cortar.
+  let vueltas = 0;
+  const r3 = await bucleRanura({ cfg, pat: PAT, ranura: 3, parando: () => vueltas >= 2, ejecutarCiclo: async () => { vueltas += 1; return 60000; }, dormir, registrar: () => {} });
+  assert.equal(r3, 'detenida');
+  assert.equal(vueltas, 2);
 });

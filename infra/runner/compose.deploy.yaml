@@ -29,6 +29,9 @@ services:
       # Red DEDICADA de los jobs (subred fija, sin comunicación entre contenedores): el supervisor la crea si falta y el firewall (infra/vps/firewall-docker-user.sh,
       # --subred-jobs-deploy) la aísla del host, de la tailnet y de la red interna. Nunca docker0.
       RUNNER_JOBS_NETWORK: ${RUNNER_JOBS_NETWORK_DEPLOY:-platform-runner-jobs-deploy}
+      RUNNER_JOBS_BRIDGE: ${RUNNER_JOBS_BRIDGE_DEPLOY:-br-jobs-deploy}
+      # Resolvedores de los jobs (el firewall descarta las redes privadas: un resolvedor privado dejaría a los jobs sin DNS).
+      RUNNER_JOBS_DNS: ${RUNNER_JOBS_DNS:-1.1.1.1,8.8.8.8}
       RUNNER_JOBS_SUBNET: ${RUNNER_JOBS_SUBNET_DEPLOY:-172.29.251.0/24}
       RUNNER_RUNTIME: ${RUNNER_RUNTIME:-sysbox-runc}
       # Daemon interno solo para construir las imágenes de los workers (worker-images.yml); el deploy al VPS usa DOCKER_HOST=ssh://.
@@ -39,6 +42,8 @@ services:
       RUNNER_PIDS_LIMIT: ${RUNNER_PIDS_LIMIT:-4096}
       RUNNER_PNPM_NETWORK_CONCURRENCY: ${RUNNER_PNPM_NETWORK_CONCURRENCY:-16}
       RUNNER_PAT_FILE: /run/secrets/gh_runner_pat
+      # `read_only` + `cap_drop`: el cliente de docker escribe su configuración en un directorio que sí es escribible (tmpfs). NO probado con el socket real del host.
+      DOCKER_CONFIG: /tmp/.docker
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     secrets:

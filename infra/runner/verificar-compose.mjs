@@ -54,6 +54,9 @@ export function analizarCompose(nombre, texto, rol) {
   regla(!/^ {4}cap_drop:\s*\[ALL\]\s*$/m.test(dentro), 'el supervisor debe soltar todas las capacidades (cap_drop: [ALL]).');
   regla(!/no-new-privileges:true/.test(dentro), 'el supervisor debe llevar no-new-privileges:true.');
   regla(!/^ {6}RUNNER_JOBS_NETWORK:\s*\$\{RUNNER_JOBS_NETWORK_[A-Z]+:-platform-runner-jobs-(pr|deploy)\}\s*$/m.test(dentro), 'falta la red DEDICADA de los jobs (RUNNER_JOBS_NETWORK con por defecto platform-runner-jobs-<rol>): nunca docker0.');
+  regla(!/^ {6}RUNNER_JOBS_BRIDGE:\s*\$\{RUNNER_JOBS_BRIDGE_[A-Z]+:-br-jobs-(pr|deploy)\}\s*$/m.test(dentro), 'falta el nombre FIJO del puente de la red de jobs (RUNNER_JOBS_BRIDGE): el firewall filtra por interfaz, no solo por IP.');
+  regla(!/^ {6}RUNNER_JOBS_DNS:\s*\$\{RUNNER_JOBS_DNS:-[0-9.,]+\}\s*$/m.test(dentro), 'falta RUNNER_JOBS_DNS (resolvedores públicos de los jobs: el firewall descarta las redes privadas).');
+  regla(valorDe(lineas, 'DOCKER_CONFIG') !== '/tmp/.docker', 'DOCKER_CONFIG debe apuntar al tmpfs (el supervisor es de solo lectura).');
   regla(!/^ {6}RUNNER_JOBS_SUBNET:\s*\$\{RUNNER_JOBS_SUBNET_[A-Z]+:-172\.29\.25[01]\.0\/24\}\s*$/m.test(dentro), 'falta la subred fija de los jobs (RUNNER_JOBS_SUBNET).');
   regla(valorDe(lineas, 'entrypoint') !== '["node", "/supervisor.mjs"]', 'el entrypoint del servicio debe ser el supervisor.');
   regla(valorDe(lineas, 'RUNNER_RUNTIME') !== '${RUNNER_RUNTIME:-sysbox-runc}', 'RUNNER_RUNTIME debe tener por defecto sysbox-runc (sin sysbox no hay modo inseguro).');

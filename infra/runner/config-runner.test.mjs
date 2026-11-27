@@ -39,11 +39,14 @@ test('configuración del supervisor: valores por defecto, fronteras y mutantes',
   const c = leerConfiguracionSupervisor(sup(pr));
   assert.deepEqual([c.slots, c.pids, c.cpus, c.memoria, c.runtime], [1, 4096, 2, '6g', 'sysbox-runc']);
   assert.equal('limpiarStore' in c, false, 'sin configuración muerta (B-1)');
-  assert.deepEqual([c.red, c.subred], ['platform-runner-jobs-pr', '172.29.250.0/24']);
+  assert.deepEqual([c.red, c.subred, c.puente, c.dns], ['platform-runner-jobs-pr', '172.29.250.0/24', 'br-jobs-pr', ['1.1.1.1', '8.8.8.8']]);
+  assert.equal(leerConfiguracionSupervisor(sup(deploy)).puente, 'br-jobs-deploy');
   assert.deepEqual([leerConfiguracionSupervisor(sup(deploy)).red, leerConfiguracionSupervisor(sup(deploy)).subred], ['platform-runner-jobs-deploy', '172.29.251.0/24'], 'cada pool tiene su propia red y subred');
   assert.equal(leerConfiguracionSupervisor(sup(pr, { RUNNER_SLOTS: '0' })).slots, 0);
   assert.equal(leerConfiguracionSupervisor(sup(pr, { RUNNER_SLOTS: '32' })).slots, 32);
   assert.equal(leerConfiguracionSupervisor(sup(pr, { RUNNER_CPU_LIMIT: '0' })).cpus, 0);
+  assert.equal(leerConfiguracionSupervisor(sup(pr, { RUNNER_JOBS_BRIDGE: 'a'.repeat(15) })).puente.length, 15, 'frontera: 15 caracteres');
+  assert.deepEqual(leerConfiguracionSupervisor(sup(pr, { RUNNER_JOBS_DNS: '9.9.9.9' })).dns, ['9.9.9.9']);
   const malos = [
     [{ RUNNER_IMAGE: '' }, /RUNNER_IMAGE/], [{ RUNNER_IMAGE: 'img con espacio' }, /RUNNER_IMAGE/], [{ RUNNER_IMAGE: '-evil' }, /RUNNER_IMAGE/],
     [{ RUNNER_SLOTS: '-1' }, /RUNNER_SLOTS/], [{ RUNNER_SLOTS: '33' }, /RUNNER_SLOTS/], [{ RUNNER_SLOTS: 'x' }, /RUNNER_SLOTS/],
@@ -53,6 +56,8 @@ test('configuración del supervisor: valores por defecto, fronteras y mutantes',
     // A-1: la red de los jobs nunca es docker0 ('bridge'), la del host ni ninguna; la subred tiene que ser un CIDR razonable.
     [{ RUNNER_JOBS_NETWORK: 'host' }, /RUNNER_JOBS_NETWORK/], [{ RUNNER_JOBS_NETWORK: 'bridge' }, /RUNNER_JOBS_NETWORK/], [{ RUNNER_JOBS_NETWORK: 'none' }, /RUNNER_JOBS_NETWORK/], [{ RUNNER_JOBS_NETWORK: 'default' }, /RUNNER_JOBS_NETWORK/],
     [{ RUNNER_JOBS_NETWORK: '-x' }, /RUNNER_JOBS_NETWORK/], [{ RUNNER_JOBS_NETWORK: 'a b' }, /RUNNER_JOBS_NETWORK/], [{ RUNNER_JOBS_NETWORK: 'container:abc' }, /RUNNER_JOBS_NETWORK/],
+    [{ RUNNER_JOBS_BRIDGE: 'docker0' }, /RUNNER_JOBS_BRIDGE/], [{ RUNNER_JOBS_BRIDGE: '-x' }, /RUNNER_JOBS_BRIDGE/], [{ RUNNER_JOBS_BRIDGE: 'a'.repeat(16) }, /RUNNER_JOBS_BRIDGE/], [{ RUNNER_JOBS_BRIDGE: 'Br_X' }, /RUNNER_JOBS_BRIDGE/], [{ RUNNER_JOBS_BRIDGE: '' }, /RUNNER_JOBS_BRIDGE/],
+    [{ RUNNER_JOBS_DNS: '' }, /RUNNER_JOBS_DNS/], [{ RUNNER_JOBS_DNS: 'a.b.c.d' }, /RUNNER_JOBS_DNS/], [{ RUNNER_JOBS_DNS: '1.1.1.1,2.2.2.2,3.3.3.3,4.4.4.4' }, /RUNNER_JOBS_DNS/], [{ RUNNER_JOBS_DNS: '1.1.1.300' }, /RUNNER_JOBS_DNS/], [{ RUNNER_JOBS_DNS: '1.1.1.1;ls' }, /RUNNER_JOBS_DNS/],
     [{ RUNNER_JOBS_SUBNET: '172.29.250.0/8' }, /RUNNER_JOBS_SUBNET/], [{ RUNNER_JOBS_SUBNET: '172.29.250.0/31' }, /RUNNER_JOBS_SUBNET/], [{ RUNNER_JOBS_SUBNET: '172.29.250.0' }, /RUNNER_JOBS_SUBNET/], [{ RUNNER_JOBS_SUBNET: '300.1.1.0/24' }, /RUNNER_JOBS_SUBNET/], [{ RUNNER_JOBS_SUBNET: '172.29.250.0/24;ls' }, /RUNNER_JOBS_SUBNET/],
   ];
   for (const [extra, mensaje] of malos) assert.throws(() => leerConfiguracionSupervisor(sup(pr, extra)), mensaje, JSON.stringify(extra));
@@ -118,6 +123,8 @@ test('argumentosDockerRun: red DEDICADA, el contenedor se destruye solo y no rec
   assert.ok(!texto.includes('JITBASE64'), 'la configuración JIT no aparece en el argv (ps)');
   assert.ok(args.includes('RUNNER_JIT_CONFIG') && args[args.indexOf('RUNNER_JIT_CONFIG') - 1] === '-e', 'se pasa por -e NOMBRE, sin valor');
   assert.equal(entornoDockerRun('JITBASE64==', { PATH: '/bin' }).RUNNER_JIT_CONFIG, 'JITBASE64==');
+  // DNS explícito de los jobs (el firewall descarta las redes privadas).
+  assert.deepEqual(args.flatMap((a, i) => (a === '--dns' ? [args[i + 1]] : [])), ['1.1.1.1', '8.8.8.8']);
   assert.equal(args[args.indexOf('--memory') + 1], '6g');
   assert.equal(args[args.indexOf('--pids-limit') + 1], '4096');
   assert.equal(args[args.indexOf('--cpus') + 1], '2');
@@ -133,6 +140,7 @@ test('argumentosCrearRed: subred fija, ICC desactivado y bridge', () => {
   assert.deepEqual(a.slice(0, 2), ['network', 'create']);
   assert.equal(a[a.indexOf('--subnet') + 1], '172.29.250.0/24');
   assert.ok(a.includes('com.docker.network.bridge.enable_icc=false'), 'sin comunicación entre jobs');
+  assert.ok(a.includes('com.docker.network.bridge.name=br-jobs-pr'), 'nombre de puente FIJO: el firewall filtra por interfaz');
   assert.equal(a.at(-1), 'platform-runner-jobs-pr');
 });
 
