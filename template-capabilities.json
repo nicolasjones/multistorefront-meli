@@ -175,7 +175,7 @@
     },
     {
       "id": "embedded-analytics-runtime",
-      "version": "1.1.2",
+      "version": "1.1.3",
       "title": "Analítica embebida de Superset reproducible al recrear contenedores",
       "paths": [
         "infra/superset/compose.yaml",
@@ -184,6 +184,7 @@
         "infra/superset/Dockerfile",
         "supabase/functions/emitir-acceso-reporte/index.ts",
         "supabase/functions/emitir-acceso-reporte/handler.ts",
+        "supabase/functions/_shared/log-seguro.ts",
         "scripts/verificar-superset-embebido.mjs"
       ]
     },
@@ -246,7 +247,7 @@
     },
     {
       "id": "chat-companion-mechanism",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "title": "Chat companion con acceso a funcionalidades registradas",
       "paths": [
         "supabase/migrations/20261005000000_chat_companion_mechanism.sql",
@@ -275,7 +276,7 @@
     },
     {
       "id": "document-rag-mechanism",
-      "version": "1.2.1",
+      "version": "1.3.0",
       "title": "Búsqueda documental genérica con IA (RAG)",
       "paths": [
         "supabase/migrations/20261005000001_rag_busqueda_documental.sql",
@@ -290,6 +291,7 @@
         "supabase/functions/indexar-documento/index.ts",
         "supabase/functions/indexar-documento/handler.ts",
         "supabase/functions/indexar-documento/consultas.ts",
+        "supabase/functions/indexar-documento/cupo.ts",
         "supabase/functions/indexar-documento/fragmentos.ts",
         "supabase/functions/indexar-documento/reglas.ts",
         "supabase/functions/preguntar-documentos/index.ts",

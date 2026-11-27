@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { describe, it } from 'node:test'
 import { manejar, type Deps } from './handler.ts'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 
 const TOKEN = 'a'.repeat(32) + 'b'.repeat(32)
 const hash = (texto: string) => createHash('sha256').update(texto).digest('hex')
@@ -120,5 +121,23 @@ describe('baja-correo-masivo', () => {
     const res = await manejar(pedido({ token: TOKEN }), deps)
     assert.match(res.headers.get('content-type') ?? '', /application\/json/)
     assert.deepEqual(await res.json(), { ok: true })
+  })
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  it('un error de la base deja el nombre y el código, sin el mensaje', async () => {
+    const { deps } = montar()
+    deps.admin.rpc = async () => ({ data: null, error: ERROR_BASE_HOSTIL })
+    const { resultado, lineas } = await capturarLog(() => manejar(pedido({ token: TOKEN }), deps))
+    assert.equal(resultado.status, 500)
+    assert.deepEqual(lineas, ['baja-correo-masivo: no se pudo procesar la baja Error 42501'])
+  })
+
+  it('una excepción hostil de la red deja solo el nombre', async () => {
+    const { deps } = montar()
+    deps.admin.rpc = async () => { throw errorHostil() }
+    const { resultado, lineas } = await capturarLog(() => manejar(pedido({ token: TOKEN }), deps))
+    assert.equal(resultado.status, 500)
+    assert.deepEqual(lineas, ['baja-correo-masivo: no se pudo procesar la baja Error'])
   })
 })

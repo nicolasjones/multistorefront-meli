@@ -11,6 +11,7 @@ sources:
   - supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql
   - supabase/functions/preguntar-documentos/handler.ts
   - supabase/functions/indexar-documento/handler.ts
+  - supabase/functions/indexar-documento/cupo.ts
   - supabase/functions/indexar-documento/fragmentos.ts
   - supabase/functions/indexar-documento/consultas.ts
 ---
@@ -53,6 +54,13 @@ Si algo falla en el medio, se deshace lo que **ese** intento creó:
   dejan la versión `fallida`; un fallo transitorio (proveedor, descarga) la deja `procesando`, y una invocación
   duplicada recibe 409 sin pisar la versión activa. Pasados 15 minutos la pantalla muestra «Se interrumpió el procesamiento»
   con el botón Reintentar (reintento manual; existe `public.liberar_versiones_documento_atascadas`, que marca `fallida` las versiones atascadas, pero no está agendada). Los fragmentos son únicos por `(version_id, orden)`. Un 42501 al activar deja la versión `fallida`. Ver [funciones-edge-endurecimiento.md](funciones-edge-endurecimiento.md).
+
+**Tope de indexaciones (lote 92).** Cada indexación gasta embeddings del proveedor de IA, así que `indexar-documento` limita a **20 indexaciones por
+hora y usuario** (`INDEXAR_DOCUMENTO_LIMITE_HORA`, de 1 a 1000; un valor mayor, inválido o no positivo vuelve a 20) con el cupo persistente de la base
+(`private.ia_cupo_uso`, funcionalidad `indexar-documento`). El uso se consume después de validar todo (permiso, versión, texto, política y credencial) y
+justo antes de pedir los embeddings; un pedido inválido no lo gasta. Con el tope agotado responde 429 con `Retry-After` («Indexaste demasiados
+documentos en poco tiempo. Probá de nuevo más tarde.») y, si el cupo no se puede verificar, 503 sin gastar embeddings. En los dos casos la versión queda
+`procesando` con el candado liberado, y «Reintentar» funciona pasada la hora; un reintento cuenta como otra indexación si llega a los embeddings.
 
 La limpieza es *best effort*: si no se puede borrar, queda registrado en la consola y el mensaje
 que ve el usuario sigue siendo el de la causa real. Nunca se borra un documento que ya existía

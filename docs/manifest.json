@@ -966,9 +966,9 @@
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
-      "pageHash": "d57b275bcb33d8b1ce2573d8ddc9d3a0488c3245497c8d8bc237a705e1feda48",
-      "sourceHash": "292d8de11c5eb4abc1ff0e09676b19afe5d29cf5e8491fc736a355b80be8f160",
-      "sourceAt": "e7a004bc1",
+      "pageHash": "b4e01176b77f0c92fe387de675163c782ed48a3878b966a9d32c8a9293459170",
+      "sourceHash": "0912ad1ff9e11491d5a58d54c1907e6788413931420c520fbeb63d467c95550d",
+      "sourceAt": "6900b8a5d",
       "sources": [
         "specs/20261005-document-rag-mechanism",
         "apps/web/src/lib/documentosIa.ts",
@@ -980,11 +980,12 @@
         "supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql",
         "supabase/functions/preguntar-documentos/handler.ts",
         "supabase/functions/indexar-documento/handler.ts",
+        "supabase/functions/indexar-documento/cupo.ts",
         "supabase/functions/indexar-documento/fragmentos.ts",
         "supabase/functions/indexar-documento/consultas.ts"
       ],
       "owner": "tecnico",
-      "commit": "e7a004bc1"
+      "commit": "6900b8a5d"
     },
     "docs/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)",
@@ -1158,9 +1159,9 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "71071b6165fb48dbebd32763453194356e309031ff6968bd399df6fe174446eb",
-      "sourceHash": "6398974bb4790b010f9ff4916baddc2660354b4cb2e095aa83caa7b90f2f01ef",
-      "sourceAt": "46dd13d89",
+      "pageHash": "fe1ca9f7ce34887032c201881e9416d193cc2e4140aec36f61739ffdf313b0e6",
+      "sourceHash": "a165267abef69e9e0cd1959c6d8e5675d4e228e0974daa9d02b964b61680a1dd",
+      "sourceAt": "77fa094a1",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/chat-ia-responder/handler.ts",
@@ -1186,10 +1187,30 @@
         "packages/mcp-server/src/herramientas.ts",
         "packages/mcp-server/src/servidor.ts",
         "packages/ia/src/purga.ts",
-        "infra/kestra/flows/correo-masivo.yml"
+        "infra/kestra/flows/correo-masivo.yml",
+        "supabase/functions/indexar-documento/cupo.ts",
+        "supabase/functions/indexar-documento/index.ts",
+        "supabase/migrations/20270508100000_purga_de_envios_de_correo_a_proveedores.sql",
+        "supabase/tests/database/lote92_purga_envios_correo_proveedor.test.sql",
+        "supabase/functions/_shared/capturar-log.ts",
+        "supabase/functions/api-v1/handler.ts",
+        "supabase/functions/baja-correo-masivo/handler.ts",
+        "supabase/functions/consultar-estado-reparacion/handler.ts",
+        "supabase/functions/cotizacion-sugerida/handler.ts",
+        "supabase/functions/emitir-acceso-reporte/handler.ts",
+        "supabase/functions/entregar-webhook/handler.ts",
+        "supabase/functions/enviar-aviso-faltante/handler.ts",
+        "supabase/functions/enviar-resumen-reposicion/handler.ts",
+        "supabase/functions/enviar-resumen-semanal/handler.ts",
+        "supabase/functions/invitar-cliente/handler.ts",
+        "supabase/functions/invitar-miembro/handler.ts",
+        "supabase/functions/recalcular-alertas-inicio/handler.ts",
+        "supabase/functions/solicitar-acceso/handler.ts",
+        "supabase/functions/tienda-seo/handler.ts",
+        "supabase/functions/verificar-dominio-tienda/handler.ts"
       ],
       "owner": "plataforma",
-      "commit": "46dd13d89"
+      "commit": "77fa094a1"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",

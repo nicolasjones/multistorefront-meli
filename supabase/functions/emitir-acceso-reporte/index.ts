@@ -6,6 +6,7 @@
 // el propio usuario (nunca la service-role para datos de negocio) y la RPC
 // `resolver_organizacion_reporte` decide — incluida la sección de permisos del reporte, si la declara.
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { errorDeBase } from '../_shared/log-seguro.ts'
 import { manejar, type Deps } from './handler.ts'
 
 Deno.serve((req) => {
@@ -31,7 +32,7 @@ Deno.serve((req) => {
       })
       // Un error de la RPC es un fallo del servicio, no «sin acceso»: se propaga y el handler responde 503
       // `analitica_no_disponible` (antes se ignoraba y todo daba 403, igual que ya se corrigió para `reporte`).
-      if (error) throw new Error(`No se pudo resolver la organización del reporte: ${error.message}`)
+      if (error) throw errorDeBase('No se pudo resolver la organización del reporte', error)
       return (data as string | null) ?? null
     },
     empresasAccesibles: async (jwt) => {
@@ -40,7 +41,7 @@ Deno.serve((req) => {
       // definer` y resuelve con su sesión, no con la de la función.
       const { data, error } = await comoUsuario(jwt).rpc('empresas_para_selector')
       if (error) {
-        throw new Error(`No se pudieron resolver las empresas accesibles: ${error.message}`)
+        throw errorDeBase('No se pudieron resolver las empresas accesibles', error)
       }
       const filas = (data ?? []) as { id?: string }[]
       return filas.map((fila) => fila.id).filter((id): id is string => typeof id === 'string')
@@ -56,7 +57,7 @@ Deno.serve((req) => {
         // migración 20270116110200 sin aplicar en ese entorno) NO es «sin acceso» sino un fallo del
         // servicio. El handler responde 503 `analitica_no_disponible` en vez de un 403 que haría
         // creer que el usuario no tiene permiso y escondería el problema.
-        throw new Error(`No se pudo leer el reporte: ${error.message}`)
+        throw errorDeBase('No se pudo leer el reporte', error)
       }
       if (!data?.superset_dashboard_uuid) return null
       return {

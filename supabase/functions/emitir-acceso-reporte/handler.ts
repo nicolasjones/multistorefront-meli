@@ -7,12 +7,15 @@
 // permisos del reporte, si la declara) y devuelve null si no hay acceso → 403 sin emitir token. Esta
 // lógica no importa nada de Deno ni de Supabase para poder probarla con `node --test`
 // (handler.test.ts); index.ts cablea los clientes reales.
+import { textoDeError } from '../_shared/log-seguro.ts'
 
 // Deja en el log del runtime en qué paso falló un 503 (sin tokens, claves ni datos del usuario): sin esto
 // todos los fallos devuelven el mismo `analitica_no_disponible` y no se pueden diagnosticar.
 function registrarFallo(paso: string, causa: unknown): void {
-  const detalle = causa instanceof Error ? causa.message : String(causa)
-  console.error(`emitir-acceso-reporte: falló el paso «${paso}»: ${detalle.slice(0, 200)}`)
+  // Un texto es un motivo propio de este archivo (constante, con a lo sumo un código HTTP o un número de página): va tal cual. Cualquier otra
+  // cosa es un error capturado, y de ese solo se imprime el nombre y un código corto (`textoDeError`): su mensaje puede traer la URL de
+  // Superset, el token o el usuario.
+  console.error(`emitir-acceso-reporte: falló el paso «${paso}»: ${typeof causa === 'string' ? causa : textoDeError(causa)}`)
 }
 
 export const corsHeaders = {

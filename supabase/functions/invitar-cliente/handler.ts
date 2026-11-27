@@ -3,6 +3,7 @@
 //
 // A diferencia de `invitar-miembro`, la cuenta web NO es miembro del panel: esta función nunca escribe
 // `usuarios_organizacion` (ni siquiera recibe un acceso a tablas: `admin` solo expone Auth y RPC).
+import { registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -97,7 +98,7 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave, cal
     // El correo ya salió: si el registro falla no se devuelve error (el operador reintentaría y enviaría otro enlace).
     const { error: actividadError } = await rpc.rpc('registrar_restablecimiento_cuenta_cliente', { p_cliente: clienteId, p_empresa: empresaId })
     if (actividadError) {
-      console.error('invitar-cliente: no se registró el restablecimiento', clienteId, empresaId, actividadError.message)
+      registrarErrorDeBase(`invitar-cliente: no se registró el restablecimiento ${clienteId} ${empresaId}`, actividadError)
       return response({ ok: true, aviso: 'El enlace se envió, pero no se pudo registrar en la actividad.' })
     }
     return response({ ok: true })
@@ -123,7 +124,7 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave, cal
     // Compensación: el usuario recién creado por esta invitación no queda huérfano.
     if (creado) {
       const { error: borradoError } = await admin.auth.admin.deleteUser(creado)
-      if (borradoError) console.error('invitar-cliente: usuario huérfano tras vincular_cuenta_cliente', creado, borradoError.message)
+      if (borradoError) console.error('invitar-cliente: usuario huérfano tras vincular_cuenta_cliente', creado, textoDeError(borradoError))
     }
     return rpcError(vincularError)
   }
