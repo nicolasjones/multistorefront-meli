@@ -121,6 +121,10 @@ revoke execute on function private.bloquear_costo_producto(uuid, uuid) from publ
 --   * Vínculo sin costo: hereda el costo vigente del producto (no se pierde nada).
 --   * Vínculo con costo distinto del del producto: el producto pasa a ese costo, solo si quien llama puede editar el costo; si no,
 --     el cambio se rechaza (PT409, detail 'rentabilidad') en lugar de dejar el espejo divergente o cambiar el costo a escondidas.
+-- La firma pasó de 3 a 4 argumentos: sin este drop, una base que ya tenía la versión vieja quedaría con una SOBRECARGA (las llamadas
+-- fallarían con 42725 «is not unique» y la vieja no recibiría el revoke de abajo).
+drop function if exists private.alinear_costo_principal(uuid, uuid, uuid);
+
 create or replace function private.alinear_costo_principal(p_organizacion uuid, p_producto uuid, p_proveedor uuid, p_costo_enviado boolean default false)
 returns void
 language plpgsql

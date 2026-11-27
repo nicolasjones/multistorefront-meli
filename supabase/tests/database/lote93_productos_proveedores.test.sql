@@ -4,7 +4,7 @@
 -- PT404/PT409/22023, aislamiento por organización y `anon` sin acceso.
 begin;
 
-select plan(97);
+select plan(104);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -269,6 +269,39 @@ select is(pg_temp.costo_vinculo('e1000000-0000-0000-0000-000000000005', 'f100000
 update dominio.productos set proveedor_id = null where id = 'e1000000-0000-0000-0000-000000000005';
 select is(pg_temp.vinculos('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000001'), 1, 'quitar el proveedor sin Rentabilidad deja el vínculo como secundario');
 update dominio.productos set proveedor_id = 'f1000000-0000-0000-0000-000000000001', codigo_proveedor = 'Q-1' where id = 'e1000000-0000-0000-0000-000000000005';
+
+-- El DETAIL de los tres rechazos es el contrato con la pantalla (distingue «desactivado» de «falta Rentabilidad»): se afirma explícito.
+-- `pg_exception_detail` devuelve '' (no NULL) si no hay detail.
+create function pg_temp.detalle(p_sql text) returns text language plpgsql as $$
+declare v_detalle text;
+begin
+  execute p_sql;
+  return 'sin error';
+exception when others then
+  get stacked diagnostics v_detalle = pg_exception_detail;
+  return sqlstate || '|' || v_detalle;
+end $$;
+grant execute on function pg_temp.detalle(text) to authenticated;
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok($f$select public.asignar_proveedor_producto('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000002', 'B-5', 41)$f$, 'la administración deja a B con costo 41 (distinto del 40 del producto)');
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select is(pg_temp.detalle($f$select public.marcar_proveedor_principal('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000002')$f$),
+  'PT409|rentabilidad', 'detail del PT409 por Rentabilidad');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok($f$select public.asignar_proveedor_producto('e1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000002', 'B-5', 40)$f$, 'la administración vuelve a dejar a B con costo 40');
+select is(pg_temp.detalle($f$select pg_temp.actualizar_cinco(55, 'f1000000-0000-0000-0000-000000000002', 'B-5')$f$),
+  '22023|costo_y_proveedor', 'detail del 22023 por costo y proveedor a la vez');
+select is(pg_temp.detalle($f$select public.asignar_proveedor_producto('e1000000-0000-0000-0000-000000000002', 'f1000000-0000-0000-0000-000000000004')$f$),
+  'PT409|proveedor_inactivo', 'detail del PT409 al asignar un proveedor desactivado');
+reset role;
+update dominio.proveedores set activo = false where id = 'f1000000-0000-0000-0000-000000000003';
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is(pg_temp.detalle($f$select public.marcar_proveedor_principal('e1000000-0000-0000-0000-000000000002', 'f1000000-0000-0000-0000-000000000003')$f$),
+  'PT409|proveedor_inactivo', 'detail del PT409 al marcar principal un proveedor desactivado');
+select is(pg_temp.detalle($f$select public.asignar_proveedor_producto('e1000000-0000-0000-0000-000000000002', 'f1000000-0000-0000-0000-000000000003', 'C-9', null, true)$f$),
+  'PT409|proveedor_inactivo', 'detail del PT409 al asignar como principal un proveedor desactivado');
+reset role;
+update dominio.proveedores set activo = true where id = 'f1000000-0000-0000-0000-000000000003';
 
 -- Un solo principal por producto: el índice único parcial lo garantiza aunque se escriba la tabla directo.
 reset role;
