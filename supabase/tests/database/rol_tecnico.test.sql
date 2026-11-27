@@ -45,7 +45,7 @@ select is(
 );
 select is(
   (select count(*)::int from permisos_rol_accion where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'tecnico'),
-  16 * 3 + 7, 'el trigger de organización nueva siembra 16 secciones × 3 acciones + editar_precio, anular, emitir_nota_credito, despachar, registrar_cobro, conciliar_pago y cobrar_contrarreembolso en ventas para el Técnico'
+  16 * 3 + 8, 'el trigger de organización nueva siembra 16 secciones × 3 acciones + editar_precio, anular, emitir_nota_credito, despachar, registrar_cobro, conciliar_pago y cobrar_contrarreembolso en ventas + ver_comisiones en service_tecnico para el Técnico'
 );
 
 -- ============================================================================

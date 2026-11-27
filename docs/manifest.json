@@ -55,8 +55,8 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "dfab3a28408328987a55bac4447bdb3d28445ed4df1660d699f5f94804208965",
-      "sourceHash": "6970c48c6c70b0572943f8c69eea12f2e6ffe80f440ad976e26c196b894c53b1",
+      "pageHash": "fdf511f58ceeef0062a5c1f7c1c3f92448dd87742cfbf7ff38ca82ab228832ae",
+      "sourceHash": "db4f7dc901a530b4fbe6090c470d969c8d95298c06a79885bf9608c2ad15f9ea",
       "sourceAt": "656cd661d",
       "sources": [
         "specs/20261016-120000-actividad-y-ambientes",
@@ -1706,9 +1706,9 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "c1ca65bd750ad1849df70269c0a50e29af4745ed7b80967c8dd2be4b4908b125",
-      "sourceHash": "d4b5eb0c35148feadea3b5e0a1c79ee6289ae2e0ceb1e5bca8e8459ab2106667",
-      "sourceAt": "2807e6acc",
+      "pageHash": "96d39fefca9b205a314cd0fba3688fb572905460c0010da299ab9bd7e7c8ec81",
+      "sourceHash": "31f56940485bf73fe8d3db3e006feb243688a7d194b661e41a24d802b5dc41f5",
+      "sourceAt": "536747754",
       "sources": [
         "specs/20261013-120000-usuarios-y-roles",
         "specs/20261016-140000-permisos-por-empresa",
@@ -1743,7 +1743,7 @@
         "apps/web/src/lib/rolActual.ts"
       ],
       "owner": "producto",
-      "commit": "2807e6acc"
+      "commit": "536747754"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
@@ -2387,6 +2387,20 @@
       ],
       "owner": "producto",
       "commit": "eef6fc0df"
+    },
+    "docs/producto/service-comisiones.md": {
+      "title": "Service técnico: comisiones de los técnicos",
+      "pageHash": "a5e8b94bd84db347c25a3f274c8bc476d69208be85431050d43964852b39299b",
+      "sourceHash": "451a335cf1ff14e2990ea3e2c94b9b4374a52ded395541c1531a01f17382a0e7",
+      "sourceAt": null,
+      "sources": [
+        "apps/web/src/pages/service-tecnico/comisiones.tsx",
+        "apps/web/src/components/service/RepartoComision.tsx",
+        "apps/web/src/pages/roles/list.tsx",
+        "supabase/migrations/20270515020000_comisiones_rpc.sql"
+      ],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: registrar y seguir las reparaciones",
@@ -5349,6 +5363,33 @@
       ],
       "owner": "tecnico",
       "commit": "c9dc27818"
+    },
+    "docs/tecnico/service-comisiones.md": {
+      "title": "Service técnico · Comisiones de técnicos (MSF-187, MSF-953, MSF-954, MSF-957)",
+      "pageHash": "f0805a43cfb815f3eacade953f5d08191d4fc489ed3b2ca91fd61820a13a8372",
+      "sourceHash": "e6ae66ad37fe2bc9761690ac5da834a4e88f44ce649c15753062109a44151378",
+      "sourceAt": null,
+      "sources": [
+        "supabase/migrations/20270515000000_acciones_ver_comisiones.sql",
+        "supabase/migrations/20270515010000_comisiones_reglas_y_reparto.sql",
+        "supabase/migrations/20270515020000_comisiones_rpc.sql",
+        "supabase/migrations/20270515030000_exportacion_total_comisiones.sql",
+        "supabase/tests/database/service_comisiones.test.sql",
+        "apps/web/src/lib/comisiones.ts",
+        "apps/web/src/lib/comisiones.test.ts",
+        "apps/web/src/hooks/useCargaComisiones.ts",
+        "apps/web/src/components/service/MisComisiones.tsx",
+        "apps/web/src/components/service/ComisionesEquipo.tsx",
+        "apps/web/src/components/service/ReglasComision.tsx",
+        "apps/web/src/components/service/TablaComisiones.tsx",
+        "apps/web/src/components/service/RepartoComision.tsx",
+        "apps/web/src/components/service/RepartoComision.test.tsx",
+        "apps/web/src/components/service/comisiones.test.tsx",
+        "apps/web/src/pages/service-tecnico/comisiones.tsx",
+        "apps/web/src/pages/service-tecnico/comisiones.test.tsx"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",

@@ -24,6 +24,8 @@ vi.mock('../../hooks/useOrganizacionDeTrabajo', () => ({ useOrganizacionDeTrabaj
 vi.mock('../../components/service/AdjuntosReparacion', () => ({ AdjuntosReparacion: () => null }))
 // F-SVC-21: los vínculos de garantía tienen su propio test (VinculosGarantia.test.tsx).
 vi.mock('../../components/service/VinculosGarantia', () => ({ VinculosGarantia: () => null }))
+// Comisión de técnicos (MSF-953): tiene su propio test (RepartoComision.test.tsx); acá se aísla para que su «Reintentar» no se confunda con el de esta pantalla.
+vi.mock('../../components/service/RepartoComision', () => ({ RepartoComision: () => null }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 // Avisos al cliente (F-SVC-14): fuera del alcance de este archivo; su historial llega vacío y el cliente con correo.
 // El comprobante asociado (F-SVC-13) no es tema de este archivo: sin él la pantalla no suma un segundo «Reintentar».

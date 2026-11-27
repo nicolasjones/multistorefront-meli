@@ -371,12 +371,16 @@ export function RolesPermisos() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {SECCIONES_MATRIZ.map((seccion) => (
+                  {SECCIONES_MATRIZ.filter((seccion) => {
+                    // Una acción propia de una sección (ver comisiones) no se ofrece en las demás.
+                    const alcance = ACCIONES_MATRIZ.find((a) => a.clave === accionActiva)?.secciones
+                    return !alcance || alcance.includes(seccion.clave)
+                  }).map((seccion) => (
                     <TableRow key={seccion.clave}>
                       <TableCell component="th" scope="row">{seccion.etiqueta}</TableCell>
                       {ROLES_MATRIZ.map((rol) => {
                         // private.puede_accion ignora la acción si el nivel no alcanza:
-                        // eliminar exige Edición; exportar y ver costos, al menos Solo lectura.
+                        // eliminar exige Edición; exportar, ver costos y ver comisiones, al menos Solo lectura.
                         const nivel = borradorNiveles[claveNivel(rol, seccion.clave)] ?? 'ninguno'
                         const sinNivel = accionActiva === 'eliminar' ? nivel !== 'edicion' : nivel === 'ninguno'
                         const etiquetaAccion = ACCIONES_MATRIZ.find((a) => a.clave === accionActiva)?.etiqueta

@@ -67,6 +67,7 @@ import { ComprobanteReparacion } from '../../components/service/ComprobanteRepar
 import { useComprobanteReparacion } from '../../hooks/useComprobanteReparacion'
 import { useAvisosReparacion } from '../../hooks/useAvisosReparacion'
 import { AvisosReparacion } from '../../components/service/AvisosReparacion'
+import { RepartoComision } from '../../components/service/RepartoComision'
 import { MENSAJE_CLIENTE_SIN_CORREO } from '../../lib/reparacionAvisos'
 
 // Los diálogos de ítems se bajan recién al abrirlos: no pesan en la carga inicial del detalle.
@@ -824,6 +825,9 @@ function PantallaReparacion() {
                 : avisosCliente.avisar(aviso.estado_id))}
               sinCorreo={clienteSinCorreo || avisosCliente.errorAvisar === MENSAJE_CLIENTE_SIN_CORREO}
             />
+          ) : null}
+          {reparacion ? (
+            <RepartoComision key={`${reparacion.id}-${empresaActivaId ?? ''}`} reparacionId={reparacion.id} tecnicos={tecnicos} />
           ) : null}
           {reparacion ? (
             <ComprobanteReparacion

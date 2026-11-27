@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **277**
-- Tablas en migraciones: **214**
+- Rutas del panel: **278**
+- Tablas en migraciones: **217**
 - Variables de entorno: **114**
 - Specs: **160**
-- Páginas de documentación: **348**
+- Páginas de documentación: **350**
 
 ## Rutas del panel
 
@@ -152,6 +152,7 @@
 - `/reportes/Tableros`
 - `/roles/list`
 - `/seguimiento`
+- `/service-tecnico/comisiones`
 - `/service-tecnico/estados`
 - `/service-tecnico/etiqueta`
 - `/service-tecnico/modelos`
@@ -317,6 +318,7 @@
 - `dominio.categorias_empresa`
 - `dominio.categorias_tienda`
 - `dominio.cobros_comprobante`
+- `dominio.comision_reglas`
 - `dominio.comprobante_documentos`
 - `dominio.comprobante_envios_correo`
 - `dominio.comprobante_impresiones`
@@ -395,6 +397,8 @@
 - `dominio.rentabilidad_config`
 - `dominio.reparacion_adjuntos`
 - `dominio.reparacion_avisos`
+- `dominio.reparacion_comision_historial`
+- `dominio.reparacion_comision_reparto`
 - `dominio.reparacion_enlaces_consulta`
 - `dominio.reparacion_historial`
 - `dominio.reparacion_items`
