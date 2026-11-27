@@ -25,14 +25,15 @@ export function conectarTcp(host, puerto, timeoutMs) {
 
 export async function comprobarConexion(url, entorno, { conectar = conectarTcp, timeoutMs = 10_000, enmascarar = (valor) => console.log(`::add-mask::${valor}`) } = {}) {
   const { host, puerto } = destinoDeUrl(url);
+  // El host se enmascara SIEMPRE y antes de conectar: cualquier línea posterior del log (CLI, errores de red) ya sale con asteriscos.
+  enmascarar(host);
   const motivo = await conectar(host, puerto, timeoutMs);
   if (motivo === null) return { host, puerto };
-  // GitHub Actions oculta ese valor en todo el log siguiente (incluido el error de abajo, que no lo repite).
-  enmascarar(host);
   throw new Error([
     `No se pudo conectar al host del SUPABASE_DB_URL (puerto ${puerto}) del Environment migraciones-cloud-${entorno}: ${motivo}.`,
-    'Revisá: (1) que el secret apunte a la base de ESE entorno (dev 7634, staging 7635, producción 7636); (2) que el runner de deploy alcance el host:',
-    'un runner en contenedor NO llega a la IP del bridge de Docker ni a localhost del VPS: usá la IP de Tailscale del VPS (y publicá Postgres también en esa IP);',
-    '(3) que el firewall del VPS deje pasar a la red de Tailscale (docs/endurecimiento-infra.md, «Firewall del VPS»).',
+    'Revisá: (1) que el secret apunte a la base de ESE entorno (dev 7634, staging 7635, producción 7636); (2) que el runner de deploy alcance el host: el',
+    'contenedor de un job corre en una red dedicada con salida solo a Internet y SIN acceso al host del VPS ni a la tailnet, salvo los puertos de base de datos',
+    'que el firewall le abre a la red de deploy (--puertos-db-deploy, y --destinos-tailnet-deploy si la base está en otro nodo de Tailscale);',
+    '(3) que el firewall del VPS deje pasar esa ruta (docs/endurecimiento-infra.md, «Firewall del VPS»).',
   ].join('\n'));
 }

@@ -14,13 +14,17 @@ test('destinoDeUrl: host y puerto; puerto por defecto; IPv6; rechaza lo que no e
 });
 
 test('comprobarConexion: conectado devuelve el destino; cada fallo lanza un mensaje accionable sin credenciales ni host, y enmascara el host', async () => {
-  const ok = await comprobarConexion('postgresql://u:p@h:7635/x', 'staging', { conectar: async () => null, enmascarar: () => assert.fail('no enmascara si conecta') });
+  const previos = [];
+  const ok = await comprobarConexion('postgresql://u:p@h:7635/x', 'staging', { conectar: async () => { assert.deepEqual(previos, ['h'], 'el host se enmascara ANTES de conectar'); return null; }, enmascarar: (v) => previos.push(v) });
   assert.deepEqual(ok, { host: 'h', puerto: 7635 });
+  assert.deepEqual(previos, ['h'], 'también cuando conecta bien (B-6)');
   for (const motivo of ['ECONNREFUSED', 'timeout', 'EHOSTUNREACH']) {
     const enmascarados = [];
     await assert.rejects(comprobarConexion('postgresql://usuario:ClaveSecreta1@172.17.0.1:7635/x', 'staging', { conectar: async () => motivo, enmascarar: (v) => enmascarados.push(v) }), (e) => {
       assert.match(e.message, new RegExp(`puerto 7635\\) del Environment migraciones-cloud-staging: ${motivo}`));
-      assert.match(e.message, /Tailscale/);
+      assert.match(e.message, /red dedicada/);
+      assert.match(e.message, /puertos de base de datos/);
+      assert.doesNotMatch(e.message, /bridge de Docker|localhost/, 'ya no afirma lo que contradecía al firewall');
       assert.ok(!e.message.includes('ClaveSecreta1') && !e.message.includes('usuario') && !e.message.includes('172.17.0.1'), 'sin credenciales ni host');
       return true;
     });
