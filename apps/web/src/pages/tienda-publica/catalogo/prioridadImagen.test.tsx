@@ -11,7 +11,7 @@ const imagenDe = (prioridad?: 'alta' | 'normal') => {
   return container.querySelector('img')!
 }
 
-describe('prioridad de las imágenes de la grilla (MSF-1002)', () => {
+describe('prioridad de las imágenes de la grilla', () => {
   // Frontera n-1 / n / n+1 alrededor de TARJETAS_CON_PRIORIDAD (= 2): la tarjeta 0 es «alta», la 1 «normal», la 2 en adelante diferida.
   it.each([
     [-1, undefined], [0, 'alta'], [1, 'normal'], [TARJETAS_CON_PRIORIDAD - 1, 'normal'], [TARJETAS_CON_PRIORIDAD, undefined],

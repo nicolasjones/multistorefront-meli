@@ -7,7 +7,7 @@ const imagenes = [{ ruta: 'a', posicion: 1 }, { ruta: 'b', posicion: 2 }] as unk
 const urls = { a: 'https://x.example/a.jpg', b: 'https://x.example/b.jpg' }
 
 // MSF-1002: la imagen principal de la ficha es el elemento del LCP: prioridad alta y sin diferir; las miniaturas siguen diferidas.
-describe('Galería de la ficha: prioridad de carga (MSF-1002)', () => {
+describe('Galería de la ficha: prioridad de carga', () => {
   it('la imagen principal pide fetchpriority high y no es lazy; las miniaturas sí son lazy', () => {
     const { container } = render(<Galeria imagenes={imagenes} urls={urls} nombre="Funda" />)
     const principal = container.querySelector('img[alt="Funda"]')!

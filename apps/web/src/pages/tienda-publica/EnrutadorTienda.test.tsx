@@ -216,7 +216,7 @@ describe('PaginaNoEncontrada (FR-007)', () => {
 })
 
 // MSF-1002: precarga del chunk de la ruta en paralelo con la resolución de la tienda.
-describe('precargarRutaActual (MSF-1002)', () => {
+describe('precargarRutaActual', () => {
   const crear = () => {
     const pedidos: string[] = []
     const cargador = (nombre: string) => () => { pedidos.push(nombre); return Promise.resolve({ default: () => null }) }
