@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, it } from 'node:test'
-import { MAX_ENTRADA_REDACCION, leerCampo, limpiarParaLog, mensajeParaLog, normalizarMax, recortarSinTokenParcial, redactarCredenciales, registrarErrorDeBase, textoDeError } from './log-seguro.ts'
+import { MAX_ENTRADA_REDACCION, errorDeBase, leerCampo, limpiarParaLog, mensajeParaLog, normalizarMax, recortarSinTokenParcial, redactarCredenciales, registrarErrorDeBase, textoDeError } from './log-seguro.ts'
 
 // Medición robusta a CPU cargada: si la primera corrida pasa del tope se repite 2 veces más y se compara el MÍNIMO (código correcto mide
 // milisegundos; una regex cuadrática de verdad mide segundos en las tres). Los topes tienen margen amplio sobre lo medido.
@@ -523,5 +523,23 @@ describe('un secreto que cruza el recorte PREVIO no deja su prefijo aunque una r
     assert.equal(mensajeParaLog('fallo simple', 300), 'fallo simple')
     assert.equal(mensajeParaLog(`http://${'a'.repeat(1199 - 7 - 1 - 4)} sk-A`, 300), '[url] sk-A')
     assert.equal(mensajeParaLog(`http://${'a'.repeat(1200 - 7 - 1 - 4)} sk-A`, 300), '[url] sk-A')
+  })
+})
+
+describe('errorDeBase', () => {
+  it('lleva un mensaje constante y solo el código corto: textoDeError no imprime el mensaje de la base', () => {
+    const error = errorDeBase('No se pudo leer', { code: '42P01', message: 'relation sk-secreta does not exist' })
+    assert.equal(error.message, 'No se pudo leer')
+    assert.equal(textoDeError(error), 'Error 42P01')
+  })
+
+  it('el código se acota a 64 caracteres y solo se imprime si es simple; ausente, vacío o con aspecto de credencial no se imprime', () => {
+    // Frontera n-1 / n / n+1 del tope de 64: 65 se recorta a 64.
+    for (const [largo, esperado] of [[63, 63], [64, 64], [65, 64]] as const) assert.equal(textoDeError(errorDeBase('x', { code: 'x'.repeat(largo) })), `Error ${'x'.repeat(esperado)}`, String(largo))
+    // Un número se convierte a texto (un código numérico es inocuo); lo demás no se imprime.
+    assert.equal(textoDeError(errorDeBase('x', { code: 42 })), 'Error 42')
+    for (const code of [undefined, null, '', 'sk-secreta', 'a b']) assert.equal(textoDeError(errorDeBase('x', { code })), 'Error', String(code))
+    assert.equal(textoDeError(errorDeBase('x', null)), 'Error')
+    assert.equal(textoDeError(errorDeBase('x', { get code(): string { throw new Error('hostil') } })), 'Error')
   })
 })

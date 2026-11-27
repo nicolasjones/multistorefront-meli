@@ -40,9 +40,11 @@ Tiendas online (MSF-212).
 
 ## Estados
 
-Tres estados fijos: **Nueva**, **En curso** y **Resuelta** («En curso» es la propuesta de la spec, Decisión
-abierta 1). Todo cambio es manual: asignar o anotar no cambia el estado. Se puede volver de cualquiera a
-cualquiera (reabrir). La lista editable de estados es F-CFG-01 ([`listas-configurables.md`](./listas-configurables.md)): un estado marcado «de sistema» no se puede desactivar, renombrar ni borrar.
+Tres estados de base en toda organización: **Nueva**, **En curso** y **Resuelta** («En curso» es la propuesta de la spec, Decisión
+abierta 1); no se desactivan ni se renombran. El Administrador puede sumar otros en la lista de estados (F-CFG-01,
+[`listas-configurables.md`](./listas-configurables.md)) y una consulta puede quedar en cualquier estado activo de su organización
+(MSF-595). Todo cambio es manual: asignar o anotar no cambia el estado. Se puede volver de cualquiera a
+cualquiera (reabrir). Una consulta que quedó en un estado que luego se desactivó sigue mostrándose en él.
 
 ## Permisos
 

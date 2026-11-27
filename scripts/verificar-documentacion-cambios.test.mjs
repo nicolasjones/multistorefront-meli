@@ -193,4 +193,86 @@ describe('verificar-documentacion-cambios', () => {
       assert.equal(b.status, 0, b.stderr);
     });
   });
+  describe('capturas del manual (MSF-644)', () => {
+    const pantalla = 'apps/web/src/pages/ventas/lista.tsx';
+
+    it('avisa (exit 0) si una pantalla cambia sin rehacer capturas', async () => {
+      const r = await comprobar('cap-aviso', [pantalla, 'docs/a.md']);
+      assert.equal(r.status, 0, r.stderr);
+      assert.match(r.stderr, /::warning ::1 pantalla\(s\) del panel cambiaron/);
+      assert.match(r.stderr, /- apps\/web\/src\/pages\/ventas\/lista\.tsx/);
+    });
+
+    it('sin aviso si cambia una captura de docs/producto/img/', async () => {
+      const r = await comprobar('cap-ok', [pantalla, 'docs/producto/img/ventas/01.png']);
+      assert.equal(r.status, 0, r.stderr);
+      assert.doesNotMatch(r.stderr, /pantalla\(s\)/);
+    });
+
+    it('sin aviso para tests, estilos o archivos que no son pantallas', async () => {
+      const r = await comprobar('cap-no-pantalla', ['apps/web/src/pages/ventas/lista.test.tsx', 'apps/web/src/lib/x.ts', 'apps/web/src/pages/ventas/x.css', 'apps/web/src/pages/e2e/y.tsx', 'docs/a.md']);
+      assert.equal(r.status, 0, r.stderr);
+      assert.doesNotMatch(r.stderr, /pantalla\(s\)/);
+    });
+
+    it('una imagen que no es captura (otra carpeta o extensión) no cuenta', async () => {
+      const r = await comprobar('cap-falsa', [pantalla, 'docs/otra/01.png', 'docs/producto/img/ventas/notas.md']);
+      assert.equal(r.status, 0, r.stderr);
+      assert.match(r.stderr, /pantalla\(s\)/);
+    });
+
+    it('nombres de pantalla hostiles no inyectan comandos de Actions (y no se filtran con espacios o unicode)', async () => {
+      const malos = ['q%0A::add-mask::secret.tsx', 'x\n::error::pwned.tsx', 'con espacio ñ.tsx'];
+      for (const estricto of [false, true]) {
+        const r = await comprobar(`cap-inyeccion-${estricto}`, [...malos.map((m) => `apps/web/src/pages/v/${m}`), 'docs/a.md'], { args: estricto ? ['--capturas-estricto'] : [] });
+        assert.equal(r.status, estricto ? 1 : 0, r.stderr);
+        assert.match(r.stderr, /3 pantalla\(s\)/);
+        assert.match(r.stderr, /- apps\/web\/src\/pages\/v\/con espacio ñ\.tsx/);
+        // La única línea que empieza con `::` es la anotación del script.
+        assert.equal(r.stderr.split('\n').filter((l) => /^\s*::/.test(l) && !/^::(warning|error) ::/.test(l)).length, 0, r.stderr);
+        assert.match(r.stderr, /q%0A:\u200b:add-mask:\u200b:secret\.tsx/);
+        assert.match(r.stderr, /x\\n:\u200b:error:\u200b:pwned\.tsx/);
+      }
+    });
+
+    it('una captura en mayúsculas (.PNG) cuenta como rehecha', async () => {
+      const r = await comprobar('cap-mayusculas', [pantalla, 'docs/producto/img/ventas/01.PNG']);
+      assert.equal(r.status, 0, r.stderr);
+      assert.doesNotMatch(r.stderr, /pantalla\(s\)/);
+    });
+
+    it('borrar una pantalla no exige rehacer capturas, y borrar una imagen no cuenta como rehacerla', async () => {
+      const base = { [pantalla]: 'v0', 'docs/producto/img/ventas/01.png': 'img', 'docs/a.md': 'a' };
+      const borrarPantalla = await comprobar('cap-borra-pantalla', { 'docs/a.md': 'a2' }, { base, antes: async (cwd) => { await rm(path.join(cwd, pantalla)); } });
+      assert.equal(borrarPantalla.status, 0, borrarPantalla.stderr);
+      assert.doesNotMatch(borrarPantalla.stderr, /pantalla\(s\)/);
+      const borrarImagen = await comprobar('cap-borra-imagen', { [pantalla]: 'v1' }, { base, antes: async (cwd) => { await rm(path.join(cwd, 'docs/producto/img/ventas/01.png')); } });
+      assert.equal(borrarImagen.status, 0, borrarImagen.stderr);
+      assert.match(borrarImagen.stderr, /1 pantalla\(s\)/);
+    });
+
+    it('si falla el diff sin borrados avisa (exit 0) y vuelve a la lista completa', async () => {
+      // Precarga que hace fallar solo `git diff --diff-filter=d` en este proceso.
+      const precarga = path.join(dir, 'falla-diff-filtrado.mjs');
+      await writeFile(precarga, [
+        "import cp from 'node:child_process';",
+        "import { syncBuiltinESMExports } from 'node:module';",
+        'const original = cp.spawnSync;',
+        "cp.spawnSync = (cmd, args, ...resto) => (args?.includes('--diff-filter=d') ? { status: 1, stdout: '', stderr: 'simulado' } : original(cmd, args, ...resto));",
+        'syncBuiltinESMExports();',
+      ].join('\n'));
+      const r = await comprobar('cap-diff-falla', [pantalla, 'docs/a.md'], { nodeArgs: ['--import', precarga] });
+      assert.equal(r.status, 0, r.stderr);
+      assert.match(r.stderr, /::warning ::no se pudo calcular el diff sin borrados/);
+      assert.match(r.stderr, /::warning ::1 pantalla\(s\)/);
+    });
+
+    it('modo estricto (variable o --capturas-estricto) falla con exit 1', async () => {
+      const a = await comprobar('cap-estricto-env', [pantalla, 'docs/a.md'], { env: { CAPTURAS_MANUAL_ESTRICTO: '1' } });
+      assert.equal(a.status, 1);
+      assert.match(a.stderr, /::error ::1 pantalla/);
+      const b = await comprobar('cap-estricto-flag', [pantalla, 'docs/a.md'], { args: ['--capturas-estricto'] });
+      assert.equal(b.status, 1);
+    });
+  });
 });

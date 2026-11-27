@@ -116,6 +116,7 @@ describe('enviar-correo-proveedor', () => {
     const res = await pedir(deps, valido)
     assert.equal(res.status, 429)
     assert.equal(res.headers.get('Retry-After'), '1234')
+    assert.equal(res.headers.get('Access-Control-Expose-Headers'), 'Retry-After', 'el navegador puede leer el Retry-After del 429')
     assert.deepEqual(await res.json(), { error: 'Demasiados correos' })
     assert.deepEqual(cupos, ['u1'])
     assert.equal(enviados.length, 0)

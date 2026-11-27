@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
+  useOpcionesEstado: vi.fn(),
   useResponsablesConsultas: vi.fn(),
   actualizarConsulta: vi.fn(),
   onCerrar: vi.fn(),
@@ -9,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   onRecargar: vi.fn(),
 }))
 
+vi.mock('../../hooks/useOpcionesEstadoConsulta', () => ({ useOpcionesEstadoConsulta: mocks.useOpcionesEstado }))
 vi.mock('../../hooks/useRespuestasRapidas', () => ({
   useRespuestasRapidas: () => ({ respuestas: [], isLoading: false, isError: false, refetch: vi.fn() }),
 }))
@@ -69,6 +71,7 @@ describe('DetalleConsulta (F-CON-01, FR-007)', () => {
       isError: false,
     })
     mocks.actualizarConsulta.mockResolvedValue('2026-10-23T12:00:00.000Z')
+    mocks.useOpcionesEstado.mockReturnValue({ opciones: null, hayError: false })
   })
 
   it('muestra el título, los chips, contacto, producto, mensaje y fecha', () => {
@@ -156,5 +159,58 @@ describe('DetalleConsulta (F-CON-01, FR-007)', () => {
     const { dialogo } = abrir()
     fireEvent.click(within(dialogo).getAllByRole('button', { name: 'Cerrar' })[0])
     expect(mocks.onCerrar).toHaveBeenCalledTimes(1)
+  })
+
+  // MSF-595: estados configurados de la organización.
+  describe('estados configurados', () => {
+    const LISTA = [
+      { clave: 'nueva', nombre: 'Nueva', activo: true },
+      { clave: 'en_curso', nombre: 'En curso', activo: true },
+      { clave: 'resuelta', nombre: 'Resuelta', activo: true },
+      { clave: 'c-1', nombre: 'Descartada', activo: true },
+      { clave: 'c-2', nombre: 'Archivada', activo: false },
+    ]
+
+    it('ofrece los estados activos de la lista y guarda la clave del elegido', async () => {
+      mocks.useOpcionesEstado.mockReturnValue({ opciones: LISTA, hayError: false })
+      const { dialogo } = abrir(consulta())
+      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Estado' }))
+      expect(within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent)).toEqual(['Nueva', 'En curso', 'Resuelta', 'Descartada'])
+      fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Descartada' }))
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+      await waitFor(() => expect(mocks.actualizarConsulta).toHaveBeenCalledWith(expect.objectContaining({ estado: 'c-1' })))
+    })
+
+    it('una consulta en un estado desactivado lo sigue mostrando, con su nombre, y lo ofrece marcado', () => {
+      mocks.useOpcionesEstado.mockReturnValue({ opciones: LISTA, hayError: false })
+      abrir(consulta({ estado: 'c-2' }))
+      expect(screen.getAllByText('Archivada').length).toBeGreaterThan(0)
+      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Estado' }))
+      expect(within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent)).toEqual(['Nueva', 'En curso', 'Resuelta', 'Descartada', 'Archivada (desactivado)'])
+    })
+
+    it('guardar la nota de una consulta en un estado desactivado no cambia su estado', async () => {
+      mocks.useOpcionesEstado.mockReturnValue({ opciones: LISTA, hayError: false })
+      const { dialogo } = abrir(consulta({ estado: 'c-2' }))
+      fireEvent.change(within(dialogo).getByLabelText('Nota interna'), { target: { value: 'Seguimiento' } })
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+      await waitFor(() => expect(mocks.actualizarConsulta).toHaveBeenCalledWith(expect.objectContaining({ estado: 'c-2', nota: 'Seguimiento' })))
+    })
+
+    it('un estado desactivado entre tanto se informa sin tratarlo como conflicto de edición', async () => {
+      mocks.useOpcionesEstado.mockReturnValue({ opciones: LISTA, hayError: false })
+      mocks.actualizarConsulta.mockRejectedValue(new ErrorConsulta('crudo', 'PT412', 'estado'))
+      const { dialogo } = abrir(consulta())
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+      expect(await screen.findByText('El estado elegido está desactivado. Elegí otro estado activo.')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Recargar' })).not.toBeInTheDocument()
+    })
+
+    it('sin lista (carga fallida) ofrece los tres de base', () => {
+      mocks.useOpcionesEstado.mockReturnValue({ opciones: null, hayError: true })
+      abrir(consulta())
+      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Estado' }))
+      expect(within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent)).toEqual(['Nueva', 'En curso', 'Resuelta'])
+    })
   })
 })

@@ -17,6 +17,7 @@
 
 import { createHmac } from 'node:crypto'
 import { tokenValido } from '../_shared/token.ts'
+import { registrarErrorDeBase } from '../_shared/log-seguro.ts'
 
 /** Timeout de la entrega (D-6). */
 export const TIMEOUT_ENTREGA_MS = 10_000
@@ -194,7 +195,7 @@ async function dejarResultado(
   error: string | null,
 ): Promise<boolean> {
   const { error: falla } = await deps.resolver(entregaId, estado, estadoHttp, error)
-  if (falla) console.error('entregar-webhook: no se pudo dejar el resultado de la entrega', falla.message)
+  if (falla) registrarErrorDeBase('entregar-webhook: no se pudo dejar el resultado de la entrega', falla)
   return !falla
 }
 
@@ -222,7 +223,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
 
   const { data: entregas, error: errorLectura } = await deps.entrega(entregaId)
   if (errorLectura || !entregas?.length) {
-    console.error('entregar-webhook: no se pudo leer la entrega', errorLectura)
+    if (errorLectura) registrarErrorDeBase('entregar-webhook: no se pudo leer la entrega', errorLectura)
+    else console.error('entregar-webhook: no se pudo leer la entrega: sin filas')
     return respuesta({ error: 'No se pudo leer la entrega.' }, 500)
   }
 

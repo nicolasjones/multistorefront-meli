@@ -6,13 +6,13 @@
 // por organización (fecha y cantidad) lo guarda la base en dominio.alertas_inicio_calculos; acá se devuelve el
 // resumen y los errores quedan en los registros de la función sin datos de negocio.
 import { tokenValido } from '../_shared/token.ts'
+import { errorDeBase, registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 
 // Función servidor a servidor (la llama Kestra con x-aviso-token): sin `Access-Control-Allow-Origin: *`, ningún navegador
 // de otro origen puede invocarla.
 const corsHeaders = { 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-aviso-token' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
-const ERROR_MAX = 300
 
 type Resultado<T> = Promise<{ data: T; error: { message: string } | null }>
 
@@ -27,13 +27,10 @@ export type Deps = {
   }
 }
 
-const mensajeDeError = (error: unknown) =>
-  (error instanceof Error ? error.message : String(error)).replace(/\s+/g, ' ').trim().slice(0, ERROR_MAX) || 'Error sin detalle'
-
 /** Recalcula las alertas de una organización y devuelve el cálculo registrado. */
 export async function procesarOrganizacion(organizacion: string, deps: Deps): Promise<Calculo> {
   const { data, error } = await deps.datos.recalcular(organizacion)
-  if (error) throw new Error(`No se pudo recalcular las alertas: ${error.message}`)
+  if (error) throw errorDeBase('No se pudo recalcular las alertas', error)
   if (!data) throw new Error('El recálculo no devolvió resultado')
   return data
 }
@@ -52,7 +49,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
 
   const { data: ids, error } = await deps.datos.organizaciones()
   if (error) {
-    console.error('recalcular-alertas-inicio: no se pudo listar las organizaciones', error.message)
+    registrarErrorDeBase('recalcular-alertas-inicio: no se pudo listar las organizaciones', error)
     return response({ error: 'No se pudieron leer las organizaciones.' }, 502)
   }
 
@@ -67,7 +64,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       alertas += calculo.alertas
     } catch (falla) {
       errores += 1
-      console.error('recalcular-alertas-inicio: organización con error', id, mensajeDeError(falla))
+      console.error('recalcular-alertas-inicio: organización con error', id, textoDeError(falla))
     }
   }
   return response({ organizaciones: (ids ?? []).length, calculadas, alertas, errores }, errores > 0 ? 502 : 200)

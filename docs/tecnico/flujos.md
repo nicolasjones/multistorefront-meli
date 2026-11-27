@@ -204,7 +204,7 @@ stateDiagram-v2
 ## Consultas (MSF-122)
 
 Alta pública → consulta `nueva` + aviso encolado → barrido de Kestra → correo → bandeja → atención manual.
-Los tres estados son fijos y las transiciones son manuales; asignar o anotar no cambia el estado.
+Los tres estados de base son fijos y el Administrador puede sumar otros (una consulta puede quedar en cualquier estado activo de su organización, MSF-595); las transiciones son manuales; asignar o anotar no cambia el estado.
 
 ```mermaid
 stateDiagram-v2
@@ -231,7 +231,7 @@ flowchart LR
 Desde MSF-189 el aviso respeta la preferencia de cada persona, la agrupación de 15 minutos y el acceso a la
 empresa de la consulta. `dominio.consultas_avisos` y el flow `avisos-consultas` quedan solo para drenar lo
 que ya estaba encolado por el camino anterior. La lista `dominio.estados_consulta` se administra, pero la
-bandeja todavía usa los tres estados fijos: conectarlos es seguimiento.
+bandeja y el detalle usan esa lista (MSF-595): `consultas.estado` guarda la clave del estado.
 
 Detalle: [Consultas: modelo, RPC y aviso](consultas.md) y [Avisos y listas](avisos-y-listas.md). Dueños:
 FR-002 (alta), FR-003 (edición y actividad), FR-005…FR-008 (bandeja y empresa activa), FR-011…FR-013 (cola,

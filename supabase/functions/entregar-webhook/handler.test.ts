@@ -7,6 +7,7 @@
 import assert from 'node:assert/strict'
 import { createHmac } from 'node:crypto'
 import { describe, it } from 'node:test'
+import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 import { esInterna, firmar, manejar, TIMEOUT_ENTREGA_MS, type Deps, type Envio } from './handler.ts'
 
 const TOKEN = 'clave-de-servicio'
@@ -259,4 +260,35 @@ describe('esInterna (SSRF)', () => {
   for (const ip of publicas) {
     it(`acepta ${ip}`, () => assert.equal(esInterna(ip), false))
   }
+})
+
+describe('logs sin texto crudo (lote 92)', () => {
+  it('un error de la base al dejar el resultado o al leer la entrega deja el código y no el mensaje', async () => {
+    const resultado = montar()
+    resultado.deps.resolver = async () => ({ data: null, error: ERROR_BASE_HOSTIL })
+    const a = await capturarLog(() => manejar(pedir({ entrega_id: 'e-1' }), resultado.deps))
+    assert.equal(a.resultado.status, 500)
+    assert.equal(a.lineas.length, 1)
+    assert.match(a.lineas[0], /^entregar-webhook: no se pudo dejar el resultado de la entrega 42501 /)
+
+    const lectura = montar()
+    lectura.deps.entrega = async () => ({ data: null, error: ERROR_BASE_HOSTIL })
+    const b = await capturarLog(() => manejar(pedir({ entrega_id: 'e-1' }), lectura.deps))
+    assert.equal(b.resultado.status, 500)
+    assert.equal(b.lineas.length, 1)
+    assert.match(b.lineas[0], /^entregar-webhook: no se pudo leer la entrega 42501 /)
+
+    const sinFilas = montar()
+    sinFilas.deps.entrega = async () => ({ data: [], error: null })
+    const c = await capturarLog(() => manejar(pedir({ entrega_id: 'e-1' }), sinFilas.deps))
+    assert.equal(c.resultado.status, 500)
+    assert.deepEqual(c.lineas, ['entregar-webhook: no se pudo leer la entrega: sin filas'])
+    assert.doesNotMatch([...a.lineas, ...b.lineas].join('\n'), /sk-secreta|db\.example\.com/)
+  })
+
+  it('un fallo de red del destino no imprime el mensaje, la causa ni la URL (el log no recibe nada del error)', async () => {
+    const { deps } = montar({ fallo: errorHostil() })
+    const { lineas } = await capturarLog(() => manejar(pedir({ entrega_id: 'e-1' }), deps))
+    assert.doesNotMatch(lineas.join('\n'), /sk-secreta|ECONNREFUSED|example\.com/)
+  })
 })

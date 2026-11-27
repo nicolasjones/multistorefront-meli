@@ -105,7 +105,7 @@ export function PanelEstadosConsulta() {
                   </Button>
                   {sistema ? (
                     <Typography id={idAyuda} variant="caption" color="text.secondary">
-                      Es un estado de sistema: lo necesita el cierre de las consultas y no se puede desactivar ni renombrar.
+                      Es un estado de sistema: lo necesita el flujo de las consultas y no se puede desactivar ni renombrar.
                     </Typography>
                   ) : null}
                 </Stack>

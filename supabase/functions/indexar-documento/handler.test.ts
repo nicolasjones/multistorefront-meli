@@ -2,6 +2,7 @@
 // (pnpm test:edge:indexar-documento). El handler no importa nada de Deno ni de Supabase.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import type { RechazoCupo } from '../_shared/cupo-ia.ts'
 import { manejar, type Deps, type VersionDoc } from './handler.ts'
 import { MAX_FRAGMENTOS, fragmentarTexto, reclamoVigente, nuevoReclamo } from './reglas.ts'
 
@@ -9,7 +10,9 @@ const ID = '11111111-1111-4111-8111-111111111111'
 const AHORA = 1_800_000_000_000
 
 // Base en memoria con la semántica real: reclamar es compare-and-swap, marcarFallida solo actúa sobre `procesando`.
-function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; activarFalla?: boolean; descargaFalla?: boolean; activarPermiso?: boolean; version?: Partial<VersionDoc>; featureApagada?: boolean; contextoNull?: boolean; superadmin?: boolean; activarInvalida?: boolean; estadoTrasInvalida?: string | null; activarLaOtra?: boolean; soltarFalla?: boolean; marcarFalla?: boolean; versionAjena?: boolean; rol?: string; sinPermisoEscritura?: boolean } = {}) {
+function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; activarFalla?: boolean; descargaFalla?: boolean; activarPermiso?: boolean; version?: Partial<VersionDoc>; featureApagada?: boolean; contextoNull?: boolean; superadmin?: boolean; activarInvalida?: boolean; estadoTrasInvalida?: string | null; activarLaOtra?: boolean; soltarFalla?: boolean; marcarFalla?: boolean; versionAjena?: boolean; rol?: string; sinPermisoEscritura?: boolean; cupo?: RechazoCupo | null } = {}) {
+  const orden: string[] = []
+  const cupos: string[] = []
   const v: VersionDoc = { subida_por: 'u1', id: ID, estado: 'procesando', motivo_error: null, storage_path: 'o/a.txt', nombre: 'a.txt', organizacion_id: 'org-1', ...opciones.version }
   let fragmentos = 0
   let insertados = 0
@@ -39,7 +42,8 @@ function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; ac
     politica: async () => ({ politica_id: 'p', contrato_id: 'c', perfil_principal_id: 'pf', limite_intentos: 1, limite_segundos: 60, perfil_fallback_id: null }),
     credencial: async () => ({ clave: 'k', proveedor_codigo: 'openai' }),
     validarEntrada: () => undefined,
-    embeddings: async (textos) => { if (opciones.embeddingsFalla) throw new Error('openai caído'); return textos.map(() => [0.1]) },
+    consumirCupo: async (usuarioId) => { orden.push('cupo'); cupos.push(usuarioId); return opciones.cupo ?? null },
+    embeddings: async (textos) => { orden.push('embeddings'); if (opciones.embeddingsFalla) throw new Error('openai caído'); return textos.map(() => [0.1]) },
     borrarFragmentos: async () => { fragmentos = 0; return true },
     insertarFragmentos: async (_j, filas, reclamo) => { if (!reclamo) throw new Error('falta el reclamo propio'); fragmentos += filas.length; insertados += filas.length; return true },
     activar: async () => {
@@ -53,7 +57,7 @@ function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; ac
     ahora: () => AHORA,
     id: () => 'abc',
   }
-  return { deps, v, fragmentosGuardados: () => fragmentos, insertados: () => insertados }
+  return { deps, v, orden, cupos, fragmentosGuardados: () => fragmentos, insertados: () => insertados }
 }
 
 const pedir = (deps: Deps, body: unknown = { version_id: ID }, jwt: string | null = 'ok') =>
@@ -579,5 +583,70 @@ describe('reglas de indexación', () => {
     assert.equal(fragmentarTexto('a'.repeat(2000)).length, 2)
     assert.equal(reclamoVigente(null, AHORA), false)
     assert.equal(reclamoVigente('No pudimos extraer texto', AHORA), false)
+  })
+})
+
+describe('indexar-documento · cupo persistente por usuario y hora (lote 92)', () => {
+  it('con cupo: se consume UNA vez, con el usuario autenticado, ANTES de los embeddings, y la versión se activa', async () => {
+    const m = montar()
+    const res = await pedir(m.deps)
+    assert.equal(res.status, 200)
+    assert.deepEqual(m.cupos, ['u1'])
+    assert.deepEqual(m.orden, ['cupo', 'embeddings'])
+    assert.equal(m.v.estado, 'activa')
+  })
+
+  it('cupo agotado: 429 con Retry-After y el texto literal, sin embeddings, sin fragmentos y con el candado soltado (se reintenta más tarde)', async () => {
+    const m = montar({ cupo: { status: 429, error: 'Indexaste demasiados documentos en poco tiempo. Probá de nuevo más tarde.', retryAfter: 1234 } })
+    const res = await pedir(m.deps)
+    assert.equal(res.status, 429)
+    assert.equal(res.headers.get('Retry-After'), '1234')
+    assert.equal(res.headers.get('Access-Control-Expose-Headers'), 'Retry-After', 'el navegador puede leer el Retry-After del 429')
+    assert.deepEqual(await res.json(), { error: 'Indexaste demasiados documentos en poco tiempo. Probá de nuevo más tarde.' })
+    assert.deepEqual(m.orden, ['cupo'])
+    assert.equal(m.insertados(), 0)
+    assert.equal(m.v.estado, 'procesando', 'no se marca fallida: es transitorio')
+    assert.equal(m.v.motivo_error, null, 'el candado se soltó')
+  })
+
+  it('cupo no verificable: 503 sin Retry-After (falla cerrado), sin embeddings y con el candado soltado', async () => {
+    const m = montar({ cupo: { status: 503, error: 'No se pudo verificar tu cuota de uso.' } })
+    const res = await pedir(m.deps)
+    assert.equal(res.status, 503)
+    assert.equal(res.headers.get('Retry-After'), null)
+    assert.deepEqual(await res.json(), { error: 'No se pudo verificar tu cuota de uso.' })
+    assert.deepEqual(m.orden, ['cupo'])
+    assert.equal(m.v.estado, 'procesando')
+    assert.equal(m.v.motivo_error, null)
+  })
+
+  it('un retryAfter ausente o 0 no agrega la cabecera (la constante de espera la fija cupo-ia, no el handler)', async () => {
+    for (const retryAfter of [undefined, 0]) {
+      const m = montar({ cupo: { status: 429, error: 'x', retryAfter } })
+      assert.equal((await pedir(m.deps)).headers.get('Retry-After'), null, String(retryAfter))
+    }
+  })
+
+  it('un pedido que no llega a los embeddings NO gasta cupo: sin sesión, cuerpo inválido, funcionalidad apagada, sin permiso, versión ajena o procesada, sin texto, sin fragmentos, política, credencial, proveedor y entrada', async () => {
+    const casos: [string, () => Promise<{ cupos: string[]; res: Response }>][] = []
+    const caso = (nombre: string, opciones: Parameters<typeof montar>[0], preparar?: (m: ReturnType<typeof montar>) => void, body: unknown = { version_id: ID }, jwt: string | null = 'ok') =>
+      casos.push([nombre, async () => { const m = montar(opciones); preparar?.(m); return { cupos: m.cupos, res: await pedir(m.deps, body, jwt) } }])
+    caso('sin sesión', {}, undefined, { version_id: ID }, null)
+    caso('cuerpo inválido', {}, undefined, { version_id: 'x' })
+    caso('funcionalidad apagada', { featureApagada: true })
+    caso('sin permiso de escritura', { sinPermisoEscritura: true })
+    caso('versión ajena', { versionAjena: true })
+    caso('versión ya procesada', { version: { estado: 'activa' } })
+    caso('sin texto', { texto: '   ' })
+    caso('sin política', {}, (m) => { m.deps.politica = async () => null })
+    caso('sin credencial', {}, (m) => { m.deps.credencial = async () => null })
+    caso('proveedor no soportado', {}, (m) => { m.deps.credencial = async () => ({ clave: 'k', proveedor_codigo: 'otro' }) })
+    caso('entrada rechazada por la política', {}, (m) => { m.deps.validarEntrada = () => { throw new Error('POLITICA_IA_INACTIVA') } })
+    caso('descarga fallida', { descargaFalla: true })
+    for (const [nombre, ejecutar] of casos) {
+      const { cupos, res } = await ejecutar()
+      assert.notEqual(res.status, 200, nombre)
+      assert.deepEqual(cupos, [], nombre)
+    }
   })
 })

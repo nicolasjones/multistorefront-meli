@@ -4,20 +4,49 @@
 import { supabaseClient } from './supabase'
 import { esCodigoDeConflicto } from './mensajeErrorBase'
 
-export const ESTADOS_CONSULTA = ['nueva', 'en_curso', 'resuelta'] as const
-export type EstadoConsulta = (typeof ESTADOS_CONSULTA)[number]
+// `consultas.estado` guarda la CLAVE de un estado de `dominio.estados_consulta` (MSF-595). Los tres de base
+// (`nueva`, `en_curso`, `resuelta`) existen siempre en toda organización y no se desactivan; el Administrador puede
+// sumar otros en «Listas configurables». El nombre que se muestra sale de la lista, no de la clave.
+export const ESTADOS_BASE_CONSULTA = ['nueva', 'en_curso', 'resuelta'] as const
+export type EstadoConsulta = string
 
-export const ETIQUETA_ESTADO_CONSULTA: Readonly<Record<EstadoConsulta, string>> = {
+export const ETIQUETA_ESTADO_CONSULTA: Readonly<Record<string, string>> = {
   nueva: 'Nueva',
   en_curso: 'En curso',
   resuelta: 'Resuelta',
 }
 
-// Color del chip de estado (Nueva = azul, En curso = ámbar, Resuelta = verde, como el prototipo).
-export const COLOR_ESTADO_CONSULTA: Readonly<Record<EstadoConsulta, 'primary' | 'warning' | 'success'>> = {
+// Color del chip de estado (Nueva = azul, En curso = ámbar, Resuelta = verde, como el prototipo); un estado propio es neutro.
+const COLOR_ESTADO_BASE: Readonly<Record<string, 'primary' | 'warning' | 'success'>> = {
   nueva: 'primary',
   en_curso: 'warning',
   resuelta: 'success',
+}
+
+export function colorEstadoConsulta(clave: EstadoConsulta): 'primary' | 'warning' | 'success' | 'default' {
+  return COLOR_ESTADO_BASE[clave] ?? 'default'
+}
+
+export type OpcionEstadoConsulta = { clave: EstadoConsulta; nombre: string; activo: boolean }
+
+// Nombre visible de un estado: el de la lista configurada; si la lista todavía no llegó, el de base conocido; si el
+// estado ya no está en la lista (no pasa: no se borran), un texto neutro y nunca la clave cruda.
+export function etiquetaEstadoConsulta(clave: EstadoConsulta, opciones: ReadonlyArray<OpcionEstadoConsulta> | null): string {
+  return opciones?.find((opcion) => opcion.clave === clave)?.nombre ?? ETIQUETA_ESTADO_CONSULTA[clave] ?? 'Otro estado'
+}
+
+// Estados que se ofrecen al elegir: los activos y, además, el que la consulta ya tiene aunque se haya desactivado (sigue
+// mostrándose y se puede guardar sin cambiarlo).
+export function opcionesParaElegir(
+  opciones: ReadonlyArray<OpcionEstadoConsulta> | null,
+  actual: EstadoConsulta,
+): OpcionEstadoConsulta[] {
+  // Sin lista todavía (o con la carga fallida) se ofrecen los tres de base, que existen siempre.
+  const base = opciones ?? ESTADOS_BASE_CONSULTA.map((clave) => ({ clave, nombre: ETIQUETA_ESTADO_CONSULTA[clave], activo: true }))
+  const lista = base.filter((opcion) => opcion.activo || opcion.clave === actual)
+  return lista.some((opcion) => opcion.clave === actual)
+    ? lista
+    : [{ clave: actual, nombre: etiquetaEstadoConsulta(actual, opciones), activo: true }, ...lista]
 }
 
 export type OrigenConsulta = 'formulario' | 'whatsapp' | 'pedido'
@@ -149,26 +178,39 @@ export function limitesDeFecha(desde: string, hasta: string): { desde: string | 
 
 export class ErrorConsulta extends Error {
   readonly codigo: string | null
-  constructor(mensaje: string, codigo: string | null) {
+  /** `detail` de la base: `estado` cuando el rechazo es por el estado elegido (PT404 inexistente, PT412 desactivado). */
+  readonly detalle: string | null
+  constructor(mensaje: string, codigo: string | null, detalle: string | null = null) {
     super(mensaje)
     this.name = 'ErrorConsulta'
     this.codigo = codigo
+    this.detalle = detalle
   }
 }
 
-type ErrorPostgrest = { message?: string; code?: string }
+type ErrorPostgrest = { message?: string; code?: string; details?: string | null }
 
 function aError(error: ErrorPostgrest): ErrorConsulta {
-  return new ErrorConsulta(error.message ?? 'Error desconocido', error.code ?? null)
+  return new ErrorConsulta(error.message ?? 'Error desconocido', error.code ?? null, error.details ?? null)
+}
+
+// PT412 es el conflicto de edición (sello `updated_at`) salvo que traiga `detail = estado`: ahí es el estado desactivado.
+export function esEstadoRechazado(error: unknown): boolean {
+  return error instanceof ErrorConsulta && error.detalle === 'estado' && (error.codigo === 'PT404' || error.codigo === 'PT412')
 }
 
 export function esConflicto(error: unknown): boolean {
-  return error instanceof ErrorConsulta && esCodigoDeConflicto(error.codigo)
+  return error instanceof ErrorConsulta && esCodigoDeConflicto(error.codigo) && !esEstadoRechazado(error)
 }
 
 // Mensaje para la persona: nunca el texto crudo de la base (puede traer detalles técnicos).
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   if (error instanceof ErrorConsulta) {
+    if (esEstadoRechazado(error)) {
+      return error.codigo === 'PT404'
+        ? 'El estado elegido ya no existe. Cerrá y abrí la consulta para ver los estados vigentes.'
+        : 'El estado elegido está desactivado. Elegí otro estado activo.'
+    }
     if (esCodigoDeConflicto(error.codigo)) return 'Otra persona modificó esta consulta mientras la editabas. Recargala para ver sus cambios.'
     if (error.codigo === '42501') return 'No tenés permiso para editar esta consulta.'
     if (error.codigo === '22023') return 'Revisá los datos: el responsable o el estado elegido ya no son válidos.'

@@ -64,6 +64,12 @@ describe('filtrosExportacion y nombreArchivoProductos', () => {
     expect(filtrosExportacion({ ...CONSULTA_INICIAL, texto: ' cable ' }, false).busqueda).toBe('cable')
   })
 
+  it('«Stock bajo» viaja como stock_bajo solo cuando está activo', () => {
+    expect(filtrosExportacion({ ...CONSULTA_INICIAL, stockBajo: true }, false)).toMatchObject({ stock_bajo: true })
+    expect('stock_bajo' in filtrosExportacion({ ...CONSULTA_INICIAL, stockBajo: false }, false)).toBe(false)
+    expect(filtrosExportacion({ ...CONSULTA_INICIAL, stockBajo: true }, true)).toEqual({ todos: true })
+  })
+
   it('el nombre del archivo lleva la fecha de la organización', () => {
     expect(nombreArchivoProductos(new Date('2026-11-17T15:00:00Z'))).toBe('productos-2026-11-17.csv')
   })

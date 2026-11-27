@@ -225,9 +225,12 @@ export function ProductoList() {
   // Identidad estable mientras el contenido no cambia: evita consultar de nuevo por un arreglo equivalente.
   const variantesClave = JSON.stringify(variantes)
   const variantesCompatibles = useMemo(() => variantes, [variantesClave])
+  const { nivel: nivelStock, isLoading: cargandoStock } = useNivelSeccion('stock')
+  // El estado de stock lo calcula la base solo para quien ve Stock (RLS de las existencias): sin acceso no se ofrece el filtro.
+  const veStock = !cargandoStock && (nivelStock === 'lectura' || nivelStock === 'edicion')
   const consulta = useMemo<ConsultaProductos>(
-    () => ({ ...consultaBase, empresaId, categoriaId, compatibles: variantesCompatibles }),
-    [consultaBase, empresaId, categoriaId, variantesCompatibles],
+    () => ({ ...consultaBase, empresaId, categoriaId, compatibles: variantesCompatibles, stockBajo: consultaBase.stockBajo && veStock }),
+    [consultaBase, empresaId, categoriaId, variantesCompatibles, veStock],
   )
   const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
   const veCosto = !cargandoRentabilidad && (nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion')
@@ -470,6 +473,8 @@ export function ProductoList() {
                   setConsulta((actual) => ({ ...actual, pagina: 1 }))
                 }}
                 errorEmpresas={errorEmpresas}
+                stockBajo={consulta.stockBajo}
+                onStockBajo={veStock ? (stockBajo) => setConsulta((actual) => ({ ...actual, stockBajo, pagina: 1 })) : undefined}
                 categorias={categorias}
                 categoriaId={consulta.categoriaId}
                 onCategoria={(categoriaId) => setConsulta((actual) => ({ ...actual, categoriaId, pagina: 1 }))}

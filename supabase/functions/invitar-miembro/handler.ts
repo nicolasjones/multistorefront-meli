@@ -1,5 +1,6 @@
 // Lógica de `invitar-miembro` con dependencias inyectadas para poder probarla sin Deno ni Supabase
 // (handler.test.ts). `index.ts` solo cablea los clientes reales.
+import { registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -61,7 +62,7 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
     if (borrar) {
       const { error: deleteError } = await admin.auth.admin.deleteUser(borrar as string)
       if (deleteError) {
-        console.error('invitar-miembro: no se pudo borrar la cuenta de la invitación cancelada', deleteError.message)
+        console.error('invitar-miembro: no se pudo borrar la cuenta de la invitación cancelada', textoDeError(deleteError))
         return response({ error: 'La invitación se canceló, pero no pudimos invalidar el enlace ya enviado. Ese enlace no da acceso a la organización.' }, 502)
       }
     }
@@ -112,7 +113,7 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
     const { error } = nueva
       ? await tabla.delete().eq('id', reg.id)
       : soltarCuenta ? await tabla.update({ auth_user_id: null }).eq('id', reg.id) : { error: null }
-    if (error) console.error('invitar-miembro: no se pudo compensar la invitación', reg.id, error.message)
+    if (error) registrarErrorDeBase(`invitar-miembro: no se pudo compensar la invitación ${reg.id}`, error)
   }
 
   let cuentaSoltada = false
@@ -160,7 +161,7 @@ export async function manejar(req: Request, { appUrl, admin, caller }: Deps): Pr
   if (error) {
     if (usuarioInvitadoId) {
       const { error: borradoError } = await admin.auth.admin.deleteUser(usuarioInvitadoId)
-      if (borradoError) console.error('invitar-miembro: cuenta huérfana tras vincular_invitacion', usuarioInvitadoId, borradoError.message)
+      if (borradoError) console.error('invitar-miembro: cuenta huérfana tras vincular_invitacion', usuarioInvitadoId, textoDeError(borradoError))
     }
     await deshacer(Boolean(usuarioInvitadoId))
     return rpcError(error)

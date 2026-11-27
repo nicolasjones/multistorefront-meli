@@ -544,8 +544,8 @@ select is((select v ->> 'estado' from res where k = 'lecturas_31'), 'limite', 'l
 select ok((select (v ->> 'espera_segundos')::int between 1 and 60 from res where k = 'lecturas_31'), 'limite trae espera_segundos (1 a 60)');
 select is((select v ->> 'estado' from res where k = 'lecturas_otro'), 'ok', 'otro visitante no se ve afectado por el cupo');
 select is(
-  (select count(*)::int from public.limite_pedidos_publicos where visitante not like 'lista|%'),
-  0, 'el cupo de la lista usa su propia clave (lista|…) y no se come el de la búsqueda');
+  (select count(*)::int from public.limite_pedidos_publicos where visitante not like 'lista|%' and visitante not like 'acceso|%' and visitante not like 'precios|%'),
+  0, 'el cupo de la lista usa su propia clave (lista|…) y no se come el de la búsqueda (acceso| y precios| son los cupos por cuenta de la tienda)');
 
 -- ============================================================================
 -- enviar_lista_pedido: visitante, consulta + ítems en una transacción (B1-1, B1-4; FR-030)

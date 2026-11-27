@@ -50,7 +50,7 @@ describe('consultarProductos', () => {
 
   it('aplica inactivos, búsqueda, orden descendente por estado y la página pedida', async () => {
     const { cliente, llamadas } = clienteFalso(respuesta)
-    await consultarProductos(cliente, { texto: 'cab', estado: 'inactivos', columnaOrden: 'activo', direccion: 'desc', pagina: 3, empresaId: null, categoriaId: null, disponibilidad: null, compatibles: [] })
+    await consultarProductos(cliente, { texto: 'cab', estado: 'inactivos', columnaOrden: 'activo', direccion: 'desc', pagina: 3, empresaId: null, categoriaId: null, disponibilidad: null, compatibles: [], stockBajo: false })
     expect(llamadas).toContainEqual(['eq', 'activo', false])
     expect(llamadas).toContainEqual(['or', 'nombre_norm.ilike.%cab%,sku.ilike.%cab%'])
     expect(llamadas).toContainEqual(['order', 'activo', { ascending: false, nullsFirst: true }])
@@ -72,6 +72,24 @@ describe('consultarProductos', () => {
   it('propaga el error del servidor', async () => {
     const { cliente } = clienteFalso({ data: null, error: new Error('boom'), count: null })
     await expect(consultarProductos(cliente, CONSULTA_INICIAL)).rejects.toThrow('boom')
+  })
+})
+
+describe('filtro «Stock bajo»', () => {
+  const respuesta = { data: [], error: null, count: 0 }
+
+  it('pide estado_stock = stock_bajo en el servidor solo cuando está activo', async () => {
+    const activo = clienteFalso(respuesta)
+    await consultarProductos(activo.cliente, { ...CONSULTA_INICIAL, stockBajo: true })
+    expect(activo.llamadas).toContainEqual(['eq', 'estado_stock', 'stock_bajo'])
+    const apagado = clienteFalso(respuesta)
+    await consultarProductos(apagado.cliente, { ...CONSULTA_INICIAL, stockBajo: false })
+    expect(apagado.llamadas.some(([m, columna]) => m === 'eq' && columna === 'estado_stock')).toBe(false)
+  })
+
+  it('cuenta como filtro activo', () => {
+    expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, stockBajo: true })).toBe(true)
+    expect(hayFiltrosActivos({ ...CONSULTA_INICIAL, stockBajo: false })).toBe(false)
   })
 })
 
