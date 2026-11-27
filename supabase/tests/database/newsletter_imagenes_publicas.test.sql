@@ -225,6 +225,7 @@ select ok(
             in public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', 'Hola', true, false) ->> 'html') > 0,
   'la etiqueta sale con el valor exacto (src, alt con el nombre y ancho fijo)');
 
+reset role;
 -- Valor exacto de la etiqueta y del escape.
 select is(private.imagen_html_newsletter('{"imagen_url":"https://a.test/x.webp","nombre":"A \"B\" <i>"}'::jsonb),
   '<img src="https://a.test/x.webp" alt="A &quot;B&quot; &lt;i&gt;" width="96" style="display: block; border: 0; margin: 0 0 4px 0;">', 'el alt se escapa');
