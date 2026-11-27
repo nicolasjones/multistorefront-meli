@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { pantallasSinCaptura } from './docs-capturas-manual.mjs';
 import { anotacion, archivosSinDocCorrespondiente, leerMapaDocs, lineaLista, motivosSinDoc } from './docs-correspondencia.mjs';
 
 const run = (args) => spawnSync('git', args, { encoding: 'utf8' });
@@ -67,6 +68,22 @@ try {
 } catch (error) {
   console.error(anotacion(nivel, {}, `no se pudo verificar la correspondencia: ${error?.message ?? error}`));
   if (estricto) process.exit(1);
+}
+
+// Capturas del manual (MSF-644): una pantalla del panel que cambia debería rehacer sus capturas. Aviso salvo
+// CAPTURAS_MANUAL_ESTRICTO=1 o --capturas-estricto (la excepción se declara en la descripción del PR, que no se ve acá).
+const capturasEstricto = process.env.CAPTURAS_MANUAL_ESTRICTO === '1' || process.argv.includes('--capturas-estricto');
+// Sin borrados: eliminar una pantalla no exige rehacer capturas (ni borrar una imagen cuenta como rehacerla).
+const sinBorrados = run(['-c', 'core.quotepath=off', 'diff', '--name-only', '--diff-filter=d', '-z', `${base}...HEAD`]);
+if (sinBorrados.status !== 0) {
+  // Sin el diff filtrado se vuelve a la lista completa (cuenta los borrados): el aviso puede sobrar, pero no se rompe el CI.
+  console.error(anotacion('warning', {}, 'no se pudo calcular el diff sin borrados; el aviso de capturas (MSF-644) cuenta también los archivos borrados.'));
+}
+const sinCaptura = pantallasSinCaptura(sinBorrados.status === 0 ? sinBorrados.stdout.split('\0').filter(Boolean) : changed);
+if (sinCaptura.length > 0) {
+  console.error(anotacion(capturasEstricto ? 'error' : 'warning', {}, `${sinCaptura.length} pantalla(s) del panel cambiaron y ninguna captura de docs/producto/img/ se rehízo: corré pnpm docs:capturas o declará en el PR por qué no corresponde (MSF-644).`));
+  console.error(sinCaptura.slice(0, 10).map((p) => lineaLista(p, ' ')).join('\n'));
+  if (capturasEstricto) process.exit(1);
 }
 
 console.log(`Documentación de cambios: OK (${changed.length} archivos comparados contra ${base}).`);

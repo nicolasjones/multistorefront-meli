@@ -930,12 +930,14 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "01374783c3e2f4cecfd8edf2436628094f705c7385f9745270a15e5f3170259f",
-      "sourceHash": "64bd14dcabce5568cc76e2d356a1646c39442e3c66aa95ca5fbfddae21193ee2",
-      "sourceAt": "47914a40a",
+      "pageHash": "764792db1fee4143b7a8f6f36d1b1320c2f3229de74707c427f23987a3a7ab35",
+      "sourceHash": "85410faa70f3c34aecf18713d3273c25d21fc7b3a8a9bb101617f17d33342d2a",
+      "sourceAt": "cce9f3024",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
+        "scripts/docs-capturas-manual.mjs",
+        "scripts/docs-capturas-manual.test.mjs",
         "scripts/docs-correspondencia.mjs",
         "scripts/docs-correspondencia.test.mjs",
         "scripts/docs-lineas.mjs",
@@ -951,7 +953,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "47914a40a"
+      "commit": "cce9f3024"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
@@ -5142,18 +5144,19 @@
     },
     "docs/tecnico/sandbox.md": {
       "title": "Sandbox de onboarding",
-      "pageHash": "458ae836a4d437b44f6e0b46548af1812c805ed60fc096c272ddc1d6ae39907d",
-      "sourceHash": "d0be8c6d73fa650e70663c371ffce83cf98f49f171f87c45b6d6418658e80c0b",
-      "sourceAt": "6776fb4d",
+      "pageHash": "5d36a3650483411203e3043af0b13b7b144199e0b1ef5fb042effffd7fb80c41",
+      "sourceHash": "df5c24739b21065c10744e438ec5eac425a095e0144a28f05f42339e12c17672",
+      "sourceAt": "cf4dbac2c",
       "sources": [
         "supabase/seed.sql",
         "scripts/demo-sandbox.mjs",
+        "scripts/demo-sandbox.test.mjs",
         "apps/web/vite.config.ts",
         "infra/refine/compose.yaml",
         ".github/workflows/validate.yml"
       ],
       "owner": "operacion",
-      "commit": "6776fb4d"
+      "commit": "cf4dbac2c"
     },
     "docs/tecnico/service-alta-estados-y-permisos.md": {
       "title": "Service técnico: alta, estados y permisos (MSF-182)",
