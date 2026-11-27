@@ -265,6 +265,23 @@ insert into res values
 reset role;
 select is((select count(distinct j)::int from res where clave like 'enum\_%'), 1, 'una dirección existente y una nueva reciben la misma respuesta desde un origen agotado');
 
+-- La misma clave de idempotencia en DOS tiendas no es un reintento: cada tienda registra y guarda su propia alta.
+select set_config('request.headers', '{"x-forwarded-for":"10.9.7.1"}', true);
+set local role anon;
+insert into res values
+  ('clave_a', publico.suscribirse_newsletter('nl-cupo-a.ejemplo.com', 'dosclaves@ejemplo.com', true, '00000000-0000-0000-0000-000000000801', '')),
+  ('clave_b', publico.suscribirse_newsletter('nl-cupo-b.ejemplo.com', 'dosclaves@ejemplo.com', true, '00000000-0000-0000-0000-000000000801', ''));
+reset role;
+select is((select count(*)::int from res where clave in ('clave_a', 'clave_b') and j ->> 'resultado' = 'ok'), 2, 'la misma clave en dos tiendas: las dos altas responden ok');
+select is((select count(*)::int from dominio.newsletter_suscriptores where correo = 'dosclaves@ejemplo.com'), 2, 'y se guardan las dos (una por tienda)');
+select is((select count(*)::int from dominio.tienda_envios where clave_envio = '00000000-0000-0000-0000-000000000801'), 2, 'con un registro de envío por tienda');
+-- En la MISMA tienda, la misma clave sí es un reintento: responde ok sin guardar otra alta.
+set local role anon;
+insert into res values ('clave_a_repetida', publico.suscribirse_newsletter('nl-cupo-a.ejemplo.com', 'otra.direccion@ejemplo.com', true, '00000000-0000-0000-0000-000000000801', ''));
+reset role;
+select is((select j ->> 'resultado' from res where clave = 'clave_a_repetida'), 'ok', 'la misma clave en la misma tienda es un reintento: ok');
+select is((select count(*)::int from dominio.newsletter_suscriptores where correo = 'otra.direccion@ejemplo.com'), 0, 'y no guarda otra alta');
+
 -- Qué se guardó: solo HMAC; ninguna IP ni correo.
 select is((select count(*)::int from private.cupo_publico_ip where ambito like 'newsletter-%' and (clave !~ '^[0-9a-f]{64}$')), 0, 'las claves del newsletter son todas HMAC hexadecimal');
 select is((select count(*)::int from private.cupo_publico_ip where ambito = 'newsletter-visitante'

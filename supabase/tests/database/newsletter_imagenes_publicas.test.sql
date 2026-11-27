@@ -265,6 +265,10 @@ select set_config('request.headers', '{"host":"p.supabase.co:x@evil.example"}', 
 select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001',
    'https://p.supabase.co:x@evil.example/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
   '22023', 'La dirección pública de la imagen no es de este servidor', 'una cabecera con userinfo no es un host válido aunque la dirección la repita');
+select set_config('request.headers', '{"host":"p.supabase.co@evil.example"}', true);
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001',
+   'https://p.supabase.co@evil.example/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
+  '22023', 'La dirección pública de la imagen no es de este servidor', 'una cabecera con userinfo sin puerto no es un host válido aunque la dirección la repita');
 select set_config('request.headers', '{"host":""}', true);
 select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001',
    'https:///storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
@@ -280,6 +284,21 @@ select set_config('request.headers', json_build_object('host', repeat('h', 332))
 select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
   '22023', 'La dirección pública de la imagen no es válida', 'una dirección de 501 caracteres se rechaza');
 select set_config('request.headers', '{"host":"p.supabase.co"}', true);
+
+-- Un archivo con el mismo nombre pero en OTRO bucket no cuenta como «existe» (la comprobación mira el bucket newsletter-imagenes).
+reset role;
+insert into dominio.productos (id, organizacion_id, nombre, sku, compatible_con, precio_lista, moneda, activo)
+  values ('a1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Producto 5', 'NLI-5', '{}', 5000, 'ARS', true);
+insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) values ('a1000000-0000-0000-0000-000000000005', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111');
+insert into dominio.productos_tienda (empresa_id, producto_id, organizacion_id, visible, destacado) values ('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', true, true);
+insert into dominio.producto_imagenes (id, producto_id, organizacion_id, posicion, ruta) values
+  ('b1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 1, '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000005/frente.png');
+insert into storage.objects (bucket_id, name) values ('productos-imagenes', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000005.webp');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000005', 'b1000000-0000-0000-0000-000000000005',
+   'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000005.webp')$$,
+  '22023', 'La copia de la imagen no está en el bucket', 'un archivo con el mismo nombre en otro bucket no cuenta como copia subida');
+select is(pg_temp.n_copias(), 1, 'y no dejó registro');
 
 -- Producto no publicado en la tienda: con imagen y de la organización, pero oculto en esta tienda.
 reset role;
@@ -316,7 +335,7 @@ select is(
 select is(
   (select count(*)::int from jsonb_array_elements(public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', 'Hola', true, false) -> 'bloques' -> 'destacados') e
     where e -> 'imagen_url' = 'null'::jsonb),
-  2, 'los dos productos sin copia siguen sin imagen');
+  3, 'los tres productos sin copia (2, 3 y 5) siguen sin imagen');
 select is(
   (select (length(h) - length(replace(h, '<img ', ''))) / length('<img ') from (select public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', 'Hola', true, false) ->> 'html' h) x),
   1, 'el HTML tiene exactamente una imagen');
@@ -391,6 +410,19 @@ select is(
   (select e ->> 'imagen_url' from jsonb_array_elements(public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', 'Hola', false, true) -> 'bloques' -> 'promociones') e where e ->> 'producto_id' = 'a1000000-0000-0000-0000-000000000003'),
   'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000003.webp', 'la sección de promociones también lleva la imagen');
 select ok(position('<img src="https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000003.webp" alt="Producto 3"' in public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', 'Hola', false, true) ->> 'html') > 0, 'y el HTML la dibuja en promociones');
+-- La copia de la tienda A no aparece en las promociones de otra tienda (B) que vende el mismo producto.
+reset role;
+insert into dominio.empresas (id, organizacion_id, nombre, activa) values ('e1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Tienda B', true);
+insert into dominio.precios_empresa (empresa_id, organizacion_id, base, ajuste_pct, mostrar_con_iva) values ('e1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'central', 0, false);
+insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) values ('a1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111');
+insert into dominio.productos_tienda (empresa_id, producto_id, organizacion_id, visible, destacado) values ('e1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', true, true);
+insert into dominio.promociones_precio (organizacion_id, empresa_id, producto_id, precio_promocional, desde, hasta) values
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000003', 1500, now() - interval '1 hour', now() + interval '2 days');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is(
+  (select e -> 'imagen_url' from jsonb_array_elements(public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000004', 'Hola', false, true) -> 'bloques' -> 'promociones') e where e ->> 'producto_id' = 'a1000000-0000-0000-0000-000000000003'),
+  'null'::jsonb, 'las promociones de otra tienda no llevan la imagen copiada para la tienda A');
+select is(position('<img' in public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000004', 'Hola', false, true) ->> 'html'), 0, 'ni dibujan imagen');
 reset role;
 delete from private.newsletter_imagenes where producto_id = 'a1000000-0000-0000-0000-000000000003';
 
@@ -424,7 +456,6 @@ select is(private.url_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 
 update private.newsletter_imagenes set actualizada_en = now() where producto_id = 'a1000000-0000-0000-0000-000000000001';
 
 -- El mismo producto en dos tiendas: la copia de una no vale para la otra.
-insert into dominio.empresas (id, organizacion_id, nombre, activa) values ('e1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Tienda B', true);
 select is(private.url_imagen_newsletter('e1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001'), null, 'la copia de la tienda A no se usa en la tienda B (filtro por tienda)');
 select is(private.url_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001'), 'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp', 'y en la tienda A sigue');
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
@@ -449,6 +480,15 @@ select is((select count(*)::int from private.newsletter_imagenes), 1, 'queda el 
 select is(private.purgar_imagenes_newsletter(90), '{}'::text[], 'repetirla no borra nada más');
 select is(private.purgar_imagenes_newsletter(1), array['11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp'],
   'con 1 día entra el de 89');
+-- Frontera y orden de la limpieza: justo en los N días NO se borra (`<`, no `<=`); un segundo más viejo sí; y las rutas salen ORDENADAS (se insertan al revés).
+insert into private.newsletter_imagenes (empresa_id, producto_id, organizacion_id, imagen_id, ruta, url, actualizada_en) values
+  ('e1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'b1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000004/a1000000-0000-0000-0000-000000000001.webp', 'https://p.supabase.co/x.webp', now() - interval '90 days' - interval '1 second'),
+  ('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'b1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000004.webp', 'https://p.supabase.co/x.webp', now() - interval '91 days'),
+  ('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'b1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000002.webp', 'https://p.supabase.co/x.webp', now() - interval '90 days');
+select is(private.purgar_imagenes_newsletter(90), array['11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000004.webp', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000004/a1000000-0000-0000-0000-000000000001.webp'],
+  'justo en 90 días no se borra y lo más viejo sí; las rutas salen ordenadas');
+select is((select count(*)::int from private.newsletter_imagenes where producto_id = 'a1000000-0000-0000-0000-000000000002'), 1, 'el registro de exactamente 90 días sigue');
+delete from private.newsletter_imagenes where producto_id = 'a1000000-0000-0000-0000-000000000002';
 select throws_ok($$select private.purgar_imagenes_newsletter(0)$$, '22023', 'purgar_imagenes_newsletter: los días deben ser un entero mayor o igual a 1', 'días 0');
 select throws_ok($$select private.purgar_imagenes_newsletter(null)$$, '22023', 'purgar_imagenes_newsletter: los días deben ser un entero mayor o igual a 1', 'días nulos');
 

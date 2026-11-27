@@ -11,11 +11,13 @@ insert into auth.users (id, email) values
   ('d1000000-0000-0000-0000-000000000001', 'admin-uno@example.com'),
   ('d1000000-0000-0000-0000-000000000002', 'lector@example.com'),
   ('d1000000-0000-0000-0000-000000000003', 'operador@example.com'),
+  ('d1000000-0000-0000-0000-000000000004', 'deposito@example.com'),
   ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo'),
   ('d1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'consulta', 'activo'),
   ('d1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'operador', 'activo'),
+  ('d1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'deposito', 'activo'),
   ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo');
 insert into dominio.empresas (id, organizacion_id, nombre, activa) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda A', true),
@@ -94,6 +96,11 @@ create function pg_temp.n_visibles() returns integer language sql as $$ select c
 -- SELECT
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is(pg_temp.n_visibles(), 4, 'SELECT: el Administrador ve solo las copias de la carpeta de su organización (4 de 6)');
+select is((select count(*)::int from storage.objects where bucket_id = 'otro-bucket'), 0, 'SELECT: el Administrador tampoco ve otro bucket con una ruta parecida (la política es solo de newsletter-imagenes)');
+-- Una persona SIN nivel en Contactos (rol de depósito) no ve ninguna copia aunque sea de la organización.
+select pg_temp.como('d1000000-0000-0000-0000-000000000004');
+select is((select private.nivel_seccion('clientes')), 'ninguno', 'el rol de depósito de la prueba no tiene nivel en Contactos');
+select is(pg_temp.n_visibles(), 0, 'SELECT: sin nivel de Contactos no se ve ninguna copia (el nivel cuenta aparte de la organización)');
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select is(pg_temp.n_visibles(), 2, 'SELECT: el admin de la otra organización ve solo las suyas (2)');
 select is((select count(*)::int from storage.objects where bucket_id = 'otro-bucket'), 0, 'SELECT: no ve otros buckets');
