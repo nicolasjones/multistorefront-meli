@@ -12,6 +12,12 @@ sources:
   - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
   - supabase/migrations/20270507180100_revertir_cobro.sql
   - supabase/migrations/20270507180400_documentos_escritura_excluye_consulta.sql
+  - supabase/migrations/20270512000000_proveedores_condiciones_compra.sql
+  - supabase/migrations/20270512000100_productos_proveedores.sql
+  - supabase/migrations/20270512000200_listas_precios_asignacion_masiva.sql
+  - supabase/migrations/20270512000300_listas_precios_por_tipo_cliente.sql
+  - supabase/migrations/20270512000400_listas_de_clientes_para_exportar.sql
+  - supabase/migrations/20270512000500_ventas_por_lista_precios.sql
   - supabase/migrations/20270507180600_categorias_lectura_para_stock.sql
   - supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql
   - supabase/migrations/20270507240200_rls_ventas_nivel_por_empresa.sql
@@ -147,6 +153,18 @@ relaciones por empresa) usan este contrato:
   ve los proveedores por la vista aunque no lea la tabla. La ficha
   llama `productos_de_proveedor`, que exige `proveedores` y `productos`. Detalle en `docs/proveedores.md`.
 - **Exportar proveedores (MSF-526):** `exportar_proveedores` exige la acción `exportar` en `proveedores`, que a su vez pide al menos `lectura` en la sección: con la matriz inicial, quien además tiene la acción (Administrador, Administración) la ejerce; un rol sin acceso a Proveedores no exporta aunque tenga la acción.
+- **Condiciones de compra y varios proveedores por producto (lote 93, MSF-523 y MSF-530):** las condiciones del proveedor siguen la sección
+  `proveedores` (lectura o edición leen; solo edición guarda). Los proveedores de un producto siguen la sección `productos` (lectura o
+  edición leen; solo edición agrega, quita y marca principal) y el **costo** del vínculo se ve con `rentabilidad` en lectura/edición y se
+  carga solo con edición en `rentabilidad`. Detalle en `docs/proveedores.md`.
+  El **costo efectivo** del producto (`producto_costos`) también cambia al promover un proveedor con otro costo: exige edición en
+  `rentabilidad` (`PT409` con `details = 'rentabilidad'` si no); sin ella, el camino viejo conserva al principal anterior como secundario.
+  Los procesos sin sesión de persona (la importación de productos que corre en el worker con `auth.uid()` nulo, `service_role`,
+  mantenimiento) **no se restringen** por este permiso: hoy la importación solo la solicita el Administrador, que tiene Rentabilidad.
+- **Listas de precios (lote 93, MSF-973, MSF-974, MSF-975 y MSF-976):** asignar una lista en masa o a un tipo de cliente es solo del
+  Administrador (como asignarla a un cliente). La lista de cada cliente en la exportación de clientes exige la acción `exportar` de
+  `clientes`; las ventas por lista de precios, `ventas` en lectura o edición (y por tienda, el nivel de ventas de cada una). Detalle en
+  `docs/listas-de-precios.md`.
 - **`dominio.proveedores_contactos` (F-PRV-08, MSF-449):** lectura con `nivel_seccion('proveedores')` en `lectura`/`edicion`;
   escritura solo por `agregar_contacto_proveedor` y `marcar_contacto_principal` (exigen `edicion`, `42501` si no); sin
   `DELETE` directo; `anon` sin acceso. Detalle en `docs/proveedores.md`.

@@ -31,6 +31,12 @@ vi.mock('../../lib/empresaActiva', () => ({
   cambiarEmpresaActiva: vi.fn(),
   usarTodasLasEmpresas: vi.fn(),
 }))
+// La tabla de ventas por lista se prueba aparte (VentasPorLista.test.tsx): acá solo se verifica cómo se monta.
+vi.mock('./VentasPorLista', () => ({
+  VentasPorLista: (props: { rango: { desde: string; hasta: string }; empresaId: string | null; cargandoEmpresa: boolean }) => (
+    <div data-testid="ventas-por-lista" data-empresa={props.empresaId ?? 'todas'} data-desde={props.rango.desde} data-hasta={props.rango.hasta} />
+  ),
+}))
 vi.mock('../../hooks/useVentasReportes', () => ({ useConteoVentasReporte: mocks.useConteoVentasReporte }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useIsSuperadmin', () => ({ useIsSuperadmin: mocks.useIsSuperadmin }))
@@ -161,6 +167,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
       'Ranking de clientes',
       'Productos más consultados',
       'Ventas por período y canal',
+      'Ventas por lista de precios',
     ])
     expect(screen.getByTestId('tablero')).toHaveTextContent('Tablero rep-mas-vendidos')
   })
@@ -272,6 +279,30 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
         expect(rison).toContain("'Mundo JC'")
         expect(rison).not.toContain("'San Javucho'")
       })
+    })
+  })
+
+  describe('pestaña «Ventas por lista de precios»', () => {
+    it('monta la tabla con el período y la empresa activa, y cambiar de tienda se la pasa', async () => {
+      montar()
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Ventas por lista de precios' }))
+      const tabla = await screen.findByTestId('ventas-por-lista')
+      expect(tabla).toHaveAttribute('data-empresa', 'e-sj')
+      expect(tabla.getAttribute('data-desde')).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      // No es un tablero de Superset: no pide el tablero ni el conteo de ventas.
+      expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
+      const filtro = screen.getByRole('group', { name: 'Filtrar por tienda' })
+      fireEvent.click(within(filtro).getByRole('button', { name: 'Mundo JC' }))
+      await waitFor(() => expect(screen.getByTestId('ventas-por-lista')).toHaveAttribute('data-empresa', 'e-mjc'))
+    })
+
+    it('no ofrece «Exportar a Excel» (es solo del ranking de clientes)', async () => {
+      montar()
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Ventas por lista de precios' }))
+      await screen.findByTestId('ventas-por-lista')
+      expect(screen.queryByRole('button', { name: /Exportar/ })).not.toBeInTheDocument()
     })
   })
 

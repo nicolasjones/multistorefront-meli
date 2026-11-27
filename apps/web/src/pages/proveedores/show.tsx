@@ -24,6 +24,7 @@ import { EnviarCorreoProveedorDialog } from '../../components/proveedores/Enviar
 import { ProveedorFormDialog } from '../../components/proveedores/ProveedorFormDialog'
 import { ListaContactos } from '../../components/proveedores/ListaContactos'
 import { ProductosDelProveedor } from '../../components/proveedores/ProductosDelProveedor'
+import { CondicionesDeCompra } from '../../components/proveedores/CondicionesDeCompra'
 
 const DATOS: ReadonlyArray<{ campo: keyof Proveedor; etiqueta: string; formato?: (valor: string) => string }> = [
   { campo: 'razon_social', etiqueta: 'Razón social' },
@@ -185,6 +186,7 @@ export function ProveedorShow() {
               onPrincipal={setTienePrincipal}
               onFichaCambiada={() => void releerFicha()}
             />
+            <CondicionesDeCompra key={proveedor.id} proveedorId={proveedor.id} puedeEditar={puedeEditar} />
             {/* Solo con lectura en Productos: la función exige ambas secciones. */}
             {nivelProductos === 'lectura' || nivelProductos === 'edicion' ? <ProductosDelProveedor proveedorId={proveedor.id} /> : null}
           </Stack>
