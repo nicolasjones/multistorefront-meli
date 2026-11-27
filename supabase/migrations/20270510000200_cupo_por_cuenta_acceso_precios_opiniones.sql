@@ -16,7 +16,7 @@
 -- las respuestas normales (activa|suspendida|sin_cuenta|no_habilitado|null; {tipo, precios}; {estado: ok|…}) no cambia. La web lo trata como error
 -- reintentable (`consultarAcceso`) o cae al precio público (`leerPreciosCliente`). El cupo se toma antes de cualquier lectura y NO antes de un `raise`:
 -- un error revertiría el contador, por eso estas funciones no lanzan después de tomarlo salvo el tope de 50 productos, que se valida antes.
--- Cuerpos de partida: los vigentes (20261211100200, 20270507000200 y 20270419000000). `acceso` y `precios` pasan de `stable` a `volatile` (escriben el contador).
+-- Cuerpos de partida: los vigentes (20261211100200 con `public.clientes` ya trasladada a `dominio.clientes` por 20270418000401, 20270507000200 y 20270419000000). `acceso` y `precios` pasan de `stable` a `volatile` (escriben el contador).
 -- Mismas firmas y grants (`create or replace`: solo `authenticated`).
 --
 -- Esquemas (Principio VII): sin tablas nuevas. Migración aditiva. Reversión (migración posterior): restaurar las tres funciones a los cuerpos de
@@ -69,7 +69,7 @@ begin
   -- Un usuario de Auth pertenece a un solo cliente (D1, forzado por vincular_cuenta_cliente).
   select cc.cliente_id into v_cliente
     from public.cuentas_cliente cc
-    join public.clientes c on c.id = cc.cliente_id and c.archivado_en is null
+    join dominio.clientes c on c.id = cc.cliente_id and c.archivado_en is null
    where cc.auth_user_id = v_uid
    limit 1;
   if v_cliente is null then
@@ -93,7 +93,7 @@ begin
   end if;
 
   if v_estado = 'activa' then
-    select c.tipo into v_tipo from public.clientes c where c.id = v_cliente;
+    select c.tipo into v_tipo from dominio.clientes c where c.id = v_cliente;
     return jsonb_build_object('estado', 'activa', 'tipo', v_tipo);
   end if;
 

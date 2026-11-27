@@ -77,7 +77,7 @@ select is(
 select pg_temp.como('f5950000-0000-0000-0000-000000000001');
 
 select is(
-  (select clave = id::text from public.crear_estado_consulta('Descartada') c join dominio.estados_consulta e on e.id = c.id),
+  (select e.clave = e.id::text from public.crear_estado_consulta('Descartada') c join dominio.estados_consulta e on e.id = c.id),
   true, 'un estado creado por el Administrador usa su id como clave'
 );
 select throws_ok(
