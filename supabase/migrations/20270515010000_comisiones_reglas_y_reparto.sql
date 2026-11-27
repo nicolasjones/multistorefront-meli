@@ -43,7 +43,7 @@ comment on table dominio.comision_reglas is
 
 create unique index if not exists comision_reglas_alcance_vigencia_key
   on dominio.comision_reglas (organizacion_id, coalesce(tecnico_id, '00000000-0000-0000-0000-000000000000'::uuid), vigente_desde);
-create index if not exists comision_reglas_tecnico_idx on dominio.comision_reglas (tecnico_id) where tecnico_id is not null;
+create index if not exists comision_reglas_tecnico_idx on dominio.comision_reglas (tecnico_id);
 
 create table if not exists dominio.reparacion_comision_reparto (
   id uuid primary key default gen_random_uuid(),
@@ -63,9 +63,10 @@ create table if not exists dominio.reparacion_comision_reparto (
 comment on table dominio.reparacion_comision_reparto is
   'Reparto de la comisión de una reparación entre técnicos (MSF-953); los porcentajes suman 100. Sin filas = 100 % al técnico asignado. Se congela al entregar. Escritura solo por RPC.';
 
-create index if not exists reparacion_comision_reparto_reparacion_idx on dominio.reparacion_comision_reparto (reparacion_id);
-create index if not exists reparacion_comision_reparto_tecnico_idx
-  on dominio.reparacion_comision_reparto (tecnico_id) where tecnico_id is not null;
+-- Índices que cubren las claves foráneas (la higiene de base los exige): la compuesta (reparación, organización), la organización y el técnico.
+create index if not exists reparacion_comision_reparto_reparacion_org_idx on dominio.reparacion_comision_reparto (reparacion_id, organizacion_id);
+create index if not exists reparacion_comision_reparto_org_idx on dominio.reparacion_comision_reparto (organizacion_id);
+create index if not exists reparacion_comision_reparto_tecnico_idx on dominio.reparacion_comision_reparto (tecnico_id);
 
 -- La suma del reparto de una reparación tiene que ser 100: se comprueba al final de la transacción (el reparto se reemplaza
 -- borrando e insertando filas). Los 100 % se comparan con `numeric(5,2)`, exactos.
