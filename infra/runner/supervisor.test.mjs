@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { leerConfiguracionSupervisor } from './config-runner.mjs';
-import { asegurarRed, bucleRanura, borrarRunner, ciclo, crearRunnerJit, limpiarHuerfanos } from './supervisor.mjs';
+import { asegurarRed, bucleRanura, borrarRunner, ciclo, correrRanura, crearRunnerJit, limpiarHuerfanos } from './supervisor.mjs';
 
 const cfg = leerConfiguracionSupervisor({ RUNNER_ROLE: 'pr', RUNNER_REPO: 'org/repo', RUNNER_LABELS: 'self-hosted,platform-local,platform-pr', RUNNER_IMAGE: 'img:local' });
 const PAT = 'ghp_PAT_SECRETO_DE_PRUEBA';
@@ -128,4 +128,32 @@ test('bucleRanura (B-7): tras 5 fallos seguidos SOLO esa ranura se corta; un cic
   const r3 = await bucleRanura({ cfg, pat: PAT, ranura: 3, parando: () => vueltas >= 2, ejecutarCiclo: async () => { vueltas += 1; return 60000; }, dormir, registrar: () => {} });
   assert.equal(r3, 'detenida');
   assert.equal(vueltas, 2);
+});
+
+test('correrRanura (B-3): una ranura cortada avisa y se reintenta tras la espera, hasta 3 rondas; si se recupera o se pide parar, no sigue', async () => {
+  const avisos = [];
+  const esperas = [];
+  const dormir = async (ms) => { esperas.push(ms); };
+  // Siempre cortada: 3 rondas, 2 esperas, aviso final definitivo.
+  let n = 0;
+  const siempre = await correrRanura({ cfg, pat: PAT, ranura: 2, parando: () => false, ejecutarBucle: async () => { n += 1; return 'cortada'; }, dormir, registrar: (m) => avisos.push(m) });
+  assert.equal(siempre, 'cortada');
+  assert.equal(n, 3);
+  assert.deepEqual(esperas, [300_000, 300_000]);
+  assert.match(avisos[0], /ranura 2 se cortó \(ronda 1 de 3\); se reintenta en 5 min/);
+  assert.match(avisos.at(-1), /ranura 2 quedó cortada de forma definitiva tras 3 rondas/);
+  assert.ok(!avisos.join(' ').includes(PAT), 'el log no lleva datos sensibles');
+  // Se recupera en la 2.ª ronda y luego se detiene normalmente.
+  const resultados = ['cortada', 'detenida'];
+  esperas.length = 0;
+  assert.equal(await correrRanura({ cfg, pat: PAT, ranura: 1, parando: () => false, ejecutarBucle: async () => resultados.shift(), dormir, registrar: () => {} }), 'detenida');
+  assert.equal(esperas.length, 1);
+  // Si se pide parar durante la espera, no reintenta.
+  let llamadas = 0;
+  assert.equal(await correrRanura({ cfg, pat: PAT, ranura: 1, parando: () => true, ejecutarBucle: async () => { llamadas += 1; return 'cortada'; }, dormir, registrar: () => {} }), 'detenida');
+  assert.equal(llamadas, 1);
+  // Frontera: rondas=1 corta definitiva a la primera, sin esperar.
+  esperas.length = 0;
+  assert.equal(await correrRanura({ cfg, pat: PAT, ranura: 1, parando: () => false, rondas: 1, ejecutarBucle: async () => 'cortada', dormir, registrar: () => {} }), 'cortada');
+  assert.deepEqual(esperas, []);
 });

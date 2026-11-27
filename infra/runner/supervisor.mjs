@@ -109,6 +109,20 @@ export async function bucleRanura({ cfg, pat, ranura, parando, ejecutarCiclo = c
   return 'detenida';
 }
 
+// Una ranura cortada se recupera sola: espera `esperaMs` y vuelve a intentar, hasta `rondas` veces. Cada corte y cada reintento quedan en el log (sin datos sensibles: solo
+// el número de ranura y de ronda). Si se agotan las rondas, la ranura queda cortada de forma definitiva y el log lo dice: hace falta mirar el supervisor.
+export async function correrRanura({ cfg, pat, ranura, parando, rondas = 3, esperaMs = 300_000, ejecutarBucle = bucleRanura, dormir = (ms) => new Promise((r) => setTimeout(r, ms)), registrar = console.error }) {
+  for (let ronda = 1; ronda <= rondas; ronda += 1) {
+    const resultado = await ejecutarBucle({ cfg, pat, ranura, parando, registrar });
+    if (resultado !== 'cortada') return 'detenida';
+    if (ronda === rondas) { registrar(`AVISO: la ranura ${ranura} quedó cortada de forma definitiva tras ${rondas} rondas: revisá el supervisor (docker logs).`); return 'cortada'; }
+    registrar(`AVISO: la ranura ${ranura} se cortó (ronda ${ronda} de ${rondas}); se reintenta en ${Math.round(esperaMs / 60_000)} min.`);
+    await dormir(esperaMs);
+    if (parando()) return 'detenida';
+  }
+  return 'cortada';
+}
+
 async function main() {
   const cfg = leerConfiguracionSupervisor(process.env);
   const pat = leerPat(process.env, { leer: (ruta) => readFileSync(ruta, 'utf8'), modoDe: (ruta) => statSync(ruta).mode });
@@ -119,7 +133,7 @@ async function main() {
   const detener = () => { parando = true; };
   process.once('SIGINT', detener); process.once('SIGTERM', detener);
   if (cfg.slots === 0) { console.log('RUNNER_SLOTS=0: no se levanta ningún runner.'); await new Promise((resolver) => { const t = setInterval(() => { if (parando) { clearInterval(t); resolver(); } }, 1000); }); return; }
-  const resultados = await Promise.all(Array.from({ length: cfg.slots }, (_, i) => bucleRanura({ cfg, pat, ranura: i + 1, parando: () => parando })));
+  const resultados = await Promise.all(Array.from({ length: cfg.slots }, (_, i) => correrRanura({ cfg, pat, ranura: i + 1, parando: () => parando })));
   if (resultados.every((r) => r === 'cortada')) throw new Error('Todas las ranuras fallaron: se corta el supervisor.');
 }
 
