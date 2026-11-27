@@ -6,6 +6,7 @@ import type { Deps } from './handler.ts'
 
 type Cliente = { rpc(nombre: string, args: Record<string, unknown>): PromiseLike<{ data: unknown; error: unknown }> }
 
+// Arma las dependencias de UN pedido con el cliente de servicio dado (o su ausencia).
 export function armarDepsDesdeEntorno({ env, crearCliente }: {
   env: (clave: string) => string | undefined
   crearCliente: (url: string, claveDeServicio: string) => Cliente
@@ -33,4 +34,19 @@ export function armarDepsDesdeEntorno({ env, crearCliente }: {
     return { data, error: error as { message: string; code?: string } | null }
   }
   return { saltosProxy, admin: { rpc }, cupo: crearConsumirCupoBaja(rpc) }
+}
+
+// Dependencias con el cliente de servicio CREADO UNA VEZ por instancia (perezoso, a nivel de módulo en `index.ts`): un cliente por pedido desperdicia
+// conexiones y trabajo. Si falta la configuración o crear el cliente falla, no se guarda nada y el pedido siguiente lo intenta de nuevo (el pedido en curso
+// responde 503, falla cerrado).
+export function crearArmadorDeDeps({ env, crearCliente }: {
+  env: (clave: string) => string | undefined
+  crearCliente: (url: string, claveDeServicio: string) => Cliente
+}): () => Deps {
+  let guardado: Cliente | null = null
+  const reutilizar = (url: string, clave: string): Cliente => {
+    guardado ??= crearCliente(url, clave)
+    return guardado
+  }
+  return () => armarDepsDesdeEntorno({ env, crearCliente: reutilizar })
 }

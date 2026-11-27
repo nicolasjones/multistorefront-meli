@@ -2,8 +2,8 @@
 // Corre con `node --test` (`pnpm test:edge:baja-correo-masivo`); el handler no importa nada de Deno ni de Supabase.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { describe, it } from 'node:test'
-import { manejar, type Deps } from './handler.ts'
+import { beforeEach, describe, it } from 'node:test'
+import { manejar, reiniciarAviso, type Deps } from './handler.ts'
 import type { RechazoCupo } from './cupo.ts'
 import { ERROR_BASE_HOSTIL, capturarLog, errorHostil } from '../_shared/capturar-log.ts'
 
@@ -132,6 +132,7 @@ describe('baja-correo-masivo', () => {
 
   // MSF-980: rate limit por IP, ANTES de leer el cuerpo.
   describe('cupo por IP (MSF-980)', () => {
+    beforeEach(() => reiniciarAviso())
     const conIp = (xff: string | undefined, body: unknown = { token: TOKEN }) =>
       new Request('http://localhost/baja-correo-masivo', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(xff === undefined ? {} : { 'x-forwarded-for': xff }) }, body: JSON.stringify(body) })
 
@@ -212,6 +213,7 @@ describe('baja-correo-masivo', () => {
     it('sin cabecera avisa; con la cadena justa (saltos + 1) no avisa; con una más larga avisa que la IP puede ser la de un proxy', async () => {
       const casos: [string | undefined, number, number][] = [[undefined, 0, 1], ['10.2.3.4', 0, 0], ['9.9.9.9, 10.2.3.4', 1, 0], ['9.9.9.9, 10.2.3.4', 0, 1]]
       for (const [xff, saltos, esperados] of casos) {
+        reiniciarAviso()
         const avisos: string[] = []
         const original = console.warn
         console.warn = (...args: unknown[]) => { avisos.push(args.join(' ')) }
@@ -222,6 +224,22 @@ describe('baja-correo-masivo', () => {
           console.warn = original
         }
         assert.equal(avisos.length, esperados, `${xff} saltos ${saltos}`)
+      }
+    })
+
+    it('el aviso de cadena inesperada sale UNA vez por instancia, no en cada pedido', async () => {
+      const avisos: string[] = []
+      const original = console.warn
+      console.warn = (...args: unknown[]) => { avisos.push(args.join(' ')) }
+      try {
+        const { deps } = montar()
+        for (let i = 0; i < 3; i++) await manejar(conIp(undefined), deps)
+        assert.equal(avisos.length, 1, 'tres pedidos, un aviso')
+        reiniciarAviso()
+        await manejar(conIp(undefined), deps)
+        assert.equal(avisos.length, 2, 'una instancia nueva vuelve a avisar')
+      } finally {
+        console.warn = original
       }
     })
 

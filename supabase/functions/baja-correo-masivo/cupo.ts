@@ -33,6 +33,7 @@ export function crearConsumirCupoBaja(rpc: Rpc) {
         console.error('baja-correo-masivo: respuesta del cupo no interpretable')
         return NO_VERIFICABLE
       }
+      // (`consumio` ya es booleano: `if (consumio)` y `consumio !== false` son equivalentes tras la comprobación de tipo de arriba.)
       if (consumio) return null
       return { status: 429, error: TEXTO_CUPO_AGOTADO, retryAfter: segundosDeEspera((fila as { segundos_hasta_reinicio?: unknown }).segundos_hasta_reinicio) }
     } catch {

@@ -23,6 +23,6 @@ export function cadenaProxy(encabezados: Pick<Headers, 'get'>): string[] {
 export function ipDelCliente(encabezados: Pick<Headers, 'get'>, saltos: number): string {
   const cadena = cadenaProxy(encabezados)
   const n = Math.max(0, Math.trunc(saltos))
-  if (cadena.length < n + 1) return SIN_IP
+  // Con una cadena más corta que n + 1 el índice es negativo y no hay valor: sin-ip (nunca el primero).
   return cadena[cadena.length - 1 - n]?.slice(0, IP_MAXIMA) || SIN_IP
 }

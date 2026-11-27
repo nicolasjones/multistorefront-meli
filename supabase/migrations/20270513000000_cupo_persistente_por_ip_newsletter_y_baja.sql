@@ -85,22 +85,15 @@ revoke execute on function private.limite_newsletter_visitante_hora(), private.l
 -- IP del cliente a partir de una cadena `x-forwarded-for` y los saltos de proxy de confianza: el valor que está `p_saltos` lugares antes del último. Sin valores,
 -- o con una cadena MÁS CORTA que `p_saltos + 1` (algún proxy no agregó su IP, así que el primer valor lo puede haber escrito el cliente y elegiría su propio
 -- cupo), un valor fijo: `sin-ip`, un cupo compartido que falla cerrado, igual que `consultar-estado-reparacion`. Los valores vacíos de la cadena se descartan.
--- Equivalente declarado: la guarda `largo < saltos + 1` podría ser `largo < saltos`, porque con `largo = saltos` el índice calculado es 0 y `ips[0]` es nulo, que el
--- `coalesce` final también lleva a `sin-ip`; se deja la forma explícita para que la regla se lea.
 create or replace function private.ip_de_cadena(p_cadena text, p_saltos integer)
 returns text
 language sql
 immutable
 set search_path = ''
 as $$
-  with cadena as (
-    select array_remove(regexp_split_to_array(trim(coalesce(p_cadena, '')), '[[:space:]]*,[[:space:]]*'), '') as ips
-  )
-  select case
-           when coalesce(array_length(ips, 1), 0) < greatest(0, coalesce(p_saltos, 0)) + 1 then 'sin-ip'
-           else coalesce(nullif(left(ips[array_length(ips, 1) - greatest(0, coalesce(p_saltos, 0))], 64), ''), 'sin-ip')
-         end
-    from cadena;
+  -- Con una cadena más corta que saltos + 1 el índice calculado es 0 o negativo y `ips[...]` es nulo: el `coalesce` final lo lleva a `sin-ip`.
+  select coalesce(nullif(left(ips[array_length(ips, 1) - greatest(0, coalesce(p_saltos, 0))], 64), ''), 'sin-ip')
+    from (select array_remove(regexp_split_to_array(trim(coalesce(p_cadena, '')), '[[:space:]]*,[[:space:]]*'), '') as ips) cadena;
 $$;
 
 comment on function private.ip_de_cadena(text, integer) is

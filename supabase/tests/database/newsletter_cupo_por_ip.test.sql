@@ -1,4 +1,4 @@
--- Lote 95 (MSF-971 y MSF-980; migración 20270511000000): cupo persistente por IP hasheada para la suscripción al newsletter y la baja de correo masivo.
+-- Lote 95 (MSF-971 y MSF-980; migración 20270513000000): cupo persistente por IP hasheada para la suscripción al newsletter y la baja de correo masivo.
 -- Todo con objetos reales y el rol del CI (no superusuario): nada se omite con skip. Datos inventados.
 begin;
 

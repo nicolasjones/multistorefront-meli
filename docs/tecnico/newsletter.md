@@ -13,8 +13,8 @@ sources:
   - supabase/migrations/20270420000400_newsletter_envio.sql
   - supabase/migrations/20270420000500_newsletter_lote.sql
   - supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql
-  - supabase/migrations/20270511000000_cupo_persistente_por_ip_newsletter_y_baja.sql
-  - supabase/migrations/20270511000100_newsletter_imagenes_publicas.sql
+  - supabase/migrations/20270513000000_cupo_persistente_por_ip_newsletter_y_baja.sql
+  - supabase/migrations/20270513000100_newsletter_imagenes_publicas.sql
   - supabase/functions/baja-correo-masivo
   - supabase/functions/_shared/ip-cliente.ts
   - apps/web/src/lib/newsletterImagenes.ts

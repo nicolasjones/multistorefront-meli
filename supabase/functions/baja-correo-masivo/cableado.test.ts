@@ -1,7 +1,7 @@
 // Pruebas de `cableado.ts` (MSF-980): armado de las dependencias con el cliente y el entorno inyectados. Corre con `node --test`.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { armarDepsDesdeEntorno } from './cableado.ts'
+import { armarDepsDesdeEntorno, crearArmadorDeDeps } from './cableado.ts'
 import { manejar } from './handler.ts'
 
 const TOKEN = 'a'.repeat(64)
@@ -76,5 +76,34 @@ describe('armarDepsDesdeEntorno', () => {
     assert.equal(res.status, 429)
     assert.equal(res.headers.get('retry-after'), '777')
     assert.deepEqual(c.llamadas.map(([nombre]) => nombre), ['consumir_cupo_baja_correo'])
+  })
+})
+
+describe('crearArmadorDeDeps (cliente reutilizado)', () => {
+  it('crea el cliente UNA vez aunque lleguen varios pedidos', async () => {
+    const c = cliente(() => ({ data: [{ se_consumio: true }], error: null }))
+    const armar = crearArmadorDeDeps({ env: entorno(completo), crearCliente: c.crearCliente })
+    for (let i = 0; i < 3; i++) assert.equal((await manejar(pedido(), armar())).status, 200)
+    assert.equal(c.credenciales.length, 1, 'un solo createClient para tres pedidos')
+    assert.equal(c.llamadas.filter(([nombre]) => nombre === 'consumir_cupo_baja_correo').length, 3)
+  })
+
+  it('si la configuración falta no guarda nada: responde 503 y cuando aparece crea el cliente', async () => {
+    const c = cliente(() => ({ data: [{ se_consumio: true }], error: null }))
+    const valores: Record<string, string> = {}
+    const armar = crearArmadorDeDeps({ env: entorno(valores), crearCliente: c.crearCliente })
+    assert.equal((await silenciar(() => manejar(pedido(), armar()))).status, 503)
+    assert.equal(c.credenciales.length, 0)
+    Object.assign(valores, completo)
+    assert.equal((await manejar(pedido(), armar())).status, 200)
+    assert.equal(c.credenciales.length, 1)
+  })
+
+  it('si crear el cliente lanza no lo guarda: el pedido siguiente lo vuelve a intentar', async () => {
+    let intentos = 0
+    const armar = crearArmadorDeDeps({ env: entorno(completo), crearCliente: () => { intentos++; if (intentos === 1) throw new Error('boom'); return { rpc: async () => ({ data: [{ se_consumio: true }], error: null }) } } })
+    assert.equal((await silenciar(() => manejar(pedido(), armar()))).status, 503)
+    assert.equal((await manejar(pedido(), armar())).status, 200)
+    assert.equal(intentos, 2)
   })
 })

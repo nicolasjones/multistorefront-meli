@@ -1,4 +1,4 @@
--- Lote 95 (MSF-979; migración 20270511000100): imágenes de producto en el correo del newsletter con copias optimizadas en un bucket público dedicado.
+-- Lote 95 (MSF-979; migración 20270513000100): imágenes de producto en el correo del newsletter con copias optimizadas en un bucket público dedicado.
 -- Objetos reales y el rol del CI (no superusuario): nada se omite con skip. Datos inventados.
 begin;
 
@@ -125,6 +125,12 @@ select is(
           unnest(array['private.url_imagen_newsletter(uuid,uuid)', 'private.imagen_html_newsletter(jsonb)', 'private.purgar_imagenes_newsletter(integer)']) f),
   true, 'las funciones internas no son ejecutables por la API');
 select is(
+  (select bool_or(has_function_privilege(r, 'public.purgar_imagenes_newsletter(integer)', 'execute')) from unnest(array['anon', 'authenticated', 'public']) r),
+  false, 'la limpieza pública no la ejecuta anon, authenticated ni public');
+select is(has_function_privilege('service_role', 'public.purgar_imagenes_newsletter(integer)', 'execute'), true, 'solo service_role ejecuta la limpieza pública');
+select is(has_function_privilege('service_role', 'private.purgar_imagenes_newsletter(integer)', 'execute'), true, 'y la interna (service_role)');
+select is((select prosecdef and proconfig = array['search_path=""'] from pg_proc where oid = 'public.purgar_imagenes_newsletter(integer)'::regprocedure), true, 'la limpieza pública es security definer con search_path vacío');
+select is(
   (select bool_and(has_function_privilege('authenticated', f, 'execute') and not has_function_privilege('anon', f, 'execute') and not has_function_privilege('public', f, 'execute'))
      from unnest(array['public.registrar_imagen_newsletter(uuid,uuid,uuid,text)', 'public.productos_para_imagenes_newsletter(uuid,boolean,boolean)']) f),
   true, 'las dos RPC son solo de authenticated');
@@ -221,6 +227,58 @@ select lives_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-
    'https://P.Supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
   'x-forwarded-host manda sobre host, se ignora el puerto y no distingue mayúsculas');
 select is(pg_temp.n_copias(), 1, 'ese registro válido quedó');
+select set_config('request.headers', '{"host":"p.supabase.co"}', true);
+
+
+-- ALTA-1: la dirección se COMPARA entera contra la esperada (host de la API + ruta fija); userinfo, consulta, fragmento y otro bucket no pasan.
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co:x@evil.example/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
+  '22023', 'La dirección pública de la imagen no es de este servidor', 'userinfo con «puerto» falso (host:x@otro) se rechaza');
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co@evil.example/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
+  '22023', 'La dirección pública de la imagen no es de este servidor', 'userinfo sin puerto (host@otro) se rechaza');
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://evil.example@p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
+  '22023', 'La dirección pública de la imagen no es de este servidor', 'userinfo delante del host real se rechaza');
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co:80:81/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
+  '22023', 'La dirección pública de la imagen no es de este servidor', 'puerto doble se rechaza');
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp?x=1')$$,
+  '22023', 'La dirección pública de la imagen no es válida', 'consulta (?) se rechaza');
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp#frag')$$,
+  '22023', 'La dirección pública de la imagen no es válida', 'fragmento (#) se rechaza');
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co/storage/v1/object/public/otro-bucket/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
+  '22023', 'La dirección pública de la imagen no es válida', 'un archivo de otro bucket se rechaza');
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co/storage/v1/object/sign/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
+  '22023', 'La dirección pública de la imagen no es válida', 'una dirección firmada (no pública) se rechaza');
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp/')$$,
+  '22023', 'La dirección pública de la imagen no es válida', 'barra final se rechaza');
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co/STORAGE/V1/OBJECT/PUBLIC/NEWSLETTER-IMAGENES/11111111-1111-1111-1111-111111111111/E1000000-0000-0000-0000-000000000001/A1000000-0000-0000-0000-000000000001.WEBP')$$,
+  '22023', 'La dirección pública de la imagen no es válida', 'la ruta no admite otras mayúsculas');
+select set_config('request.headers', '{"x-forwarded-host":"otra.example, p.supabase.co"}', true);
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
+  '22023', 'La dirección pública de la imagen no es de este servidor', 'x-forwarded-host con comas: manda el PRIMER valor, no uno posterior');
+select set_config('request.headers', '{"x-forwarded-host":"P.Supabase.CO, otra.example"}', true);
+select lives_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$, 'x-forwarded-host con comas y mayúsculas: el primer valor, sin distinguir mayúsculas');
+select set_config('request.headers', '{"host":"p.supabase.co:8443"}', true);
+select lives_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co:8443/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$, 'con puerto en la cabecera y en la dirección');
+select lives_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$, 'y sin puerto en la dirección (el proxy puede quitarlo)');
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co:9999/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
+  '22023', 'La dirección pública de la imagen no es de este servidor', 'otro puerto se rechaza');
+select set_config('request.headers', '{"host":"p.supabase.co:x@evil.example"}', true);
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001',
+   'https://p.supabase.co:x@evil.example/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
+  '22023', 'La dirección pública de la imagen no es de este servidor', 'una cabecera con userinfo no es un host válido aunque la dirección la repita');
+select set_config('request.headers', '{"host":""}', true);
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001',
+   'https:///storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
+  '22023', 'La dirección pública de la imagen no es de este servidor', 'sin host en la cabecera ni en la dirección se rechaza');
+select set_config('request.headers', '{"host":"p.supabase.co/x"}', true);
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
+  '22023', 'La dirección pública de la imagen no es de este servidor', 'una cabecera con barra no es un host válido: se rechaza');
+select set_config('request.headers', '{"host":"p.supabase.co"}', true);
+-- Borde de 500 caracteres de la dirección: con un host de 331 caracteres mide 500 (entra) y con 332, 501 (se rechaza).
+select set_config('request.headers', json_build_object('host', repeat('h', 331))::text, true);
+select lives_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$, 'una dirección de 500 caracteres entra');
+select set_config('request.headers', json_build_object('host', repeat('h', 332))::text, true);
+select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'https://hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
+  '22023', 'La dirección pública de la imagen no es válida', 'una dirección de 501 caracteres se rechaza');
 select set_config('request.headers', '{"host":"p.supabase.co"}', true);
 
 -- Producto no publicado en la tienda: con imagen y de la organización, pero oculto en esta tienda.
@@ -353,6 +411,23 @@ select is(
 select throws_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001',
    'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$,
   '22023', 'La imagen ya no es la principal del producto', 'y la imagen quitada no se puede registrar');
+
+-- Re-registro de la copia tras cambiar la imagen principal: se actualizan `imagen_id` y `actualizada_en` (si no, la limpieza borraría copias en uso).
+reset role;
+update private.newsletter_imagenes set actualizada_en = now() - interval '10 days' where producto_id = 'a1000000-0000-0000-0000-000000000001';
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok($$select public.registrar_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000002', 'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp')$$, 're-registra la copia con la nueva imagen principal');
+reset role;
+select is((select imagen_id from private.newsletter_imagenes where producto_id = 'a1000000-0000-0000-0000-000000000001'), 'b1000000-0000-0000-0000-000000000002'::uuid, 'el re-registro actualiza la imagen original de la que sale la copia');
+select ok((select actualizada_en > now() - interval '1 minute' from private.newsletter_imagenes where producto_id = 'a1000000-0000-0000-0000-000000000001'), 'y refresca la fecha (la limpieza no la tomará por vieja)');
+select is(private.url_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001'), 'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp', 'con la copia vigente de nuevo la URL se usa');
+update private.newsletter_imagenes set actualizada_en = now() where producto_id = 'a1000000-0000-0000-0000-000000000001';
+
+-- El mismo producto en dos tiendas: la copia de una no vale para la otra.
+insert into dominio.empresas (id, organizacion_id, nombre, activa) values ('e1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Tienda B', true);
+select is(private.url_imagen_newsletter('e1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001'), null, 'la copia de la tienda A no se usa en la tienda B (filtro por tienda)');
+select is(private.url_imagen_newsletter('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001'), 'https://p.supabase.co/storage/v1/object/public/newsletter-imagenes/11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/a1000000-0000-0000-0000-000000000001.webp', 'y en la tienda A sigue');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
 -- Archivo borrado del bucket: tampoco se usa la URL.
 reset role;

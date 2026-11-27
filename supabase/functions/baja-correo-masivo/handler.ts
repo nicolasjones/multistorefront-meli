@@ -49,6 +49,10 @@ async function sha256Hex(texto: string): Promise<string> {
   return Array.from(new Uint8Array(resumen), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+// Estado del aviso de cadena inesperada: una vez por instancia. `reiniciarAviso` es solo para las pruebas.
+let avisoEmitido = false
+export function reiniciarAviso(): void { avisoEmitido = false }
+
 export async function manejar(req: Request, { admin, cupo, saltosProxy }: Deps): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: preflightHeaders })
   if (req.method !== 'POST') return response({ error: 'Método no soportado.' }, 405)
@@ -57,7 +61,9 @@ export async function manejar(req: Request, { admin, cupo, saltosProxy }: Deps):
   // casos todos los clientes detrás comparten 60 bajas por hora. Se avisa, sin IP, para fijar BAJA_PROXY_SALTOS (docs/newsletter.md, paso de despliegue).
   const largoCadena = cadenaProxy(req.headers).length
   const ip = ipDelCliente(req.headers, saltosProxy)
-  if (ip === SIN_IP || largoCadena !== saltosProxy + 1) {
+  if ((ip === SIN_IP || largoCadena > saltosProxy + 1) && !avisoEmitido) {
+    // Una sola vez por instancia: el aviso por pedido inundaría el log (cada baja vendría con el mismo texto).
+    avisoEmitido = true
     console.warn(`baja-correo-masivo: x-forwarded-for trae ${largoCadena} valores y se esperaban ${saltosProxy + 1}; ${ip === SIN_IP ? 'las bajas comparten el cupo sin-ip' : 'la IP resuelta puede ser la de un proxy y compartir cupo'}: revisá BAJA_PROXY_SALTOS`)
   }
   // Defensa en profundidad: `cupo` ya no lanza, pero si lo hiciera tampoco se deja pasar sin contar (falla cerrado).

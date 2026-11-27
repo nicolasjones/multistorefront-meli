@@ -238,7 +238,7 @@ declare
   v_ruta text;
   v_cabeceras jsonb := coalesce(nullif(current_setting('request.headers', true), ''), '{}')::jsonb;
   v_host_api text;
-  v_host_url text;
+  v_autoridad text;
 begin
   if p_empresa is null or p_producto is null or p_imagen is null then
     raise exception 'Faltan datos de la imagen' using errcode = '22023';
@@ -258,19 +258,24 @@ begin
   if not exists (select 1 from storage.objects o where o.bucket_id = 'newsletter-imagenes' and o.name = v_ruta) then
     raise exception 'La copia de la imagen no está en el bucket' using errcode = '22023', hint = 'archivo';
   end if;
-  -- Forma de la dirección: https, sin espacios, comillas, signos de menor o mayor, barras invertidas, consulta ni fragmento, hasta 500 caracteres.
-  if p_url is null or char_length(p_url) > 500 or p_url !~ '^https://[^[:space:]"''<>\\?#]+$' then
+  -- Dirección pública: se COMPARA entera contra la esperada, nunca se «parsea» un host de un texto libre. La esperada es
+  -- `https://<host de la API>[:<puerto>]/storage/v1/object/public/newsletter-imagenes/<ruta>`, con el host que pone el proxy (`x-forwarded-host`, el primero de la
+  -- lista, o `host`) y solo con letras, números, puntos y guiones (sin `@`, sin barras ni espacios). Una dirección con userinfo (`https://host:x@otro.com/...`), consulta,
+  -- fragmento o de otro bucket no es igual a la esperada. LÍMITE HONESTO: la cabecera la pone el proxy, no es un secreto del servidor; es defensa en profundidad
+  -- (un Administrador solo podría apuntar a una imagen de su propio correo), no un control fuerte. Se verifica en DEV qué cabecera llega (docs/newsletter.md).
+  if p_url is null or char_length(p_url) > 500 or left(p_url, 8) <> 'https://' then
     raise exception 'La dirección pública de la imagen no es válida' using errcode = '22023', hint = 'url';
   end if;
-  -- El host de la URL es el de la API a la que llamó quien registra (cabecera `x-forwarded-host` o `host` que pone el proxy; Supabase sirve el
-  -- almacenamiento público en el mismo host que la API): no se acepta una dirección de otro dominio. Sin esa cabecera, se rechaza (falla cerrada).
-  v_host_api := lower(regexp_replace(btrim(split_part(coalesce(nullif(v_cabeceras ->> 'x-forwarded-host', ''), v_cabeceras ->> 'host', ''), ',', 1)), ':[0-9]+$', ''));
-  v_host_url := lower(substring(p_url from '^https://([^/:?#]+)'));
-  if v_host_api = '' or v_host_url is distinct from v_host_api then
+  v_host_api := lower(btrim(split_part(coalesce(nullif(v_cabeceras ->> 'x-forwarded-host', ''), v_cabeceras ->> 'host', ''), ',', 1)));
+  if v_host_api !~ '^[a-z0-9.-]+(:[0-9]{1,5})?$' then
     raise exception 'La dirección pública de la imagen no es de este servidor' using errcode = '22023', hint = 'host';
   end if;
-  -- Y termina EXACTAMENTE en la ruta pública del bucket: no se puede registrar otra ruta como imagen del correo.
-  if right(p_url, char_length('/storage/v1/object/public/newsletter-imagenes/' || v_ruta)) is distinct from '/storage/v1/object/public/newsletter-imagenes/' || v_ruta then
+  v_autoridad := lower(substring(p_url from '^https://([^/]*)'));
+  -- (La forma del host ya la fija la cabecera: la autoridad de la dirección debe ser IGUAL a ella, así que no hace falta validarla aparte.)
+  if v_autoridad is null or v_autoridad not in (v_host_api, regexp_replace(v_host_api, ':[0-9]+$', '')) then
+    raise exception 'La dirección pública de la imagen no es de este servidor' using errcode = '22023', hint = 'host';
+  end if;
+  if p_url is distinct from 'https://' || substring(p_url from '^https://([^/]*)') || '/storage/v1/object/public/newsletter-imagenes/' || v_ruta then
     raise exception 'La dirección pública de la imagen no es válida' using errcode = '22023', hint = 'url';
   end if;
 

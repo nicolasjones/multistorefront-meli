@@ -1504,9 +1504,9 @@
     },
     "docs/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
-      "pageHash": "8ab16405fdcd3a4f4f0accfc6a7fb6fc7d90b973dd0116448675cd5aebf5a8d0",
-      "sourceHash": "0260ab25b83391daa0c7c25dfb406f4439ca5f222300fae10f691ae841d32b7e",
-      "sourceAt": "115ffea09",
+      "pageHash": "684afb09622ab2de3890ebf3b884ee7c472ef56b8bfdb7b0ff1cbd04a87b9922",
+      "sourceHash": "ff6d96f779f78114d567565303bbd27bad96f54c52055777c6c4dd4ff450c3df",
+      "sourceAt": "7f5cf1650",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -1520,8 +1520,8 @@
         "supabase/migrations/20270420000400_newsletter_envio.sql",
         "supabase/migrations/20270420000500_newsletter_lote.sql",
         "supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql",
-        "supabase/migrations/20270511000000_cupo_persistente_por_ip_newsletter_y_baja.sql",
-        "supabase/migrations/20270511000100_newsletter_imagenes_publicas.sql",
+        "supabase/migrations/20270513000000_cupo_persistente_por_ip_newsletter_y_baja.sql",
+        "supabase/migrations/20270513000100_newsletter_imagenes_publicas.sql",
         "supabase/functions/baja-correo-masivo",
         "supabase/functions/_shared/ip-cliente.ts",
         "apps/web/src/lib/newsletterImagenes.ts",
@@ -1536,7 +1536,7 @@
         "apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx"
       ],
       "owner": "tecnico",
-      "commit": "115ffea09"
+      "commit": "7f5cf1650"
     },
     "docs/notificaciones-en-panel.md": {
       "title": "Centro de notificaciones en el panel (MSF-378 · F-NOT-02)",
@@ -4640,9 +4640,9 @@
     },
     "docs/tecnico/newsletter.md": {
       "title": "Newsletter de la tienda (MSF-468)",
-      "pageHash": "0ac179d23a2de0df2d64c2486932b98a6c4a93c9641c629e76ce7cbe9357911c",
-      "sourceHash": "b997dd218bd4d6993425fdedd5b45e89a746ff8b237b8972e471ef76461b678c",
-      "sourceAt": "115ffea09",
+      "pageHash": "e2f41583cbb92dcd14a71349cc7a2a73b48a674855943b8b35e5e071c046f3e9",
+      "sourceHash": "2c4e78b2f9adbebae6c53e334cd13ae859b838c86380819cd1b1f2a24ec181d6",
+      "sourceAt": "7f5cf1650",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -4656,8 +4656,8 @@
         "supabase/migrations/20270420000400_newsletter_envio.sql",
         "supabase/migrations/20270420000500_newsletter_lote.sql",
         "supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql",
-        "supabase/migrations/20270511000000_cupo_persistente_por_ip_newsletter_y_baja.sql",
-        "supabase/migrations/20270511000100_newsletter_imagenes_publicas.sql",
+        "supabase/migrations/20270513000000_cupo_persistente_por_ip_newsletter_y_baja.sql",
+        "supabase/migrations/20270513000100_newsletter_imagenes_publicas.sql",
         "supabase/functions/baja-correo-masivo",
         "supabase/functions/_shared/ip-cliente.ts",
         "apps/web/src/lib/newsletterImagenes.ts",
@@ -4668,7 +4668,7 @@
         "design/pantallas/Newsletter.inventory.json"
       ],
       "owner": "tecnico",
-      "commit": "115ffea09"
+      "commit": "7f5cf1650"
     },
     "docs/tecnico/notificaciones-ayuda-y-exportacion-total.md": {
       "title": "Notificaciones, ayuda y exportación total (MSF-224)",
