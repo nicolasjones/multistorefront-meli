@@ -46,7 +46,8 @@ test('todos los flags de firewall-docker-user.sh que usa la doc existen en el sc
     const unido = b.replace(/\\\n\s*/g, ' ');
     for (const linea of unido.split('\n')) {
       if (!linea.includes('firewall-docker-user.sh')) continue;
-      for (const m of linea.matchAll(/(?:^|\s)(--[a-z0-9-]+)/g)) usados.add(m[1]);
+      // Los argumentos entre comillas (el comando de --chequeo) no son flags del script.
+      for (const m of linea.replace(/'[^']*'/g, "''").matchAll(/(?:^|\s)(--[a-z0-9-]+)/g)) usados.add(m[1]);
     }
   }
   assert.ok(usados.size >= 3);
@@ -70,4 +71,10 @@ test('el orden de las acciones: rotar secretos y firewall ANTES de los runners; 
 test('la doc no afirma que los jobs llegan al host o a la tailnet', () => {
   assert.doesNotMatch(doc, /no llegan a `172\.17\.0\.1`/);
   assert.match(doc, /un job \*\*no\*\* llega al host del VPS ni a la tailnet por defecto/);
+});
+
+test('ronda 2: la doc cubre DEPLOY->base por FORWARD, el destino SSH, la falsificación de origen, el DNS y las políticas de rama sobrantes', () => {
+  for (const frase of ['ctorigdstport <puerto-db>', 'entra por FORWARD tras el DNAT', '`VPS_SSH_HOST`', '--puertos-host-deploy 22', '--destinos-tailnet-deploy <ip>:22', 'anti-falsificación', 'ip addr add', '--dns', 'RUNNER_JOBS_DNS',
+    'scram-sha-256', 'prevent_self_review', 'can_admins_bypass', 'retira las políticas de rama que sobren', 'gh secret delete RELEASE_PLEASE_TOKEN', 'ANTES de mergear este PR', 'retirar los runners viejos con root y `docker.sock`', 'DOCKER_CONFIG=/tmp/.docker',
+    '192.0.0.0/24', '198.18.0.0/15', '224.0.0.0/4', 'falla cerrado']) assert.ok(doc.includes(frase), `falta en la doc: ${frase}`);
 });

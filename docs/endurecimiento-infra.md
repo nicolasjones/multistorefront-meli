@@ -77,16 +77,27 @@ Cada caso se prueba con una tabla de entradas que fallan y que pasan y con mutac
 3. IPv6: el script **exige `IPV6=yes`** en `/etc/default/ufw` (los puertos que publica Docker también escuchan en `[::]` y de ese filtrado se ocupa ufw) y replica `DOCKER-USER` con `ip6tables` cuando existe
    (sin las reglas de jobs, que son IPv4: la red de jobs no tiene IPv6). Verificación: `ss -ltn | grep '\[::\]'` y `node scripts/verificar-puertos-externos.mjs --host <ipv6-publica>`.
 
-**Redes de los jobs de CI (revisión C+S del #1238, A-1).** Los contenedores de job corren código de PRs. Por eso **no** usan `docker0`: el supervisor crea una red DEDICADA por pool
-(`platform-runner-jobs-pr` 172.29.250.0/24 y `platform-runner-jobs-deploy` 172.29.251.0/24, subred fija, `com.docker.network.bridge.enable_icc=false`: ningún job habla con otro) y lanza cada job con
-`--network <esa red>`. El firewall las trata aparte (`--subred-jobs-pr`, `--subred-jobs-deploy`; tienen que coincidir con `RUNNER_JOBS_SUBNET_*`):
+**Redes de los jobs de CI (revisión C+S del #1238).** Los contenedores de job corren código de PRs. Por eso **no** usan `docker0`: el supervisor crea una red DEDICADA por pool
+(`platform-runner-jobs-pr` 172.29.250.0/24, puente `br-jobs-pr`, y `platform-runner-jobs-deploy` 172.29.251.0/24, puente `br-jobs-deploy`; subred y NOMBRE DE PUENTE fijos, `com.docker.network.bridge.enable_icc=false`: ningún job
+habla con otro) y lanza cada job con `--network <esa red>` y `--dns` explícitos. Si la red ya existe con otro driver, ICC activo, otro puente u otra subred, el supervisor **falla cerrado** (no la usa). El firewall las trata aparte
+(`--subred-jobs-*`, `--bridge-jobs-*`; tienen que coincidir con `RUNNER_JOBS_SUBNET_*` y `RUNNER_JOBS_BRIDGE_*`):
 
-- a los puertos del host: `deny from <subred>` en ufw. La red de **deploy** recibe solo los puertos de base de datos que migra (`--puertos-db-deploy`, por defecto 7635 y 7636) y luego `deny` del resto;
-- hacia afuera, en `DOCKER-USER`: se DESCARTA todo lo que va a `tailscale0`, a `100.64.0.0/10` (la tailnet), a `169.254.0.0/16` (metadatos del proveedor) y a `10/8`, `172.16/12` y `192.168/16` (la red interna). A
-  los jobs les queda **solo Internet**. Si la base de staging/producción está en OTRO nodo de Tailscale, la red de deploy necesita esa excepción: `--destinos-tailnet-deploy 100.x.y.z`.
+- **Por interfaz, no solo por IP.** Un job es root-equivalente dentro de su red y podría falsificar el origen con una IP de la red de servicios que ufw permite. Por eso en ufw va `deny in on <puente>` (primero, con `ufw insert`) y en
+  `DOCKER-USER` `-i <puente> ! -s <subred> -j DROP` (anti-falsificación) antes que cualquier otra regla de jobs.
+- **Puertos del host.** La red de PR no recibe ninguno. La de **deploy** recibe `--puertos-db-deploy` (por defecto 7635 y 7636) y `--puertos-host-deploy` (para servicios del propio host que NO publica Docker, p. ej. SSH: `22`), y luego `deny`.
+- **Postgres publicado por Docker entra por FORWARD tras el DNAT, no por INPUT** (los `ufw allow` no intervienen): por eso `DOCKER-USER` lleva, ANTES de los DROP de jobs, `-i br-jobs-deploy -s <subred-deploy> -p tcp -m conntrack --ctorigdstport <puerto-db> -j RETURN`
+  para cada `--puertos-db-deploy`. Sin esa regla el deploy no llegaría a la base y fallarían `migraciones-cloud-*` (lo reprodujo QA con iptables real).
+- **Hacia afuera.** Se DESCARTA todo lo que va a `tailscale0` y a `100.64.0.0/10` (la tailnet), `169.254.0.0/16` (metadatos), `10/8`, `172.16/12`, `192.168/16`, `192.0.0.0/24`, `198.18.0.0/15` y `224.0.0.0/4`. A los jobs les queda **solo Internet**.
+  Excepciones de deploy, **acotadas por puerto**: `--destinos-tailnet-deploy 100.x.y.z:puerto[,...]` (una IP sola no vale).
+- **El destino SSH del deploy (`VPS_SSH_HOST`).** Si es el propio host del runner: `--puertos-host-deploy 22`. Si es un nodo de Tailscale: `--destinos-tailnet-deploy <ip>:22` (si no, el DROP a `100.64.0.0/10` lo corta). Si es otra máquina con IP pública
+  no necesita regla.
+- **DNS.** Como se descartan las redes privadas, los jobs usan resolvedores públicos (`--dns`, `RUNNER_JOBS_DNS`, por defecto `1.1.1.1,8.8.8.8`); con un resolvedor privado o de metadatos perderían DNS.
+- **Lo que un job NO puede (declarado).** No alcanza servicios del propio VPS por su IP pública ni por su dominio (el paquete llega al host por INPUT y ufw lo descarta), ni el gateway de su red, ni el supervisor ni el socket de Docker.
+  Todo lo que necesite del host se declara con los flags de arriba.
+- **Autenticación de las bases.** Un PR que caiga en el pool de deploy llega a 7635/7636 (STG/PRD): esos Postgres **tienen que exigir `scram-sha-256`** (`password_encryption` y `pg_hba.conf`) y contraseñas propias (acción 7). El firewall no sustituye a la autenticación.
 
-Consecuencia (y corrección de lo que decía la versión anterior de esta doc): un job **no** llega al host del VPS ni a la tailnet por defecto; el `SUPABASE_DB_URL` de los entornos `migraciones-cloud-*` tiene que apuntar a la IP
-del host por la que el job entra a un puerto que la red de deploy tiene abierto (la IP de Tailscale del VPS, puerto 7635/7636), o a un nodo listado en `--destinos-tailnet-deploy`.
+Consecuencia (y corrección de lo que decía la versión anterior de esta doc): un job **no** llega al host del VPS ni a la tailnet por defecto; el `SUPABASE_DB_URL` de los entornos `migraciones-cloud-*` tiene que apuntar a la IP del host por la que el job
+entra a un puerto de `--puertos-db-deploy` (la IP de Tailscale del VPS, puerto 7635/7636), o a un nodo listado en `--destinos-tailnet-deploy`.
 
 Antes de aplicar, el script **detecta los puertos de sshd** cruzando `sshd -T` (lo que dice `sshd_config`) con los sockets que de verdad escuchan (`ss -ltnp`, procesos `sshd`: con `ssh.socket` en Ubuntu 24.04 pueden
 diferir) y aborta si alguno no está en `--puertos-publicos`.
@@ -96,9 +107,11 @@ diferir) y aborta si alguno no está en `--puertos-publicos`.
 scp infra/vps/firewall-docker-user.sh root@<ip-vps>:/root/
 ssh root@<ip-vps> 'bash /root/firewall-docker-user.sh --interfaz-externa <eth0>'
 # Aplicar (ya dentro del VPS, en una sesión que no vas a cerrar). El rollback queda DESACOPLADO de la sesión (setsid + nohup), así que el comando vuelve enseguida.
-# Cada --chequeo corre al terminar con tope de 20 s (CHEQUEO_TIMEOUT) y, si falla, revierte al instante y cancela el temporizador.
-bash /root/firewall-docker-user.sh --aplicar --interfaz-externa <eth0> \
-  --chequeo 'docker exec <contenedor-kestra> bash -c "echo > /dev/tcp/host.docker.internal/7634"'
+# Cada --chequeo corre al terminar con tope de 20 s (CHEQUEO_TIMEOUT) y, si falla, revierte al instante y cancela el temporizador. Probá las DOS rutas: servicio->host Y
+# deploy->base (el segundo solo existe una vez creada la red de jobs: la primera vez, aplicá sin él y verificalo con «Chequeos de aislamiento»).
+bash /root/firewall-docker-user.sh --aplicar --interfaz-externa <eth0> --puertos-host-deploy 22 \
+  --chequeo 'docker exec <contenedor-kestra> bash -c "echo > /dev/tcp/host.docker.internal/7634"' \
+  --chequeo 'docker run --rm --network platform-runner-jobs-deploy alpine nc -z -w 5 <ip-tailscale-del-vps> 7635'
 # En OTRA sesión SSH, comprobá que entrás y confirmá antes de los 120 s:
 touch /run/firewall-docker-user.confirmado
 ```
@@ -131,6 +144,28 @@ WantedBy=multi-user.target docker.service
 (comprobarlo después de instalar sysbox con `iptables -S DOCKER-USER`). `ufw` persiste solo. **Límite declarado:** entre que Docker publica los puertos al arrancar y corre esta unidad hay una ventana de segundos con
 `DOCKER-USER` sin reglas; el `ufw` activo sigue protegiendo lo que no es de Docker. Para cerrarla del todo hay que cargar las reglas antes de Docker (`Before=docker.service` con la cadena creada por la propia
 unidad), cambio que no se hizo para no arriesgar el arranque de Docker sin poder probarlo en un servidor real.
+
+**Chequeos de aislamiento (runbook; correrlos en el VPS tras aplicar el firewall y de nuevo al recrear los runners).** Cada comando usa la red real de jobs; el resultado esperado va en el comentario:
+
+```bash
+# 1. DEPLOY llega a la base y PR NO (misma IP, mismo puerto)
+docker run --rm --network platform-runner-jobs-deploy alpine nc -vz -w 5 <ip-tailscale-del-vps> 7635    # conecta
+docker run --rm --network platform-runner-jobs-pr     alpine nc -vz -w 5 <ip-tailscale-del-vps> 7635    # FALLA
+docker run --rm --network platform-runner-jobs-deploy alpine nc -vz -w 5 <ip-tailscale-del-vps> 7634    # FALLA (puerto no listado: DEV)
+# 2. El gateway y el host por cualquiera de sus IPs son inalcanzables desde un job
+docker run --rm --network platform-runner-jobs-pr alpine nc -vz -w 5 172.29.250.1 22                    # FALLA
+docker run --rm --network platform-runner-jobs-pr alpine nc -vz -w 5 <ip-publica-del-vps> 22            # FALLA
+# 3. Metadatos del proveedor y otros nodos de la tailnet: inalcanzables
+docker run --rm --network platform-runner-jobs-pr alpine wget -T 5 -qO- http://169.254.169.254/         # FALLA
+docker run --rm --network platform-runner-jobs-pr alpine nc -vz -w 5 <ip-de-otro-nodo-tailscale> 22     # FALLA
+# 4. DNS e Internet siguen funcionando
+docker run --rm --network platform-runner-jobs-pr alpine sh -c 'nslookup github.com && wget -T 10 -qO- https://api.github.com >/dev/null && echo ok'   # ok
+# 5. Falsificar el origen con la IP de un servicio permitido por ufw NO sirve (anti-spoof por puente)
+docker run --rm --cap-add NET_ADMIN --network platform-runner-jobs-pr nicolaka/netshoot sh -c \
+  'ip addr add <ip-de-un-contenedor-de-servicio>/32 dev eth0 && curl -m 5 --interface <ip-de-un-contenedor-de-servicio> http://<ip-tailscale-del-vps>:7634; echo salida=$?'   # no responde
+```
+
+Si el chequeo 1 de DEPLOY no conecta, revisá primero `iptables -S DOCKER-USER | grep ctorigdstport` (tiene que estar el RETURN del puerto antes de los DROP) y `ss -ltn | grep 7635`.
 
 **Qué tiene que seguir funcionando.** Quien necesite Postgres, Studio o Kestra desde afuera entra por Tailscale. Los **jobs** salen solo a Internet (ver arriba). `scripts/migrar-supabase-cloud.mjs` comprueba la conexión
 antes de migrar y, si falla, dice el puerto, enmascara el host en el log desde el principio (`::add-mask::`, el repo es público) y qué revisar (ver MSF-680).
@@ -222,9 +257,9 @@ compartido y los mismos runners (y el mismo contenedor, reutilizado) para PR y p
 | Sin `docker.sock` del host | El job usa su propio daemon con **sysbox** (`RUNNER_RUNTIME`, `sysbox-runc` por defecto); sin sysbox no arranca. `argumentosDockerRun` no admite volúmenes, `--privileged` ni namespaces del host (probado) | Sysbox protege al host, no a los secretos del propio contenedor: por eso el PAT no está ahí |
 | PAT | Solo en el supervisor (archivo 0400). Al contenedor del job le llega únicamente la configuración JIT de ESE runner, que no sirve para nada más | Quien comprometa el supervisor tiene el PAT; el supervisor no ejecuta código de jobs ni recibe entrada de PRs |
 | Un contenedor por job | `docker run --rm` nuevo en cada ciclo, con nombre único: no persisten imágenes, contenedores, procesos, `/home/runner` ni nada escrito como root-equivalente de un job al siguiente | El costo es descargar dependencias en cada job (store propio y vacío por contenedor) |
-| Red de los jobs | Red DEDICADA por pool (`platform-runner-jobs-pr` 172.29.250.0/24, `platform-runner-jobs-deploy` 172.29.251.0/24; subred fija, ICC desactivado); `--network` obligatorio en el `docker run` (probado: nunca `bridge`/`host`). El firewall les deja solo Internet (sin host, sin tailnet, sin metadatos, sin red interna) | Es la parte que **no se pudo probar con un host real**: solo funciona con las reglas de `infra/vps/firewall-docker-user.sh` aplicadas. Mientras no estén, un job alcanza los puertos del host: por eso el firewall va ANTES de activar los runners (ver acciones) |
+| Red de los jobs | Red DEDICADA por pool (`platform-runner-jobs-pr` 172.29.250.0/24 con puente `br-jobs-pr`, `platform-runner-jobs-deploy` 172.29.251.0/24 con `br-jobs-deploy`; subred y puente fijos, ICC desactivado) y `--network` y `--dns` obligatorios en el `docker run` (probado: nunca `bridge`/`host`); si la red existe distinta, el supervisor falla cerrado. El firewall filtra por interfaz y por origen y les deja solo Internet (sin host, sin tailnet, sin metadatos, sin red interna) | Es la parte que **no se pudo probar con un host real**: solo funciona con las reglas de `infra/vps/firewall-docker-user.sh` aplicadas. Mientras no estén, un job alcanza los puertos del host: por eso el firewall va ANTES de activar los runners (ver acciones) |
 | Topes | `--memory`, `--cpus`, `--pids-limit` por contenedor de job (`RUNNER_MEMORY_LIMIT`, `RUNNER_CPU_LIMIT`, `RUNNER_PIDS_LIMIT`) | |
-| Supervisor endurecido | `read_only`, `cap_drop: [ALL]`, `no-new-privileges`, `tmpfs /tmp`; al arrancar elimina los contenedores de jobs huérfanos de su rol y verifica la subred de la red de jobs | Un docker-socket-proxy que solo permita crear/arrancar/borrar contenedores sin `privileged` sería lo siguiente; **no se hizo** (no se puede probar sin un host real y el proxy tiene que filtrar el cuerpo de `containers/create`, que no filtra por defecto) |
+| Supervisor endurecido | `read_only`, `cap_drop: [ALL]`, `no-new-privileges`, `tmpfs /tmp` y `DOCKER_CONFIG=/tmp/.docker` (el cliente de docker necesita un directorio escribible); al arrancar elimina solo los contenedores de jobs de su rol que ya NO corren (los que corren terminan su job; una ranura que falla 5 veces se corta sola y las demás siguen) | Un docker-socket-proxy que solo permita crear/arrancar/borrar contenedores sin `privileged` sería lo siguiente; **no se hizo** (no se puede probar sin un host real). **Tampoco se probó el supervisor con `read_only` + `cap_drop ALL` contra el socket real**: si no conecta al socket, es lo primero a mirar |
 | Pools | `platform-local` + `platform-pr` para PR/CI; `platform-deploy` (nunca `platform-local`) para los jobs con `environment:` y release-please | **No es un límite de confianza frente a un workflow modificado**: en un `pull_request` GitHub usa el workflow del PR, que puede pedir `runs-on` de deploy, y los guards corren desde ese mismo PR. Ver «Control principal» |
 
 **Control principal (frente a un PR malicioso o un workflow modificado).** No son los pools ni `verificar-workflows.mjs` (defensa secundaria y de higiene: avisan de errores, no frenan a un autor
@@ -265,12 +300,13 @@ Cortar jobs en curso: comprobar antes que ninguno esté ocupado (`gh api repos/n
    `echo`). Mejor un PAT de grano fino solo con `Administration: write` sobre este repo, o una GitHub App.
 4. **Construir y levantar el pool de PR** con las etiquetas nuevas, *en paralelo* a los runners viejos (que siguen con `platform-local`): `GH_RUNNER_PAT_FILE=/etc/platform-runner/gh_runner_pat pnpm dev:runner`.
    Comprobar: en GitHub aparecen runners efímeros `automation-platform-pr-*` con `platform-local, platform-pr` mientras corren un job; `docker ps` muestra el supervisor y, durante un job, un contenedor nuevo
-   cada vez (el nombre cambia); `docker network ls` muestra `platform-runner-jobs-pr` con la subred 172.29.250.0/24; `docker exec <contenedor-del-job> id runner` y `docker exec <contenedor-del-job> env | grep -c GH_` da 0; `docker exec <contenedor-del-job> docker ps` funciona sin tocar el daemon del host.
+   cada vez (el nombre cambia); `docker network ls` muestra `platform-runner-jobs-pr` con la subred 172.29.250.0/24 y `ip link show br-jobs-pr` existe; después corré los «Chequeos de aislamiento» del firewall; `docker exec <contenedor-del-job> id runner` y `docker exec <contenedor-del-job> env | grep -c GH_` da 0; `docker exec <contenedor-del-job> docker ps` funciona sin tocar el daemon del host.
 5. **Levantar el pool de deploy**: `GH_RUNNER_PAT_FILE=... pnpm dev:runner:deploy`; debe aparecer con solo `platform-deploy`.
 6. **Fijar las variables de repo** (esto es lo que mueve el tráfico): `gh variable set CI_RUNS_ON_PR --body '["self-hosted","platform-pr"]'` y `gh variable set CI_RUNS_ON_DEPLOY --body '["self-hosted","platform-deploy"]'`.
    Si `CI_RUNS_ON_PESADO` está fijada a runners self-hosted, también debe incluir `platform-pr`.
 7. **Probar**: un PR de prueba corre en `platform-pr`; `env` dentro de un step no muestra el PAT; un workflow_dispatch de `Deploy infraestructura VPS` corre en `platform-deploy`.
-8. **Retirar los runners viejos** (`docker compose -p multistorefront-meli-runner-dev down`) y borrar el volumen `platform-runner-pnpm-store` cuando ningún otro producto lo use.
+8. **Retirar los runners viejos** (con root y `docker.sock`): `docker compose -p multistorefront-meli-runner-dev down` y borrar el volumen `platform-runner-pnpm-store` cuando ningún otro producto lo use. **No dejarlos registrados**: son justo el riesgo que este lote cierra
+   (confirmar con `gh api repos/nicolasjones/multistorefront-meli/actions/runners -q '.runners[] | .name'` que solo quedan los efímeros nuevos).
 
 **Rollback**: volver a `CI_RUNS_ON_PR`/`CI_RUNS_ON_DEPLOY` en `["self-hosted","platform-local"]` (los runners viejos siguen registrados hasta el paso 8). El estado anterior del código está en el commit
 previo a este lote (`infra/runner/` con root y `docker.sock`).
@@ -347,19 +383,20 @@ node scripts/reconciliar-base.mjs --docker supabase_db_multistorefront-meli-supa
 
 ## ACCIONES DE NICOLÁS
 
-Todas requieren actuar en un servidor o en la configuración de GitHub; ninguna la ejecutó el lote. **Orden (importa):** 1, 2 y 3 no tienen riesgo; 4 y 5 (forks y Environments) y 7 (rotar secretos) van **antes** de activar los
+Todas requieren actuar en un servidor o en la configuración de GitHub; ninguna la ejecutó el lote. **Orden (importa):** la 2 (Environment `release`) va antes de mergear este PR a `main` y la 1 antes del primer deploy a `main`; 1, 2 y 3 no tienen riesgo; 4 y 5 (forks y Environments) y 7 (rotar secretos) van **antes** de activar los
 runners (9); 6 (la base alcanzable por Tailscale) va **antes** del firewall (8); y el firewall con las reglas de jobs (8) va **antes** que los runners (9): hasta entonces un job de PR alcanzaría los puertos del host.
 
 1. **Cargar 3 variables nuevas en `VPS_DEPLOY_ENV`** de `deploy-infraestructura-vps-staging` y `-production` (antes del próximo merge a `main`): `KESTRA_BACKUPS_PGDUMP_URL`,
    `RESPALDOS_STORAGE_ACCESS_KEY_ID`, `RESPALDOS_STORAGE_SECRET_ACCESS_KEY`. Valores reales (la URL de pg_dump con la contraseña PROPIA del entorno). Confirmar de paso que ya trae las 14 credenciales
    y las 5 `*_IMAGEN` por digest; el job de deploy rechaza valores por defecto y nombra cada faltante.
-2. **release-please (MSF-680)**, una de las dos:
-   (a) token propio: crear el Environment `release`, restringirlo a `main` y guardar ahí el token (así lo reciben solo los jobs que corren desde `main`; como secret de REPO lo recibiría un workflow de cualquier rama):
+2. **release-please (MSF-680)**, una de las dos. **ANTES de mergear este PR a `main`** (si no, el primer run crea el Environment `release` sin restricciones):
+   (a) token propio: crear el Environment `release`, restringirlo a `main`, guardar ahí el token y **borrar el secret de REPO si existía** (como secret de repo lo recibiría un workflow de cualquier rama):
    ```bash
    R=nicolasjones/multistorefront-meli
    gh api -X PUT "repos/$R/environments/release" -F 'deployment_branch_policy[protected_branches]=false' -F 'deployment_branch_policy[custom_branch_policies]=true'
    gh api -X POST "repos/$R/environments/release/deployment-branch-policies" -f name=main -f type=branch   # 422 si ya existe: es esperable al re-ejecutar
    gh secret set RELEASE_PLEASE_TOKEN --env release                                                  # PAT (o token de GitHub App) con permiso para crear PR
+   gh secret delete RELEASE_PLEASE_TOKEN                                                             # el de REPO, si existía (puede dar 404 si no existe)
    ```
    (b) o habilitar «Allow GitHub Actions to create and approve pull requests». **Antes, leé el valor actual** y conservalo (poner `read` puede romper workflows sin `permissions:` si hoy es `write`):
    ```bash
@@ -370,32 +407,40 @@ runners (9); 6 (la base alcanzable por Tailscale) va **antes** del firewall (8);
    cargar la línea: `gh secret set VPS_SSH_KNOWN_HOSTS --env deploy-infraestructura-vps-staging` (y `-production`).
 4. **Política de aprobación de forks (MSF-703)**: `gh api -X PUT repos/nicolasjones/multistorefront-meli/actions/permissions/fork-pr-contributor-approval -f approval_policy=all_external_contributors`
    (comprobar antes con el mismo `gh api` en GET). **Antes de activar los runners nuevos.** Y no aprobar PRs de externos mientras el repo sea público.
-5. **Environments de deploy restringidos a ramas protegidas (control principal de MSF-704)**. Los de **producción** aceptan SOLO `main`; los de staging, `main` y `dokploy`. **El `PUT` de un Environment puede
-   reiniciar protecciones que no se reenvían (reviewers, wait_timer): leé primero lo que hay y reenviálo.**
+5. **Environments de deploy restringidos a ramas protegidas (control principal de MSF-704)**. Los de **producción** aceptan SOLO `main`; los de staging, `main` y `dokploy`. **El `PUT` de un Environment puede reiniciar
+   protecciones que no se reenvían (reviewers, `wait_timer`, `prevent_self_review`, `can_admins_bypass`): leé primero lo que hay y reenviálo todo.** El script además **retira las políticas de rama que sobren** (un Environment
+   de producción que ya aceptaba `dokploy` la seguiría aceptando). Requiere `jq`.
    ```bash
    R=nicolasjones/multistorefront-meli
    for E in deploy-infraestructura-vps-staging deploy-infraestructura-vps-production migraciones-cloud-staging migraciones-cloud-production \
             publicar-flows-kestra-staging publicar-flows-kestra-production worker-images-production; do
-     echo "== $E (antes)"; gh api "repos/$R/environments/$E" --jq '{wait_timer: .protection_rules, branch_policy: .deployment_branch_policy}'
+     echo "== $E (antes)"; gh api "repos/$R/environments/$E" --jq '{reglas: .protection_rules, ramas: .deployment_branch_policy, admins: .can_admins_bypass}'
      WAIT=$(gh api "repos/$R/environments/$E" --jq '[.protection_rules[]? | select(.type=="wait_timer") | .wait_timer][0] // 0')
      REVIEWERS=$(gh api "repos/$R/environments/$E" --jq '[.protection_rules[]? | select(.type=="required_reviewers") | .reviewers[]? | {type: .type, id: .reviewer.id}]')
-     gh api -X PUT "repos/$R/environments/$E" --input <(jq -n --argjson r "$REVIEWERS" --argjson w "$WAIT" \
-       '{wait_timer: $w, reviewers: $r, deployment_branch_policy: {protected_branches: false, custom_branch_policies: true}}')
+     PREVENT=$(gh api "repos/$R/environments/$E" --jq '[.protection_rules[]? | select(.type=="required_reviewers") | .prevent_self_review][0] // false')
+     BYPASS=$(gh api "repos/$R/environments/$E" --jq '.can_admins_bypass')
+     gh api -X PUT "repos/$R/environments/$E" --input <(jq -n --argjson r "$REVIEWERS" --argjson w "$WAIT" --argjson p "$PREVENT" --argjson b "$BYPASS" \
+       '{wait_timer: $w, prevent_self_review: $p, reviewers: $r, can_admins_bypass: $b, deployment_branch_policy: {protected_branches: false, custom_branch_policies: true}}')
      case "$E" in *-production) RAMAS="main" ;; *) RAMAS="main dokploy" ;; esac
+     # retirar las políticas de rama que no estén en RAMAS (p. ej. `dokploy` en producción)
+     for ID_NOMBRE in $(gh api "repos/$R/environments/$E/deployment-branch-policies" --jq '.branch_policies[] | "\(.id):\(.name)"'); do
+       case " $RAMAS " in *" ${ID_NOMBRE#*:} "*) ;; *) gh api -X DELETE "repos/$R/environments/$E/deployment-branch-policies/${ID_NOMBRE%%:*}" ;; esac
+     done
      for B in $RAMAS; do gh api -X POST "repos/$R/environments/$E/deployment-branch-policies" -f name="$B" -f type=branch; done   # 422 si ya existía: esperable
-     echo "== $E (después)"; gh api "repos/$R/environments/$E" --jq '{protection_rules: .protection_rules, branch_policy: .deployment_branch_policy}'
+     echo "== $E (después)"; gh api "repos/$R/environments/$E" --jq '{reglas: .protection_rules, ramas: .deployment_branch_policy, admins: .can_admins_bypass}'; gh api "repos/$R/environments/$E/deployment-branch-policies" --jq '[.branch_policies[].name]'
    done
    ```
-   Así un job de PR que declare ese `environment:` no recibe sus secretos aunque su workflow pida el pool de deploy. Comparar el «antes» y el «después» de cada Environment: los reviewers y el `wait_timer` tienen que seguir iguales.
+   Así un job de PR que declare ese `environment:` no recibe sus secretos aunque su workflow pida el pool de deploy. Comparar el «antes» y el «después» de cada Environment: reviewers, `wait_timer`, `prevent_self_review` y `can_admins_bypass` tienen que seguir iguales y
+   las ramas de producción tienen que ser solo `["main"]`.
 6. **`SUPABASE_DB_URL` de los Environments `migraciones-cloud-staging` y `-production`**: apuntar a la IP de Tailscale del VPS y publicar Postgres también en esa IP (`100.x.y.z:7635`) **antes** del firewall (8)
    y de los runners (9). Comando: `gh secret set SUPABASE_DB_URL --env migraciones-cloud-staging` (pegar el valor por stdin; no por argumento). Recordá que los jobs de deploy solo alcanzan los puertos de base
-   (`--puertos-db-deploy`) y los nodos de `--destinos-tailnet-deploy`.
+   (`--puertos-db-deploy`), los de `--puertos-host-deploy` (p. ej. el 22 si el destino SSH es el propio host) y los `ip:puerto` de `--destinos-tailnet-deploy` (p. ej. el 22 de un nodo de Tailscale).
 7. **Rotar los secretos de DEV, STG y PRD (MSF-649)** con «Rotar los secretos de un entorno» (congelando los deploys). Primero verificar si STG y PRD usan los valores por defecto
-   (`docker inspect ... | node scripts/verificar-secretos-por-defecto.mjs --archivo -`). **Antes de instalar los runners:** hasta que el firewall con las redes de jobs esté aplicado, un job de PR llega a esas bases.
+   (`docker inspect ... | node scripts/verificar-secretos-por-defecto.mjs --archivo -`). **Y exigir `scram-sha-256` en los Postgres de STG/PRD** (`password_encryption = scram-sha-256` y `pg_hba.conf`): un PR que caiga en el pool de deploy llega a 7635/7636 y solo la autenticación lo frena. **Antes de instalar los runners:** hasta que el firewall con las redes de jobs esté aplicado, un job de PR llega a esas bases.
 8. **Firewall (MSF-648)**, en el VPS y **solo con la 6 hecha**: los comandos de «Firewall (en el VPS, como root)» (con `--chequeo` de la conectividad contenedor-host) y la unidad systemd. Antes de aplicar, `ss -ltn` y
    `sshd -T | grep ^port` para ver qué escucha, e `IPV6=yes` en `/etc/default/ufw`. Después, desde fuera de la VPN: `node scripts/verificar-puertos-externos.mjs --host <ip-publica>` (y con la IPv6). En Dokploy,
    quitar los «Published Ports» de los servicios de Supabase y mover el panel (3000) detrás de Tailscale o de TLS con autenticación.
-9. **Runners (MSF-703/704)**: seguir «Recrear los runners (runbook)» (instalar sysbox, archivo del PAT, `pnpm dev:runner`, `pnpm dev:runner:deploy`, variables `CI_RUNS_ON_PR` y `CI_RUNS_ON_DEPLOY`). Solo con 4, 5, 7 y 8 hechos.
+9. **Runners (MSF-703/704)**: seguir «Recrear los runners (runbook)» (instalar sysbox, archivo del PAT, `pnpm dev:runner`, `pnpm dev:runner:deploy`, variables `CI_RUNS_ON_PR` y `CI_RUNS_ON_DEPLOY`, los «Chequeos de aislamiento» y **retirar los runners viejos con root y `docker.sock`**). Solo con 4, 5, 7 y 8 hechos.
 10. **Base DEV (MSF-653/658/671/915)**: correr `node scripts/reconciliar-base.mjs --docker <contenedor-db-dev>` en VPS2 y pasarle el informe a quien decida las filas sin equivalente; después, cuando el cron aplique
     `20270514000000`, volver a correrlo (el ACL debe dar OK); si hace falta antes, `--aplicar --confirmo`. Borrar `Org T019` con el procedimiento del runbook.
 11. **Modo estricto de dev**: cuando el `.env.dev` esté completo y sin valores por defecto, definir `VPS_ESTRICTO=1` (ver «Pasar dev a modo estricto» en `docs/deployment.md`).
