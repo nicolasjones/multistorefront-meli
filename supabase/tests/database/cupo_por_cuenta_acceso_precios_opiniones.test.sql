@@ -5,7 +5,7 @@
 -- persistido (fila en limite_pedidos_publicos) y que `precios` ya no gasta el cupo de `acceso`.
 begin;
 
-select plan(26);
+select plan(27);
 
 insert into organizaciones (id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
 insert into auth.users (id, email) values
@@ -32,6 +32,12 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated')::text, true);
   set local role authenticated;
 end $$;
+
+-- La purga por `ventana` de cada llamada usa un índice cuya primera columna es `ventana`.
+select ok(
+  exists (select 1 from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = i.indkey[0]
+           where i.indrelid = 'public.limite_pedidos_publicos'::regclass and a.attname = 'ventana'),
+  'hay un índice sobre limite_pedidos_publicos que empieza por ventana (la purga no recorre la tabla)');
 
 -- Los topes reales.
 select is(private.limite_acceso_cliente_por_minuto(), 240, 'el cupo real de acceso es de 240 llamadas por minuto y cuenta');

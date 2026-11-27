@@ -21,9 +21,16 @@
 -- Cuerpos de partida: los vigentes (20261211100200 con `public.clientes` ya trasladada a `dominio.clientes` por 20270418000401, 20270507000200 y 20270419000000). `acceso` y `precios` pasan de `stable` a `volatile` (escriben el contador).
 -- Mismas firmas y grants (`create or replace`: solo `authenticated`).
 --
+-- Purga: `registrar_pedido_publico` borra por `ventana` en cada llamada (acá corre dos veces por carga de la tienda con sesión). Ese `delete` usa el índice
+-- `limite_pedidos_publicos_ventana_idx` (20261203110300); se declara de nuevo con `if not exists` para que esta migración no dependa de que siga existiendo.
+--
 -- Esquemas (Principio VII): sin tablas nuevas. Migración aditiva. Reversión (migración posterior): restaurar las tres funciones a los cuerpos de
--- 20261211100200 (acceso), 20270507000200 (precios) y 20270419000000 (opiniones); después
+-- 20261211100200 (acceso; OJO: ese cuerpo nombra `public.clientes`, que 20270418000401 trasladó a `dominio.clientes`: al restaurarlo hay que reemplazar
+-- `public.clientes` por `dominio.clientes` en sus dos consultas), 20270507000200 (precios) y 20270419000000 (opiniones); el índice de la ventana NO se quita (es de 20261203110300); después
 -- `drop function private.acceso_cliente_resuelto(text); drop function private.limite_acceso_cliente_por_minuto(); drop function private.limite_precios_cliente_por_minuto();`.
+
+create index if not exists limite_pedidos_publicos_ventana_idx
+  on public.limite_pedidos_publicos (ventana);
 
 create or replace function private.limite_acceso_cliente_por_minuto()
 returns integer language sql immutable set search_path = '' as $$ select 240; $$;
