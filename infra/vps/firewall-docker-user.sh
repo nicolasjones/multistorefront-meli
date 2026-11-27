@@ -7,12 +7,14 @@
 #      subredes de los SERVICIOS de Docker (Kestra, Superset...) hacia lo que usan por host.docker.internal (Postgres, Storage, SMTP...).
 #      Las redes de los JOBS de CI (código de PRs) se EXCLUYEN: `deny in on <puente de jobs>` va PRIMERO (ufw insert) y se filtra por la INTERFAZ de entrada,
 #      no solo por IP (un job es root-equivalente en su red y puede falsificar el origen): ningún job alcanza los puertos del host (revisión C+S del #1238).
-#      Solo la red de jobs de DEPLOY recibe los puertos que migra/usa (--puertos-db-deploy, --puertos-host-deploy).
+#      Solo la red de jobs de DEPLOY recibe los puertos que migra/usa (--puertos-db-deploy, --puertos-host-deploy). El orden de las reglas importa y se
+#      arma con `ufw prepend` en orden inverso (con ufw sin reglas `ufw insert N` NO sirve: verificado con ufw real) y se VERIFICA al terminar
+#      (`ufw status numbered`: ningún allow de deploy puede quedar debajo de un deny de su misma red; si no, se revierte).
 #   2. DOCKER-USER (puertos publicados por Docker y tráfico reenviado, tras el DNAT): por el puerto ORIGINAL (`conntrack --ctorigdstport`) y por CADA
 #      interfaz externa. De las redes de jobs se descarta todo origen que no sea su subred (anti-falsificación, `-i <puente> ! -s <subred>`) y se les
 #      DENIEGA salir hacia tailscale0, 100.64.0.0/10 (la tailnet), 169.254.0.0/16 (metadatos), 10/8, 172.16/12, 192.168/16, 192.0.0.0/24, 198.18.0.0/15 y
 #      224.0.0.0/4: solo Internet. La red de DEPLOY tiene excepciones puntuales: los puertos de base de datos que Docker publica (FORWARD tras el DNAT, por
-#      `--ctorigdstport`) y los destinos `ip:puerto` de la tailnet que se indiquen. La cadena se reemplaza de forma ATÓMICA con
+#      `--ctorigdst <ip-db>` + `--ctorigdstport`, SOLO hacia esa IP: --ip-db-deploy es obligatorio) y los destinos `ip:puerto` de la tailnet que se indiquen. La cadena se reemplaza de forma ATÓMICA con
 #      `iptables-restore --noflush` (nunca queda vacía ni a medias).
 #   3. IPv6: el filtrado v6 de los puertos que publica docker-proxy depende de ufw (IPV6=yes en /etc/default/ufw, que el script EXIGE); DOCKER-USER se
 #      replica con ip6tables si existe (sin las reglas de jobs, que son IPv4: la red de jobs no tiene IPv6).
@@ -30,6 +32,7 @@
 # ADVERTENCIAS DE USO:
 #   - `--chequeo` se ejecuta con `bash -c` como root: es un `eval` escrito por el OPERADOR. Nunca le pases datos de terceros; ningún workflow ni script
 #     del repo lo usa.
+#   - `--puertos-host-deploy` abre el puerto en TODAS las IPs locales del host (la regla de ufw no acota el destino): solo para puertos que querés ofrecer así.
 #   - Un job NO alcanza servicios del propio VPS por su IP pública ni por su dominio (el paquete llega al host por INPUT y se descarta): lo que necesite
 #     del host tiene que declararse (--puertos-db-deploy, --puertos-host-deploy). El destino SSH del deploy: propio host -> --puertos-host-deploy 22;
 #     nodo de Tailscale -> --destinos-tailnet-deploy <ip>:22; otra máquina con IP pública no necesita regla.
@@ -41,7 +44,7 @@
 #          [--puertos-publicos 22,80,443] [--subredes-docker 172.16.0.0/12]
 #          [--puertos-host-desde-docker 7634,7635,7636,9300,9301,9302,587,25,8098]
 #          [--subred-jobs-pr 172.29.250.0/24] [--subred-jobs-deploy 172.29.251.0/24] [--bridge-jobs-pr br-jobs-pr] [--bridge-jobs-deploy br-jobs-deploy]
-#          [--puertos-db-deploy 7635,7636] [--puertos-host-deploy 22] [--destinos-tailnet-deploy 100.64.0.10:5432[,ip:puerto...]]
+#          --ip-db-deploy <ip-del-postgres-publicado> [--puertos-db-deploy 7635,7636] [--puertos-host-deploy 22] [--destinos-tailnet-deploy 100.64.0.10:5432[,ip:puerto...]]
 #          [--chequeo '<comando>']... [--rollback-segundos 120] [--sin-rollback]
 # --sin-rollback (solo con --aplicar) es para la unidad systemd que reaplica las reglas al arrancar: sin rollback ni confirmación.
 # Variables de prueba: IPTABLES, IP6TABLES, IPTABLES_SAVE, IP6TABLES_SAVE, IPTABLES_RESTORE, IP6TABLES_RESTORE, UFW, SSHD, SS, UFW_DIR, UFW_DEFAULT,
@@ -73,6 +76,7 @@ subred_jobs_pr="172.29.250.0/24"
 subred_jobs_deploy="172.29.251.0/24"
 bridge_jobs_pr="br-jobs-pr"
 bridge_jobs_deploy="br-jobs-deploy"
+ip_db_deploy=""
 puertos_db_deploy="7635,7636"
 puertos_host_deploy=""
 destinos_tailnet_deploy=""
@@ -92,13 +96,14 @@ while [ $# -gt 0 ]; do
     --subred-jobs-deploy) subred_jobs_deploy="${2:-}"; shift 2 ;;
     --bridge-jobs-pr) bridge_jobs_pr="${2:-}"; shift 2 ;;
     --bridge-jobs-deploy) bridge_jobs_deploy="${2:-}"; shift 2 ;;
+    --ip-db-deploy) ip_db_deploy="${2:-}"; shift 2 ;;
     --puertos-db-deploy) puertos_db_deploy="${2:-}"; shift 2 ;;
     --puertos-host-deploy) puertos_host_deploy="${2:-}"; shift 2 ;;
     --destinos-tailnet-deploy) destinos_tailnet_deploy="${2:-}"; shift 2 ;;
     --chequeo) chequeos+=("${2:-}"); shift 2 ;;
     --rollback-segundos) rollback="${2:-}"; shift 2 ;;
     --sin-rollback) sin_rollback=1; shift ;;
-    -h|--help) sed -n '2,60p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,64p' "$0"; exit 0 ;;
     *) echo "Argumento desconocido: $1" >&2; exit 2 ;;
   esac
 done
@@ -137,6 +142,16 @@ puente_valido() { nombre_valido "$1" && [ "${#1}" -le 15 ]; }
 puente_valido "$bridge_jobs_pr" || error "--bridge-jobs-pr: nombre de interfaz inválido (hasta 15 caracteres)"
 puente_valido "$bridge_jobs_deploy" || error "--bridge-jobs-deploy: nombre de interfaz inválido (hasta 15 caracteres)"
 [ "$bridge_jobs_pr" != "$bridge_jobs_deploy" ] || error "los puentes de jobs de PR y de deploy tienen que ser distintos"
+# La IP del Postgres publicado: OBLIGATORIA. Sin ella la excepción de base de datos valdría para CUALQUIER destino con ese puerto (otro nodo de la tailnet o de la red
+# privada). Una sola IPv4 de unicast: sin rangos (/), sin 0.0.0.0, sin loopback ni multicast/reservadas.
+ip_valida() {
+  local ip="$1" o
+  [[ "$ip" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]] || return 1
+  for o in "${BASH_REMATCH[@]:1}"; do [ "$((10#$o))" -le 255 ] || return 1; done
+  [ "$((10#${BASH_REMATCH[1]}))" -ne 0 ] && [ "$((10#${BASH_REMATCH[1]}))" -ne 127 ] && [ "$((10#${BASH_REMATCH[1]}))" -lt 224 ]
+}
+[ -n "$ip_db_deploy" ] || error "falta --ip-db-deploy <ip>: la IP del Postgres publicado (sin ella la excepción de base valdría para cualquier destino)"
+ip_valida "$ip_db_deploy" || error "--ip-db-deploy debe ser UNA IPv4 de unicast (sin rangos, sin 0.0.0.0, sin loopback ni multicast)"
 lista_destinos=()
 if [ -n "$destinos_tailnet_deploy" ]; then
   IFS=',' read -r -a lista_destinos <<< "$destinos_tailnet_deploy"
@@ -181,14 +196,19 @@ reglas_docker_user() {
   echo ":DOCKER-USER - [0:0]"
   echo "-F DOCKER-USER"
   echo "-A DOCKER-USER -m conntrack --ctstate RELATED,ESTABLISHED -j RETURN"
+  if [ "$familia" = 6 ]; then
+    # Las redes de jobs no tienen IPv6: nada que venga de esos puentes sale por v6.
+    echo "-A DOCKER-USER -i $bridge_jobs_pr -j DROP"
+    echo "-A DOCKER-USER -i $bridge_jobs_deploy -j DROP"
+  fi
   if [ "$familia" = 4 ]; then
     # Redes de JOBS (código de PRs). 1) Anti-falsificación: por el puente solo sale tráfico con el origen de su subred (un job es root en su red y
     # podría usar una IP de la red de servicios que ufw permite). 2) Excepciones puntuales de DEPLOY. 3) Solo Internet: nada hacia la tailnet, los
     # metadatos del proveedor ni la red interna.
     echo "-A DOCKER-USER -i $bridge_jobs_pr ! -s $subred_jobs_pr -j DROP"
     echo "-A DOCKER-USER -i $bridge_jobs_deploy ! -s $subred_jobs_deploy -j DROP"
-    # Postgres publicado por Docker entra por FORWARD tras el DNAT (no por INPUT): se permite por el puerto ORIGINAL de destino.
-    for p in "${lista_db_deploy[@]}"; do echo "-A DOCKER-USER -i $bridge_jobs_deploy -s $subred_jobs_deploy -p tcp -m conntrack --ctorigdstport $p -j RETURN"; done
+    # Postgres publicado por Docker entra por FORWARD tras el DNAT (no por INPUT): se permite por la IP y el puerto ORIGINALES de destino (solo ESE Postgres).
+    for p in "${lista_db_deploy[@]}"; do echo "-A DOCKER-USER -i $bridge_jobs_deploy -s $subred_jobs_deploy -p tcp -m conntrack --ctorigdst $ip_db_deploy --ctorigdstport $p -j RETURN"; done
     for d in "${lista_destinos[@]}"; do echo "-A DOCKER-USER -i $bridge_jobs_deploy -s $subred_jobs_deploy -d ${d%%:*} -p tcp --dport ${d#*:} -o $tailscale -j RETURN"; done
     for b in "$bridge_jobs_pr" "$bridge_jobs_deploy"; do
       echo "-A DOCKER-USER -i $b -o $tailscale -j DROP"
@@ -207,20 +227,43 @@ reglas_docker_user() {
   echo "COMMIT"
 }
 
-# Reglas de ufw en el orden en que se evalúan. `insert N` deja las de las redes de jobs PRIMERO (antes de cualquier allow amplio) y por INTERFAZ de
-# entrada (el puente de cada red): filtrar solo por IP de origen se evade falsificándola.
-ufw_reglas() {
-  local n=1 p
-  echo "$UFW insert $n deny in on $bridge_jobs_pr"; n=$((n + 1))
-  for p in "${lista_db_deploy[@]}" "${lista_host_deploy[@]}"; do echo "$UFW insert $n allow in on $bridge_jobs_deploy to any port $p proto tcp"; n=$((n + 1)); done
-  echo "$UFW insert $n deny in on $bridge_jobs_deploy"
+# Reglas de ufw de las redes de jobs en el orden FINAL en que se evalúan (de arriba hacia abajo): deny de PR, allow de deploy, deny de deploy. Van por INTERFAZ de entrada (el
+# puente de cada red): filtrar solo por IP de origen se evade falsificándola. Se aplican con `ufw prepend` en orden INVERSO: con ufw sin reglas `ufw insert N` no sirve
+# («Invalid position», y los siguientes quedan en desorden: verificado con ufw real), mientras que `prepend` funciona igual con la lista vacía o llena.
+ufw_reglas_jobs() {
+  local p
+  echo "deny in on $bridge_jobs_pr"
+  for p in "${lista_db_deploy[@]}" "${lista_host_deploy[@]}"; do echo "allow in on $bridge_jobs_deploy to any port $p proto tcp"; done
+  echo "deny in on $bridge_jobs_deploy"
+}
+
+# Verificación de ORDEN al terminar (`ufw status numbered`, solo las reglas IPv4): el deny de PR tiene que estar ARRIBA de todo allow, y ningún allow del puente de deploy
+# puede quedar debajo del deny de ese mismo puente (quedaría inerte). Devuelve 0 si el orden es correcto.
+verificar_orden_ufw() {
+  "$UFW" status numbered 2>/dev/null | awk -v pr="$bridge_jobs_pr" -v dep="$bridge_jobs_deploy" '
+    /^\[ *[0-9]+\]/ && $0 !~ /\(v6\)/ {
+      match($0, /\[ *[0-9]+\]/); n = substr($0, RSTART + 1, RLENGTH - 2) + 0
+      if ($0 ~ ("on " pr " ") && $0 ~ /DENY IN/) { denypr = n }
+      if ($0 ~ ("on " dep " ") && $0 ~ /DENY IN/) { denydep = n }
+      if ($0 ~ ("on " dep " ") && $0 ~ /ALLOW IN/) { if (n > maxallowdep) maxallowdep = n }
+      if ($0 ~ /ALLOW IN/ && (minallow == 0 || n < minallow)) { minallow = n }
+    }
+    END {
+      if (denypr == 0 || denydep == 0) { print "falta el deny de una red de jobs en ufw" > "/dev/stderr"; exit 1 }
+      if (minallow != 0 && denypr > minallow) { print "el deny de la red de PR quedó DEBAJO de un allow (" denypr " > " minallow ")" > "/dev/stderr"; exit 1 }
+      if (maxallowdep != 0 && maxallowdep > denydep) { print "un allow de deploy quedó debajo del deny de su red (" maxallowdep " > " denydep ")" > "/dev/stderr"; exit 1 }
+      exit 0
+    }'
 }
 
 plan() {
-  echo "# ufw (tráfico del host). Primero las redes de jobs; después lo demás"
+  echo "# ufw (tráfico del host). Las redes de jobs con \`ufw prepend\` en orden inverso: el resultado, de arriba abajo, es deny PR, allow deploy..., deny deploy; después lo demás"
   echo "ufw default deny incoming"
   echo "ufw default allow outgoing"
-  ufw_reglas | sed "s#^$UFW #ufw #"
+  local -a jobs=()
+  mapfile -t jobs < <(ufw_reglas_jobs)
+  local k
+  for ((k=${#jobs[@]}-1; k>=0; k--)); do echo "ufw prepend ${jobs[$k]}"; done
   for p in "${lista_publicos[@]}"; do echo "ufw allow $p/tcp"; done
   echo "ufw allow in on $tailscale"
   # Los contenedores de los SERVICIOS llegan al host (host.docker.internal) por br-*: sin estas reglas `deny incoming` los corta.
@@ -228,20 +271,19 @@ plan() {
   echo "ufw --force enable"
   echo "# DOCKER-USER (IPv4), reemplazo atómico: iptables-restore --noflush"
   reglas_docker_user 4
-  echo "# DOCKER-USER (IPv6), si ip6tables existe: ip6tables-restore --noflush (sin las reglas de jobs, que son IPv4)"
+  echo "# DOCKER-USER (IPv6), si ip6tables existe: ip6tables-restore --noflush (los puentes de jobs solo descartan: no tienen IPv6)"
 }
 
 ejecutar_ufw() {
   "$UFW" default deny incoming
   "$UFW" default allow outgoing
-  local linea
-  local -a partes
-  while IFS= read -r linea; do
-    # Las líneas las genera ufw_reglas con valores ya validados. `ufw insert N` falla con «Invalid position» si todavía no hay reglas (verificado con
-    # ufw real en un contenedor descartable): en ese caso se agrega la regla al final, que con la lista vacía da el mismo orden.
-    read -r -a partes <<< "$linea"
-    "${partes[@]}" || "${partes[0]}" "${partes[@]:3}"
-  done < <(ufw_reglas)
+  local -a jobs=() partes=()
+  local k
+  mapfile -t jobs < <(ufw_reglas_jobs)
+  for ((k=${#jobs[@]}-1; k>=0; k--)); do
+    read -r -a partes <<< "${jobs[$k]}"
+    "$UFW" prepend "${partes[@]}"
+  done
   for p in "${lista_publicos[@]}"; do "$UFW" allow "$p/tcp"; done
   "$UFW" allow in on "$tailscale"
   for s in "${lista_subredes[@]}"; do for p in "${lista_docker[@]}"; do "$UFW" allow from "$s" to any port "$p" proto tcp; done; done
@@ -249,7 +291,7 @@ ejecutar_ufw() {
 }
 
 if [ "$aplicar" = 0 ]; then
-  echo "# Plan (no se ejecutó nada). Externas: $externas · Tailscale: $tailscale · públicos: $publicos · servicios Docker→host: $subredes_docker puertos $puertos_docker · jobs PR: $subred_jobs_pr ($bridge_jobs_pr) · jobs deploy: $subred_jobs_deploy ($bridge_jobs_deploy; DB: $puertos_db_deploy; host: ${puertos_host_deploy:-ninguno})"
+  echo "# Plan (no se ejecutó nada). Externas: $externas · Tailscale: $tailscale · públicos: $publicos · servicios Docker→host: $subredes_docker puertos $puertos_docker · jobs PR: $subred_jobs_pr ($bridge_jobs_pr) · jobs deploy: $subred_jobs_deploy ($bridge_jobs_deploy; DB: $ip_db_deploy:$puertos_db_deploy; host: ${puertos_host_deploy:-ninguno})"
   plan
   echo "# Para aplicarlo con rollback automático: $0 --aplicar"
   exit 0
@@ -300,6 +342,11 @@ if [ "$sin_rollback" = 0 ]; then
 fi
 
 ejecutar_ufw
+if ! verificar_orden_ufw; then
+  echo "FALLÓ la verificación del orden de las reglas de ufw: se revierte" >&2
+  revertir_ahora
+  exit 1
+fi
 reglas_docker_user 4 | "$IPTABLES_RESTORE" --noflush
 if [ "$tiene_ip6" = 1 ]; then
   reglas_docker_user 6 | "$IP6TABLES_RESTORE" --noflush || echo "AVISO: no pude aplicar DOCKER-USER en IPv6." >&2

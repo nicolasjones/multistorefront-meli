@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'infra', 'vps', 'firewall-docker-user.sh');
 
-async function entorno({ ufwActivo = false, sshd = 'port 22', ss = '', ipv6 = 'IPV6=yes', sleepFalso = false, confirmaEnSleep = false, insertFalla = false } = {}) {
+async function entorno({ ufwActivo = false, sshd = 'port 22', ss = '', ipv6 = 'IPV6=yes', sleepFalso = false, confirmaEnSleep = false, ordenMalo = false } = {}) {
   const dir = await mkdtemp(path.join(tmpdir(), 'fw-'));
   const bin = path.join(dir, 'bin');
   await mkdir(bin);
@@ -31,8 +31,43 @@ async function entorno({ ufwActivo = false, sshd = 'port 22', ss = '', ipv6 = 'I
   await falso('ip6tables-save', 'echo "*filter"; echo ":DOCKER-USER - [0:0]"; echo "-A DOCKER-USER -j RETURN"; echo "COMMIT"');
   await falso('iptables-restore', `cat >> "${registro}"`);
   await falso('ip6tables-restore', `cat >> "${registro}"`);
-  // ufw falso: `allow` escribe en el directorio de ufw (como el real), `status` informa el estado.
-  await falso('ufw', `case "$1" in status) echo "Status: ${ufwActivo ? 'active' : 'inactive'}";; insert) ${insertFalla ? 'echo "ERROR: Invalid position" >&2; exit 1' : `echo "$*" >> "${ufwDir}/user.rules"`};; allow|default|deny) echo "$*" >> "${ufwDir}/user.rules";; esac`);
+  // ufw falso con ESTADO, como el real: `prepend` inserta arriba (también con la lista vacía), `allow`/`deny` agregan al final y `status numbered` imprime las reglas numeradas
+  // con el formato real (con duplicados `(v6)`). `ordenMalo` simula el desorden que reprodujo QA (las reglas de jobs quedan al revés).
+  const estado = path.join(dir, 'ufw-estado.json');
+  await writeFile(estado, '[]');
+  await writeFile(path.join(bin, 'ufw'), `#!/usr/bin/env node
+const fs = require('fs');
+const a = process.argv.slice(2);
+fs.appendFileSync(${JSON.stringify(registro)}, 'ufw ' + a.join(' ') + '\\n');
+const estado = ${JSON.stringify(estado)};
+const reglas = JSON.parse(fs.readFileSync(estado, 'utf8'));
+const guardar = () => fs.writeFileSync(estado, JSON.stringify(reglas));
+const descripcion = (r) => {
+  const i = r.indexOf(' on ');
+  const accion = r[0].toUpperCase() + ' IN';
+  const iface = r.includes('on') ? r[r.indexOf('on') + 1] : null;
+  const puerto = r.includes('port') ? r[r.indexOf('port') + 1] + '/tcp' : (/^[0-9]+\\/tcp$/.test(r[1] || '') ? r[1] : null);
+  const origen = r.includes('from') ? r[r.indexOf('from') + 1] : 'Anywhere';
+  return (puerto || 'Anywhere') + (iface ? ' on ' + iface : '') + '  ' + accion + '  ' + origen;
+};
+const cmd = a[0];
+if (cmd === 'status') {
+  if (a[1] === 'numbered') {
+    console.log('Status: ${ufwActivo ? 'active' : 'inactive'}\\n\\n     To                         Action      From');
+    reglas.forEach((r, n) => console.log('[' + String(n + 1).padStart(2) + '] ' + descripcion(r)));
+    reglas.forEach((r, n) => console.log('[' + String(reglas.length + n + 1).padStart(2) + '] ' + descripcion(r).replace('  ', ' (v6)  ').replace(/Anywhere$/, 'Anywhere (v6)')));
+  } else console.log('Status: ${ufwActivo ? 'active' : 'inactive'}');
+} else if (cmd === 'prepend') {
+  ${ordenMalo ? 'reglas.push(a.slice(1))' : 'reglas.unshift(a.slice(1))'}; guardar();
+  fs.appendFileSync(${JSON.stringify(path.join(ufwDir, 'user.rules'))}, a.join(' ') + '\\n');
+} else if (cmd === 'allow' || cmd === 'deny') {
+  reglas.push(a); guardar();
+  fs.appendFileSync(${JSON.stringify(path.join(ufwDir, 'user.rules'))}, a.join(' ') + '\\n');
+} else if (cmd === 'default') {
+  fs.appendFileSync(${JSON.stringify(path.join(ufwDir, 'user.rules'))}, a.join(' ') + '\\n');
+}
+`);
+  await chmod(path.join(bin, 'ufw'), 0o755);
   // id, ip y sshd son de solo lectura: no se registran (el registro mide lo que el script CAMBIA).
   const silencioso = async (nombre, cuerpo) => { await writeFile(path.join(bin, nombre), `#!/bin/sh\n${cuerpo}\n`); await chmod(path.join(bin, nombre), 0o755); };
   await silencioso('id', 'echo 0');
@@ -40,14 +75,18 @@ async function entorno({ ufwActivo = false, sshd = 'port 22', ss = '', ipv6 = 'I
   await silencioso('sshd', sshd === null ? 'exit 1' : `echo "${sshd}"`);
   await silencioso('ss', ss === null ? 'exit 1' : `cat <<'FIN'\n${ss}\nFIN`);
   if (sleepFalso) {
-    await writeFile(path.join(bin, 'sleep'), `#!/bin/sh\n/bin/sleep 1\n${confirmaEnSleep ? `touch "${confirmacion}"` : ''}\nexit 0\n`);
+    // El `sleep` falso del temporizador espera a que la APLICACIÓN termine (el último paso es ip6tables-restore) y recién ahí «vence»: sin eso el rollback correría a mitad de aplicar.
+    await writeFile(path.join(bin, 'sleep'), `#!/bin/sh\nfor i in $(seq 1 100); do grep -q 'ip6tables-restore' "${registro}" 2>/dev/null && break; /bin/sleep 0.1; done\n/bin/sleep 1\n${confirmaEnSleep ? `touch "${confirmacion}"` : ''}\nexit 0\n`);
     await chmod(path.join(bin, 'sleep'), 0o755);
   }
-  return { dir, bin, registro, ufwDir, defecto, confirmacion, respaldo: path.join(dir, 'respaldo') };
+  return { dir, bin, registro, ufwDir, defecto, confirmacion, estado, respaldo: path.join(dir, 'respaldo') };
 }
 
-function correr(e, args) {
-  return spawnSync('bash', [script, ...args], {
+const IP_DB = '100.64.0.1';
+// Todas las invocaciones llevan --ip-db-deploy (es obligatorio) salvo que el test lo pase o pida omitirlo.
+function correr(e, args, { sinIp = false } = {}) {
+  const conIp = sinIp || args.includes('--ip-db-deploy') ? args : [...args, '--ip-db-deploy', IP_DB];
+  return spawnSync('bash', [script, ...conIp], {
     encoding: 'utf8',
     env: { PATH: `${e.bin}:${process.env.PATH}`, ARCHIVO_CONFIRMACION: e.confirmacion, DIR_RESPALDO: e.respaldo, UFW_DIR: e.ufwDir, UFW_DEFAULT: e.defecto, HOME: e.dir },
   });
@@ -221,12 +260,16 @@ test('--sin-rollback (unidad systemd de arranque): aplica sin programar rollback
 test('A-1: las redes de jobs se aíslan por INTERFAZ: deny en ufw ANTES de los allow, anti-falsificación y DROP hacia tailnet, metadatos y red interna', async () => {
   const e = await entorno();
   const plan = correr(e, ['--interfaz-externa', 'eth0']).stdout;
-  assert.match(plan, /ufw insert 1 deny in on br-jobs-pr/);
-  assert.ok(plan.indexOf('ufw insert 1 deny in on br-jobs-pr') < plan.indexOf('ufw allow from 172.16.0.0/12'), 'el deny de jobs va antes del allow amplio');
-  // deploy: solo los puertos de base y luego deny del resto, también por interfaz.
-  assert.match(plan, /ufw insert 2 allow in on br-jobs-deploy to any port 7635 proto tcp/);
-  assert.match(plan, /ufw insert 3 allow in on br-jobs-deploy to any port 7636 proto tcp/);
-  assert.match(plan, /ufw insert 4 deny in on br-jobs-deploy/);
+  // Las reglas de jobs se aplican con `ufw prepend` en orden INVERSO: el último prepend (deny de PR) queda arriba de todo.
+  const prepends = plan.split('\n').filter((l) => l.startsWith('ufw prepend '));
+  assert.deepEqual(prepends, [
+    'ufw prepend deny in on br-jobs-deploy',
+    'ufw prepend allow in on br-jobs-deploy to any port 7636 proto tcp',
+    'ufw prepend allow in on br-jobs-deploy to any port 7635 proto tcp',
+    'ufw prepend deny in on br-jobs-pr',
+  ]);
+  assert.doesNotMatch(plan, /ufw insert/, 'ya no se usa `ufw insert N` (falla con ufw vacío)');
+  assert.ok(plan.indexOf('ufw prepend deny in on br-jobs-pr') < plan.indexOf('ufw allow from 172.16.0.0/12'), 'las reglas de jobs preceden al allow amplio');
   assert.doesNotMatch(plan, /allow in on br-jobs-pr/, 'la red de PR no recibe ningún puerto del host');
   // Anti-falsificación: por cada puente solo sale tráfico con el origen de SU subred.
   assert.ok(plan.includes('-A DOCKER-USER -i br-jobs-pr ! -s 172.29.250.0/24 -j DROP'));
@@ -240,23 +283,23 @@ test('A-1: las redes de jobs se aíslan por INTERFAZ: deny en ufw ANTES de los a
   }
   // Orden: establecidas -> anti-spoof -> (excepciones de deploy) -> DROP de jobs -> RETURN de lo/tailscale/externas.
   const i = (t) => plan.indexOf(t);
-  assert.ok(i('RELATED,ESTABLISHED') < i('! -s 172.29.250.0/24') && i('! -s 172.29.251.0/24') < i('--ctorigdstport 7635 -j RETURN') && i('--ctorigdstport 7635 -j RETURN') < i('-i br-jobs-pr -o tailscale0') && i('-i br-jobs-deploy -d 224.0.0.0/4 -j DROP') < i('-A DOCKER-USER -i lo -j RETURN'));
+  assert.ok(i('RELATED,ESTABLISHED') < i('! -s 172.29.250.0/24') && i('! -s 172.29.251.0/24') < i('--ctorigdst 100.64.0.1 --ctorigdstport 7635 -j RETURN') && i('--ctorigdst 100.64.0.1 --ctorigdstport 7635 -j RETURN') < i('-i br-jobs-pr -o tailscale0') && i('-i br-jobs-deploy -d 224.0.0.0/4 -j DROP') < i('-A DOCKER-USER -i lo -j RETURN'));
 });
 
 test('ALTA (QA): el deploy llega a la base publicada por Docker: RETURN por puerto original ANTES de los DROP, solo para la red de deploy y solo para los puertos listados', async () => {
   const e = await entorno();
   const plan = correr(e, ['--interfaz-externa', 'eth0']).stdout;
   for (const p of ['7635', '7636']) {
-    const regla = `-A DOCKER-USER -i br-jobs-deploy -s 172.29.251.0/24 -p tcp -m conntrack --ctorigdstport ${p} -j RETURN`;
+    const regla = `-A DOCKER-USER -i br-jobs-deploy -s 172.29.251.0/24 -p tcp -m conntrack --ctorigdst 100.64.0.1 --ctorigdstport ${p} -j RETURN`;
     assert.ok(plan.includes(regla), regla);
     assert.ok(plan.indexOf(regla) < plan.indexOf('-A DOCKER-USER -i br-jobs-deploy -d 172.16.0.0/12 -j DROP'), `el RETURN del puerto ${p} precede al DROP de 172.16/12`);
   }
   // Un puerto no listado NO tiene RETURN (7634 es el de DEV, que el deploy no migra); la red de PR no tiene ninguno.
-  assert.ok(!plan.includes('--ctorigdstport 7634 -j RETURN') || !plan.includes('-i br-jobs-deploy -s 172.29.251.0/24 -p tcp -m conntrack --ctorigdstport 7634'));
+  assert.ok(!plan.includes('--ctorigdstport 7634 -j RETURN') || !plan.includes('-i br-jobs-deploy -s 172.29.251.0/24 -p tcp -m conntrack --ctorigdst 100.64.0.1 --ctorigdstport 7634'));
   assert.ok(!/-i br-jobs-pr [^\n]*-j RETURN/.test(plan), 'ninguna excepción para la red de PR');
   const otro = correr(e, ['--interfaz-externa', 'eth0', '--puertos-db-deploy', '5432']).stdout;
-  assert.ok(otro.includes('-i br-jobs-deploy -s 172.29.251.0/24 -p tcp -m conntrack --ctorigdstport 5432 -j RETURN'));
-  assert.ok(!otro.includes('--ctorigdstport 7635 -j RETURN') || !otro.includes('-i br-jobs-deploy -s 172.29.251.0/24 -p tcp -m conntrack --ctorigdstport 7635'));
+  assert.ok(otro.includes('-i br-jobs-deploy -s 172.29.251.0/24 -p tcp -m conntrack --ctorigdst 100.64.0.1 --ctorigdstport 5432 -j RETURN'));
+  assert.ok(!otro.includes('--ctorigdst 100.64.0.1 --ctorigdstport 7635 -j RETURN'));
 });
 
 test('MEDIA-2 (QA): el destino SSH del deploy: propio host por puerto en ufw, nodo de Tailscale por ip:puerto en DOCKER-USER', async () => {
@@ -264,8 +307,9 @@ test('MEDIA-2 (QA): el destino SSH del deploy: propio host por puerto en ufw, no
   const base = correr(e, ['--interfaz-externa', 'eth0']).stdout;
   assert.ok(!base.includes('to any port 22 proto tcp') || !/allow in on br-jobs-deploy to any port 22/.test(base), 'sin flag no se abre el 22 a los jobs');
   const host = correr(e, ['--interfaz-externa', 'eth0', '--puertos-host-deploy', '22']).stdout;
-  assert.match(host, /ufw insert \d allow in on br-jobs-deploy to any port 22 proto tcp/);
-  assert.ok(host.indexOf('allow in on br-jobs-deploy to any port 22') < host.indexOf('deny in on br-jobs-deploy'));
+  assert.match(host, /ufw prepend allow in on br-jobs-deploy to any port 22 proto tcp/);
+  // En orden inverso: el deny de deploy se prepende PRIMERO (queda debajo) y el allow del 22 después (queda arriba).
+  assert.ok(host.indexOf('ufw prepend deny in on br-jobs-deploy') < host.indexOf('ufw prepend allow in on br-jobs-deploy to any port 22'));
   const nodo = correr(e, ['--interfaz-externa', 'eth0', '--destinos-tailnet-deploy', '100.64.0.9:22,100.64.0.10:5432']).stdout;
   assert.ok(nodo.includes('-A DOCKER-USER -i br-jobs-deploy -s 172.29.251.0/24 -d 100.64.0.9 -p tcp --dport 22 -o tailscale0 -j RETURN'));
   assert.ok(nodo.includes('-d 100.64.0.10 -p tcp --dport 5432 -o tailscale0 -j RETURN'));
@@ -280,8 +324,8 @@ test('MEDIA-2 (QA): el destino SSH del deploy: propio host por puerto en ufw, no
 test('A-1: parámetros de redes y puentes: se respetan, se validan y no pueden coincidir', async () => {
   const e = await entorno();
   const otro = correr(e, ['--interfaz-externa', 'eth0', '--subred-jobs-pr', '10.77.0.0/24', '--subred-jobs-deploy', '10.78.0.0/24', '--bridge-jobs-pr', 'brp', '--bridge-jobs-deploy', 'brd', '--puertos-db-deploy', '5432']).stdout;
-  assert.match(otro, /ufw insert 1 deny in on brp/);
-  assert.match(otro, /ufw insert 2 allow in on brd to any port 5432 proto tcp/);
+  assert.match(otro, /ufw prepend deny in on brp/);
+  assert.match(otro, /ufw prepend allow in on brd to any port 5432 proto tcp/);
   assert.ok(otro.includes('-i brp ! -s 10.77.0.0/24 -j DROP') && otro.includes('-i brd ! -s 10.78.0.0/24 -j DROP'));
   assert.doesNotMatch(otro, /172\.29\.25|br-jobs/);
   for (const malo of [['--subred-jobs-pr', '10.0.0.0/24;ls'], ['--subred-jobs-pr', 'x'], ['--subred-jobs-pr', '10.0.0.0'], ['--subred-jobs-deploy', '/24'], ['--subred-jobs-deploy', '10.0.0.0/'],
@@ -299,17 +343,85 @@ test('A-1: las reglas de jobs son IPv4: el DOCKER-USER de IPv6 no las lleva', as
   const registro = await readFile(e.registro, 'utf8');
   const bloques = registro.split('*filter').slice(1);
   assert.equal(bloques.length, 2, 'un bloque para v4 y otro para v6');
-  assert.ok(bloques[0].includes('br-jobs-pr') && !bloques[1].includes('br-jobs') && !bloques[1].includes('172.29.25'));
+  assert.ok(bloques[0].includes('br-jobs-pr') && bloques[0].includes('172.29.250.0/24') && !bloques[1].includes('172.29.25'), 'las redes (IPv4) no aparecen en el bloque IPv6');
 });
 
-test('A-1: sin posición válida en ufw (lista vacía) `ufw insert` cae a agregar la regla al final', async () => {
-  const e = await entorno({ insertFalla: true });
-  const r = correr(e, ['--aplicar', '--interfaz-externa', 'eth0', '--rollback-segundos', '30']);
+test('MEDIA-B (QA): con ufw VACÍO el orden final es deny PR, allow deploy..., deny deploy y la verificación pasa', async () => {
+  const e = await entorno();
+  const r = correr(e, ['--aplicar', '--interfaz-externa', 'eth0', '--puertos-host-deploy', '22', '--rollback-segundos', '30']);
   assert.equal(r.status, 0, r.stderr);
-  const reglas = await readFile(path.join(e.ufwDir, 'user.rules'), 'utf8');
-  assert.match(reglas, /deny in on br-jobs-pr/);
-  assert.match(reglas, /allow in on br-jobs-deploy to any port 7635 proto tcp/);
-  assert.ok(reglas.indexOf('deny in on br-jobs-pr') < reglas.indexOf('allow from 172.16.0.0/12 to any port 7634'), 'el orden se conserva');
+  const reglas = JSON.parse(await readFile(e.estado, 'utf8'));
+  const texto = reglas.map((x) => x.join(' '));
+  // De arriba hacia abajo: lo primero son las reglas de jobs y en ESTE orden.
+  assert.deepEqual(texto.slice(0, 5), [
+    'deny in on br-jobs-pr',
+    'allow in on br-jobs-deploy to any port 7635 proto tcp',
+    'allow in on br-jobs-deploy to any port 7636 proto tcp',
+    'allow in on br-jobs-deploy to any port 22 proto tcp',
+    'deny in on br-jobs-deploy',
+  ]);
+  const primerAllowAmplio = texto.findIndex((x) => x.startsWith('allow from 172.16.0.0/12'));
+  assert.ok(primerAllowAmplio > 4, 'los allow amplios quedan DEBAJO de las reglas de jobs');
+  assert.ok(!r.stderr.includes('verificación'), r.stderr);
+});
+
+test('MEDIA-B (QA): si el orden de ufw queda mal (como en el hallazgo) la verificación lo detecta, revierte y sale 1', async () => {
+  const e = await entorno({ ordenMalo: true });
+  const r = correr(e, ['--aplicar', '--interfaz-externa', 'eth0', '--puertos-host-deploy', '22', '--rollback-segundos', '30']);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /FALLÓ la verificación del orden de las reglas de ufw: se revierte/);
+  assert.match(r.stderr, /DEBAJO|debajo|falta/);
+  assert.match(r.stderr, /Rollback del firewall ejecutado/);
+  assert.equal(await readFile(path.join(e.ufwDir, 'user.rules'), 'utf8'), 'ORIGINAL\n', 'se restauró /etc/ufw');
+  const l = await llamadas(e);
+  assert.ok(!l.some((x) => x.includes('-A DOCKER-USER -i br-jobs-deploy')), 'no llegó a aplicar DOCKER-USER');
+});
+
+test('MEDIA-B: el ufw falso reproduce el desorden real si se usara `insert` con la lista vacía (documenta por qué se usa prepend)', async () => {
+  const texto = await readFile(script, 'utf8');
+  assert.ok(!/"\$UFW" insert|\$UFW insert/.test(texto), 'el script no usa `ufw insert`');
+  assert.match(texto, /"\$UFW" prepend/);
+  assert.match(texto, /Invalid position/);
+});
+
+test('MEDIA-A (C+S): --ip-db-deploy es OBLIGATORIO y acota el RETURN al destino ORIGINAL (ctorigdst); inválida o sin él, error', async () => {
+  const e = await entorno();
+  const sin = correr(e, ['--interfaz-externa', 'eth0'], { sinIp: true });
+  assert.equal(sin.status, 2);
+  assert.match(sin.stderr, /falta --ip-db-deploy/);
+  for (const mala of ['', '0.0.0.0', '10.0.0.0/8', '100.64.0.0/10', '256.1.1.1', '1.2.3', '1.2.3.4.5', 'abc', '127.0.0.1', '224.0.0.1', '255.255.255.255', '0.1.2.3', '1.2.3.4;ls', '-1.2.3.4', ' 1.2.3.4']) {
+    const r = correr(e, ['--interfaz-externa', 'eth0', '--ip-db-deploy', mala], { sinIp: true });
+    assert.equal(r.status, 2, `«${mala}»`);
+  }
+  assert.deepEqual(await llamadas(e), []);
+  // Válidas (frontera: 223.x es unicast; 1.0.0.1).
+  for (const buena of ['100.64.0.1', '203.0.113.7', '223.255.255.254', '1.0.0.1', '010.1.1.1']) assert.equal(correr(e, ['--interfaz-externa', 'eth0', '--ip-db-deploy', buena], { sinIp: true }).status, 0, buena);
+  const plan = correr(e, ['--interfaz-externa', 'eth0', '--ip-db-deploy', '203.0.113.7']).stdout;
+  for (const p of ['7635', '7636']) assert.ok(plan.includes(`-i br-jobs-deploy -s 172.29.251.0/24 -p tcp -m conntrack --ctorigdst 203.0.113.7 --ctorigdstport ${p} -j RETURN`));
+  assert.ok(!plan.includes('--ctorigdst 100.64.0.1'), 'solo la IP indicada');
+  // Cada RETURN de base lleva --ctorigdst (ninguno sin acotar) y la red de PR nunca tiene RETURN.
+  const retornos = plan.split('\n').filter((l) => l.includes('-i br-jobs-deploy') && l.includes('--ctorigdstport') && l.endsWith('-j RETURN'));
+  assert.equal(retornos.length, 2);
+  for (const l of retornos) assert.ok(l.includes('--ctorigdst 203.0.113.7 '), l);
+  assert.ok(!/-i br-jobs-pr [^\n]*-j RETURN/.test(plan));
+});
+
+test('B-2 (C+S): el DOCKER-USER de IPv6 descarta todo lo que venga de los puentes de jobs', async () => {
+  const e = await entorno();
+  correr(e, ['--aplicar', '--interfaz-externa', 'eth0', '--rollback-segundos', '30']);
+  const registro = await readFile(e.registro, 'utf8');
+  const bloques = registro.split('*filter').slice(1);
+  assert.equal(bloques.length, 2);
+  assert.ok(bloques[1].includes('-A DOCKER-USER -i br-jobs-pr -j DROP') && bloques[1].includes('-A DOCKER-USER -i br-jobs-deploy -j DROP'));
+  assert.ok(!bloques[0].includes('-A DOCKER-USER -i br-jobs-pr -j DROP'), 'en IPv4 las reglas son más finas');
+  // Orden en v6: después de las establecidas y antes de los RETURN de lo/tailscale.
+  assert.ok(bloques[1].indexOf('RELATED,ESTABLISHED') < bloques[1].indexOf('-i br-jobs-pr -j DROP') && bloques[1].indexOf('-i br-jobs-deploy -j DROP') < bloques[1].indexOf('-i lo -j RETURN'));
+});
+
+test('B-4 (C+S): el encabezado declara que --puertos-host-deploy abre el puerto en TODAS las IPs locales', async () => {
+  const texto = await readFile(script, 'utf8');
+  assert.match(texto, /abre el puerto en TODAS las IPs locales del host/);
+  assert.match(texto, /--ip-db-deploy <ip-del-postgres-publicado>/);
 });
 
 test('M-2: los puertos de sshd salen de sshd -T Y de lo que de verdad escucha (ssh.socket); todos deben estar permitidos', async () => {
@@ -351,7 +463,7 @@ test('M-3: el rollback respalda y restaura también DOCKER-USER de IPv6', async 
 test('M-3: un --chequeo con tope: si cuelga más que CHEQUEO_TIMEOUT se trata como fallo y revierte', async () => {
   const e = await entorno();
   const antes = Date.now();
-  const r = spawnSync('bash', [script, '--aplicar', '--interfaz-externa', 'eth0', '--chequeo', 'sleep 30'], {
+  const r = spawnSync('bash', [script, '--aplicar', '--interfaz-externa', 'eth0', '--ip-db-deploy', IP_DB, '--chequeo', 'sleep 30'], {
     encoding: 'utf8', env: { PATH: `${e.bin}:${process.env.PATH}`, ARCHIVO_CONFIRMACION: e.confirmacion, DIR_RESPALDO: e.respaldo, UFW_DIR: e.ufwDir, UFW_DEFAULT: e.defecto, HOME: e.dir, CHEQUEO_TIMEOUT: '1' },
   });
   assert.equal(r.status, 1);
@@ -359,7 +471,7 @@ test('M-3: un --chequeo con tope: si cuelga más que CHEQUEO_TIMEOUT se trata co
   assert.match(r.stderr, /superó 1s/);
   assert.equal(await readFile(path.join(e.ufwDir, 'user.rules'), 'utf8'), 'ORIGINAL\n');
   assert.equal(correr(e, ['--interfaz-externa', 'eth0', '--aplicar']).status !== undefined, true);
-  const mal = spawnSync('bash', [script, '--interfaz-externa', 'eth0'], { encoding: 'utf8', env: { PATH: `${e.bin}:${process.env.PATH}`, UFW_DIR: e.ufwDir, UFW_DEFAULT: e.defecto, CHEQUEO_TIMEOUT: '1;ls', HOME: e.dir } });
+  const mal = spawnSync('bash', [script, '--interfaz-externa', 'eth0', '--ip-db-deploy', IP_DB], { encoding: 'utf8', env: { PATH: `${e.bin}:${process.env.PATH}`, UFW_DIR: e.ufwDir, UFW_DEFAULT: e.defecto, CHEQUEO_TIMEOUT: '1;ls', HOME: e.dir } });
   assert.equal(mal.status, 2);
 });
 
