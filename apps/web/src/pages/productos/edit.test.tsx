@@ -63,6 +63,21 @@ vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 // El bloque «Precio propio por empresa» (F-PRE-08) tiene su propio test; acá solo se comprueba que se monta.
 vi.mock('../../hooks/usePreciosPropios', () => ({ usePreciosPropios: mocks.usePreciosPropios }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
+// La sección «Proveedores del producto» se prueba aparte (ProveedoresDelProducto.test.tsx): acá solo se verifica cómo se monta.
+vi.mock('../../components/productos/ProveedoresDelProducto', () => ({
+  ProveedoresDelProducto: (props: { productoId: string; moneda: string; puedeEditar: boolean; veCosto: boolean; editaCosto: boolean; onCambiado?: () => void }) => (
+    <section
+      aria-label="Proveedores del producto"
+      data-producto={props.productoId}
+      data-moneda={props.moneda}
+      data-puede-editar={String(props.puedeEditar)}
+      data-ve-costo={String(props.veCosto)}
+      data-edita-costo={String(props.editaCosto)}
+    >
+      <button type="button" onClick={() => props.onCambiado?.()}>Simular cambio de proveedores</button>
+    </section>
+  ),
+}))
 
 import { ProductoEdit } from './edit'
 
@@ -152,6 +167,19 @@ describe('ProductoEdit', () => {
       ),
     )
     expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+  })
+
+  it('monta «Proveedores del producto» con el producto, su moneda y los permisos, y un cambio recarga la ficha', async () => {
+    abrir()
+    const seccion = await screen.findByRole('region', { name: 'Proveedores del producto' })
+    expect(seccion).toHaveAttribute('data-producto', 'p-1')
+    expect(seccion).toHaveAttribute('data-moneda', PRODUCTO.moneda)
+    expect(seccion).toHaveAttribute('data-puede-editar', 'true')
+    expect(seccion).toHaveAttribute('data-ve-costo', 'true')
+    expect(seccion).toHaveAttribute('data-edita-costo', 'true')
+    const lecturasAntes = mocks.producto.mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: 'Simular cambio de proveedores' }))
+    await waitFor(() => expect(mocks.producto.mock.calls.length).toBe(lecturasAntes + 1))
   })
 
   it('al cambiar solo el stock de una variante, manda solo esa fila con lo que se leyó y no toca el producto (F-CAT-15)', async () => {
@@ -328,6 +356,20 @@ describe('ProductoEdit', () => {
     mocks.producto.mockResolvedValue({ data: { ...PRODUCTO, nombre: 'Del otro', updated_at: '2026-01-02T00:00:00+00:00' }, error: null })
     fireEvent.click(screen.getByRole('button', { name: 'Recargar producto' }))
     await waitFor(() => expect(screen.getByLabelText(/^Nombre/)).toHaveValue('Del otro'))
+  })
+
+  it.each([
+    ['PT409', 'rentabilidad', /necesitás edición en Rentabilidad/],
+    ['22023', 'costo_y_proveedor', /guardá primero el proveedor y después el costo/],
+  ])('al guardar, el rechazo %s (%s) del costo y el proveedor se explica y conserva lo escrito', async (code, details, texto) => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code, details, message: 'texto interno' } })
+    abrir()
+    const nombre = await screen.findByLabelText(/^Nombre/)
+    fireEvent.change(nombre, { target: { value: 'Mi cambio' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect((await screen.findAllByText(texto)).length).toBeGreaterThan(0)
+    expect(screen.queryByText('texto interno')).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/^Nombre/)).toHaveValue('Mi cambio')
   })
 
   it('sin acceso a Rentabilidad oculta el costo y no lo consulta ni lo envía', async () => {

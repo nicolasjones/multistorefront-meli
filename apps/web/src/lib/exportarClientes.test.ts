@@ -2,7 +2,7 @@
 import { unzipSync, strFromU8 } from 'fflate'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), fallarXlsx: false, alEscribir: undefined as undefined | (() => void) }))
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), rpcListas: vi.fn(), fallarXlsx: false, alEscribir: undefined as undefined | (() => void) }))
 vi.mock('write-excel-file/browser', async (importOriginal) => {
   const real = await importOriginal<typeof import('write-excel-file/browser')>()
   return {
@@ -14,7 +14,13 @@ vi.mock('write-excel-file/browser', async (importOriginal) => {
     },
   }
 })
-vi.mock('./supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
+// Cada RPC responde solo por su nombre: la lista de precios de la tanda (MSF-974) no consume las respuestas de `exportar_clientes`.
+vi.mock('./supabase', () => ({
+  supabaseClient: {
+    rpc: (nombre: string, argumentos: unknown) =>
+      nombre === 'listas_de_clientes_para_exportar' ? mocks.rpcListas(nombre, argumentos) : mocks.rpc(nombre, argumentos),
+  },
+}))
 
 import {
   ErrorExportacion, ExportacionCancelada, exportarClientes, nombreArchivoExportacion, neutralizarFormula,
@@ -48,7 +54,10 @@ describe('neutralizarFormula', () => {
 })
 
 describe('exportarClientes', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.rpcListas.mockResolvedValue({ data: [], error: null })
+  })
 
   it('pide lotes por keyset con los filtros y arma un .xlsx válido y reabrible', async () => {
     mocks.rpc.mockResolvedValueOnce({ data: [fila(1), fila(2, { tipo: 'mayorista', archivado_en: '2026-01-01' }), fila(3)], error: null })
@@ -162,6 +171,50 @@ describe('exportarClientes', () => {
     } finally {
       mocks.alEscribir = undefined
     }
+  })
+
+  it('agrega la columna «Lista de precios»: la propia, la heredada del tipo y vacía para quien no tiene', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: [fila(1), fila(2), fila(3)], error: null })
+    mocks.rpcListas.mockResolvedValueOnce({
+      data: [
+        { cliente_id: 'id-1', lista_nombre: 'Revendedores', origen: 'cliente' },
+        { cliente_id: 'id-2', lista_nombre: 'Gremio', origen: 'tipo' },
+      ],
+      error: null,
+    })
+    const { hoja, textos } = await leerXlsx(await exportarClientes(filtros))
+
+    expect(mocks.rpcListas).toHaveBeenCalledTimes(1)
+    expect(mocks.rpcListas).toHaveBeenCalledWith('listas_de_clientes_para_exportar', { p_clientes: ['id-1', 'id-2', 'id-3'] })
+    expect(textos).toContain('Lista de precios')
+    expect(textos).toContain('Revendedores')
+    expect(textos).toContain('Gremio (por tipo de cliente)')
+    // Cuatro filas (encabezado y tres clientes); el cliente 3 no tiene celda de lista.
+    expect((hoja.match(/<row /g) ?? []).length).toBe(4)
+  })
+
+  it('pide la lista de precios por cada lote, con los ids de ese lote', async () => {
+    const lleno = Array.from({ length: TAMANO_LOTE_EXPORTACION }, (_, i) => fila(i, {}, TAMANO_LOTE_EXPORTACION + 1))
+    mocks.rpc.mockResolvedValueOnce({ data: lleno, error: null }).mockResolvedValueOnce({ data: [fila(5000, {}, TAMANO_LOTE_EXPORTACION + 1)], error: null })
+    await exportarClientes(filtros)
+
+    expect(mocks.rpcListas).toHaveBeenCalledTimes(2)
+    expect(mocks.rpcListas.mock.calls[0][1].p_clientes).toHaveLength(TAMANO_LOTE_EXPORTACION)
+    expect(mocks.rpcListas.mock.calls[1][1]).toEqual({ p_clientes: ['id-5000'] })
+  })
+
+  it('si falla la lectura de las listas la exportación falla con un mensaje en castellano (sin código crudo)', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: [fila(1)], error: null })
+    mocks.rpcListas.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'detalle interno de la base' } })
+    const consola = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    await expect(exportarClientes(filtros)).rejects.toMatchObject({
+      name: 'ErrorExportacion',
+      message: 'No pudimos incluir la lista de precios de los clientes. Intentá de nuevo.',
+      codigo: '42501',
+    })
+    // El mensaje crudo de la base no llega a la consola.
+    expect(JSON.stringify(consola.mock.calls)).not.toContain('detalle interno de la base')
+    consola.mockRestore()
   })
 
   it('nombra el archivo con la fecha', () => {

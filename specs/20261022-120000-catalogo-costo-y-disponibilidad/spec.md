@@ -42,7 +42,7 @@ Parte de lo pedido ya existe; esta épica **no lo rehace**, lo completa y lo pru
 
 ## Modelo y supuestos
 
-- **Costo y proveedor** siguen donde están: el costo en `producto_costos` (lo ve quien tiene `rentabilidad`; el Operador, nada); el proveedor en `productos.proveedor_id` (un solo proveedor principal por producto — a confirmar).
+- **Costo y proveedor** siguen donde están: el costo en `producto_costos` (lo ve quien tiene `rentabilidad`; el Operador, nada); el proveedor en `productos.proveedor_id` (un proveedor **principal** por producto; desde el lote 93 puede haber más proveedores no principales, ver `docs/proveedores.md`).
 - **Disponibilidad**: «Stock» y «Sin stock» se **derivan** del stock disponible (cantidad menos reservado, sumando los depósitos). «A pedido» y «Stock entrante en breve» se **eligen a mano**. Si hay una elección manual, manda sobre la derivada.
 - **Hasta que llegue MSF-292** (depósitos y reservas) el stock es único por organización y no hay reservas: disponible = `existencias.cantidad` (reservado = 0). El contrato (FR-006) es el punto donde MSF-292 enchufa depósitos y reservas sin tocar a los consumidores.
 - **Escalas de precio** (x1, x5, x10, x50) y tipo de cliente (minorista/mayorista) son de Precios; acá solo se muestran, en lectura. Si Precios no las entrega, la ficha muestra «No disponible».

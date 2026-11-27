@@ -352,3 +352,8 @@ Si no hubo facturación en esas fechas, ves «Sin facturación en el período».
 
 - **Marcar aceptación:** en el listado de Clientes, el administrador marca clientes con las casillas y usa **Marcar aceptación (N)** para indicar que aceptan o no el correo masivo; queda registrado quién lo hizo y cuándo. La plantilla de **Importar clientes** tiene la columna opcional **Acepta correo** (sí/no; vacía = no cambia).
 - **DNI/CUIT:** debe ser un DNI de 7 u 8 dígitos o un CUIT de 11 dígitos válido (con o sin puntos y guiones), o quedar vacío. El sistema lo controla al guardar y al importar; un documento viejo que no cumple sigue editable mientras no lo toques.
+
+## Lista de precios en el listado y en la planilla
+
+- **Asignar lista de precios:** en el listado de Clientes, el administrador asigna (o quita) una lista a los clientes marcados o a todos los que coinciden con la búsqueda y los filtros (hasta 5000 por vez; el Consumidor final y los archivados se omiten). Detalle en [Listas de precios](listas-de-precios.md).
+- **Planilla de clientes:** la exportación suma la columna **Lista de precios** (la propia o la de su tipo de cliente).

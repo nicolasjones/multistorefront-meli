@@ -1,6 +1,7 @@
 import { hoyEnOrganizacion } from './periodosRanking'
 import { supabaseClient } from './supabase'
 import type { TipoCliente } from './clientes'
+import { leerListasDeClientesParaExportar } from './listasPrecios'
 
 // Exportación de clientes a .xlsx (F-CLI-04, FR-011/FR-012). Los lotes salen de
 // `public.exportar_clientes` (security definer: la base exige la acción
@@ -35,6 +36,8 @@ export type FilaExportacion = {
   expreso_preferido: string | null
   archivado_en: string | null
   total: number | string
+  /** Lista de precios del cliente (la propia o la de su tipo); la completa `exportarClientes` por cada tanda (MSF-974). */
+  lista_precios?: string | null
 }
 
 export type ProgresoExportacion = { descargados: number; total: number }
@@ -68,6 +71,7 @@ const COLUMNAS: ReadonlyArray<{ encabezado: string; valor: (fila: FilaExportacio
   { encabezado: 'Localidad', valor: (f) => f.localidad, ancho: 20 },
   { encabezado: 'Provincia', valor: (f) => f.provincia, ancho: 20 },
   { encabezado: 'Expreso preferido', valor: (f) => f.expreso_preferido, ancho: 22 },
+  { encabezado: 'Lista de precios', valor: (f) => f.lista_precios ?? null, ancho: 24 },
   { encabezado: 'Estado', valor: (f) => (f.archivado_en ? 'Archivado' : 'Activo'), ancho: 12 },
 ]
 
@@ -119,6 +123,16 @@ async function pedirLote(filtros: FiltrosExportacion, despuesDe: string | null):
   return (data ?? []) as FilaExportacion[]
 }
 
+// Lista de precios de los clientes de una tanda (MSF-974): una consulta por tanda, con el mismo permiso que la exportación.
+async function pedirListas(ids: readonly string[]): Promise<Map<string, string>> {
+  try {
+    return await leerListasDeClientesParaExportar(supabaseClient, ids)
+  } catch (error) {
+    console.error('listas_de_clientes_para_exportar falló', (error as { code?: string } | null)?.code ?? 'sin código')
+    throw new ErrorExportacion('No pudimos incluir la lista de precios de los clientes. Intentá de nuevo.', (error as { code?: string } | null)?.code)
+  }
+}
+
 // Descarga todos los lotes (keyset) y arma el .xlsx. La librería de planillas
 // se carga recién acá (import diferido): no pesa en el recorrido principal.
 export async function exportarClientes(
@@ -134,7 +148,9 @@ export async function exportarClientes(
     if (signal?.aborted) throw new ExportacionCancelada()
     if (lote.length === 0) break
     if (despuesDe === null) total = Number(lote[0].total)
-    filas.push(...lote)
+    const listas = await pedirListas(lote.map((fila) => fila.id))
+    if (signal?.aborted) throw new ExportacionCancelada()
+    filas.push(...lote.map((fila) => ({ ...fila, lista_precios: listas.get(fila.id) ?? null })))
     despuesDe = lote[lote.length - 1].id
     alProgresar?.({ descargados: filas.length, total })
     if (lote.length < TAMANO_LOTE_EXPORTACION) break
