@@ -13,10 +13,11 @@
 // automático ni barrido, el reintento es manual (botón «Reintentar» de la pantalla de Documentos IA).
 import { textoDeError } from '../_shared/log-seguro.ts'
 import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
+import type { RechazoCupo } from '../_shared/cupo-ia.ts'
 import { MAX_FRAGMENTOS, fragmentarTexto, nuevoReclamo, reclamoVigente } from './reglas.ts'
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
-const respuesta = (body: unknown, status: number) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+const respuesta = (body: unknown, status: number, extra: Record<string, string> = {}) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, ...extra, 'Content-Type': 'application/json' } })
 const SIN_PERMISO = 'No tenés permiso para indexar este documento.'
 const MOTIVO_ENTRADA_INVALIDA = 'La configuración de IA de tu organización no permite indexar este documento. Contactá a un administrador.'
 const MOTIVO_SIN_PERMISO = 'No tenés permiso para activar esta versión: la búsqueda documental no está habilitada o solo puede activarla quien la subió o un administrador.'
@@ -46,6 +47,8 @@ export type Deps = {
   politica(): Promise<Politica | null>
   credencial(perfilId: string): Promise<Credencial | null>
   validarEntrada(politica: Politica, texto: string): void
+  /** Consume un uso del cupo por usuario y hora (persistente). `null` = pasa; un rechazo trae el estado (429 agotado, 503 no verificable) y `retryAfter`. */
+  consumirCupo(usuarioId: string): Promise<RechazoCupo | null>
   embeddings(textos: string[], clave: string): Promise<number[][]>
   borrarFragmentos(jwt: string, versionId: string, reclamo: string): Promise<boolean>
   insertarFragmentos(jwt: string, filas: Array<{ version_id: string; organizacion_id: string; texto: string; embedding: string; orden: number }>, reclamo: string): Promise<boolean>
@@ -182,6 +185,15 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       // El código interno (p. ej. POLITICA_IA_INACTIVA) va al log; al usuario y a `motivo_error` solo un texto fijo.
       console.error('indexar-documento: entrada rechazada por la política de IA', textoDeError(error))
       return await fallar(MOTIVO_ENTRADA_INVALIDA)
+    }
+
+    // Cupo persistente por usuario y hora (`INDEXAR_DOCUMENTO_LIMITE_HORA`, 20 por defecto): DESPUÉS de toda la validación (permiso, versión,
+    // texto, fragmentos, política, credencial y entrada) y ANTES de gastar embeddings. Un rechazo suelta el candado (la versión sigue
+    // `procesando` y se reintenta más tarde) y no toca nada más; si el cupo no se puede verificar, falla cerrado (503) sin gastar crédito.
+    const rechazoCupo = await deps.consumirCupo(usuario.id)
+    if (rechazoCupo) {
+      await soltarSeguro()
+      return respuesta({ error: rechazoCupo.error }, rechazoCupo.status, rechazoCupo.retryAfter ? { 'Retry-After': String(rechazoCupo.retryAfter) } : {})
     }
 
     let embeddings: number[][]

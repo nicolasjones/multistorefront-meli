@@ -4,7 +4,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { prepararInvocacion, sanitizarDato, type ContratoConsumidor } from '../_shared/ia/index.ts'
 import { generarEmbeddings } from '../_shared/embeddings.ts'
-import { registrarErrorDeBase } from '../_shared/log-seguro.ts'
+import { errorDeBase, registrarErrorDeBase } from '../_shared/log-seguro.ts'
+import { crearConsumirCupo } from './cupo.ts'
 import { manejar, type Deps, type VersionDoc } from './handler.ts'
 import { consultaMarcarFallida, consultaReclamar, consultaSoltar, llamarBorrarFragmentosSiDueno, llamarInsertarFragmentosSiDueno } from './consultas.ts'
 import { escrituraFragmentos, type ClienteFragmentos } from './fragmentos.ts'
@@ -89,7 +90,7 @@ Deno.serve((req) => {
     },
     soltar: async (jwt, id, reclamo) => {
       const { error } = await consultaSoltar(comoUsuario(jwt), id, reclamo)
-      if (error) throw new Error(`soltar: ${error.code ?? ''} ${error.message}`)
+      if (error) throw errorDeBase('soltar: la base rechazó soltar el candado', error)
     },
     // Solo mientras sigue `procesando`: una versión ya activa (o reemplazada) nunca se pisa a `fallida`.
     marcarFallida: async (jwt, id, motivo, reclamo) => {
@@ -129,6 +130,8 @@ Deno.serve((req) => {
         new Date(),
       )
     },
+    // Falla cerrado: sin la clave de servicio o con la RPC caída, la respuesta es 503 y no se gastan embeddings (ver cupo.ts).
+    consumirCupo: crearConsumirCupo(() => admin, (clave) => Deno.env.get(clave)),
     embeddings: (textos, clave) => generarEmbeddings(textos.map((t) => (sanitizarDato({ texto: t }, CONTRATO.datosPermitidos) as { texto: string }).texto), clave),
     // Los fragmentos se escriben y borran con el cliente de SERVICIO (así la indexación no depende del rol del usuario), pero
     // SOLO después de la autorización del handler y acotado a la versión y organización que el usuario ve por RLS (fragmentos.ts).
