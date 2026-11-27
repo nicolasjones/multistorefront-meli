@@ -1154,9 +1154,9 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "71071b6165fb48dbebd32763453194356e309031ff6968bd399df6fe174446eb",
-      "sourceHash": "6398974bb4790b010f9ff4916baddc2660354b4cb2e095aa83caa7b90f2f01ef",
-      "sourceAt": "46dd13d89",
+      "pageHash": "bf3645019587951fc5e3a9cddc5e3c5576b045fc8ed77c968d84c77daf3ac490",
+      "sourceHash": "fd3dd9466ac2170fd821bd1977f1891e3d68020d932a9a23019595cd490bac5a",
+      "sourceAt": "c27f480d4",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/chat-ia-responder/handler.ts",
@@ -1170,6 +1170,7 @@
         "supabase/functions/_shared/embeddings.ts",
         "supabase/functions/_shared/fetch-ia.ts",
         "supabase/functions/_shared/cupo-ia.ts",
+        "supabase/functions/baja-correo-masivo/handler.ts",
         "supabase/functions/_shared/log-seguro.ts",
         "supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql",
         "supabase/migrations/20270508000000_registro_de_envios_de_correo_a_proveedores.sql",
@@ -1185,7 +1186,7 @@
         "infra/kestra/flows/correo-masivo.yml"
       ],
       "owner": "plataforma",
-      "commit": "46dd13d89"
+      "commit": "c27f480d4"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",
@@ -1477,9 +1478,9 @@
     },
     "docs/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
-      "pageHash": "19da75cf360f9883d80db7873105cc400162c1531b3438034130b306475dc310",
-      "sourceHash": "e7de3bb1704a186f45fe88c36c74472fcecc9090c326eb53a3142c7394054f1b",
-      "sourceAt": "e1e6da5b9",
+      "pageHash": "208ad803f42dcc7d18984099d6f65d2f6176e8540a8328b0f82954ae6ebac463",
+      "sourceHash": "1425ab6855bea998c13cd0d5e75077f9fb844123bac7a1ad980c15440568c6ad",
+      "sourceAt": "c27f480d4",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -1493,6 +1494,11 @@
         "supabase/migrations/20270420000400_newsletter_envio.sql",
         "supabase/migrations/20270420000500_newsletter_lote.sql",
         "supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql",
+        "supabase/migrations/20270511000000_cupo_persistente_por_ip_newsletter_y_baja.sql",
+        "supabase/migrations/20270511000100_newsletter_imagenes_publicas.sql",
+        "supabase/functions/baja-correo-masivo",
+        "supabase/functions/_shared/ip-cliente.ts",
+        "apps/web/src/lib/newsletterImagenes.ts",
         "infra/kestra/flows/correo-masivo.yml",
         "apps/web/src/pages/clientes/newsletter",
         "apps/web/src/lib/newsletter.ts",
@@ -1504,7 +1510,7 @@
         "apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx"
       ],
       "owner": "tecnico",
-      "commit": "e1e6da5b9"
+      "commit": "c27f480d4"
     },
     "docs/notificaciones-en-panel.md": {
       "title": "Centro de notificaciones en el panel (MSF-378 · F-NOT-02)",
@@ -4598,9 +4604,9 @@
     },
     "docs/tecnico/newsletter.md": {
       "title": "Newsletter de la tienda (MSF-468)",
-      "pageHash": "319c04fcc64c40b5cd6e6fefc98825671a71cc9283d58ea792da9c26521baa34",
-      "sourceHash": "3d1ff2378a47c81a236e926e7c9fead8ed33cdcc0532cad291caa7c406359793",
-      "sourceAt": "5800b0d79",
+      "pageHash": "a859fc5c234a28c407808f0135fff20776f4f35484c4ddf1533f34219d5f04cb",
+      "sourceHash": "8e12db591345e90f1c9aac650b88754fb6eb81557d0c5b29d3a87aa736a3aa65",
+      "sourceAt": "c27f480d4",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -4614,6 +4620,11 @@
         "supabase/migrations/20270420000400_newsletter_envio.sql",
         "supabase/migrations/20270420000500_newsletter_lote.sql",
         "supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql",
+        "supabase/migrations/20270511000000_cupo_persistente_por_ip_newsletter_y_baja.sql",
+        "supabase/migrations/20270511000100_newsletter_imagenes_publicas.sql",
+        "supabase/functions/baja-correo-masivo",
+        "supabase/functions/_shared/ip-cliente.ts",
+        "apps/web/src/lib/newsletterImagenes.ts",
         "infra/kestra/flows/newsletter-confirmaciones.yml",
         "apps/web/src/pages/clientes/newsletter",
         "apps/web/src/pages/tienda-publica/newsletter",
@@ -4621,7 +4632,7 @@
         "design/pantallas/Newsletter.inventory.json"
       ],
       "owner": "tecnico",
-      "commit": "5800b0d79"
+      "commit": "c27f480d4"
     },
     "docs/tecnico/notificaciones-ayuda-y-exportacion-total.md": {
       "title": "Notificaciones, ayuda y exportación total (MSF-224)",

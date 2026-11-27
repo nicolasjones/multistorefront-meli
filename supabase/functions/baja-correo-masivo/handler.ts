@@ -1,6 +1,11 @@
 // Lógica de `baja-correo-masivo` (F-CLI-12, FR-019, SC-004) con dependencias inyectadas para poder probarla sin Deno
 // ni Supabase (handler.test.ts). `index.ts` solo cablea el cliente real.
 //
+// Rate limit (MSF-980): ANTES de leer el cuerpo se consume el cupo persistente de la IP (60 por hora, `public.consumir_cupo_baja_correo`: la base guarda solo su
+// HMAC con el secreto del entorno). Sin cupo: 429 con `Retry-After`; si no se puede contar: 503 (falla cerrado). Ambas respuestas dependen solo del origen,
+// nunca del token ni de si existe: la baja no se puede usar para enumerar. Un OPTIONS o un método no soportado no gastan cupo. Sin CAPTCHA ni contador en
+// memoria (cada instancia tiene el suyo): ver docs/newsletter.md.
+//
 // Es anónima: la abre quien recibe el correo desde el enlace de baja. El enlace trae un token aleatorio (≥ 128 bits);
 // la base solo guarda su hash SHA-256, así que acá se calcula el hash y se llama a `dar_de_baja_correo_masivo`
 // (solo `service_role`). La respuesta es SIEMPRE `{ ok: true }` exista o no el token y se repita o no la baja
@@ -19,12 +24,20 @@ const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-
 const preflightHeaders = { ...corsHeaders, 'Access-Control-Max-Age': '86400' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
+import { ipDelCliente } from '../_shared/ip-cliente.ts'
+import { registrarErrorDeBase, textoDeError } from '../_shared/log-seguro.ts'
+import { TEXTO_CUPO_NO_VERIFICABLE, type RechazoCupo } from './cupo.ts'
+
 type DbError = { message: string; code?: string }
 type Resultado<T = unknown> = Promise<{ data: T; error: DbError | null }>
 
 export type Deps = {
   // Solo `dar_de_baja_correo_masivo` (restringida a service_role).
   admin: { rpc(nombre: string, args: Record<string, unknown>): Resultado<unknown> }
+  // Cupo por IP (cupo.ts): `null` deja pasar; un rechazo trae el estado (429 o 503) y, en el 429, la espera.
+  cupo: (ip: string) => Promise<RechazoCupo | null>
+  // Saltos de proxy de confianza de `x-forwarded-for` (variable BAJA_PROXY_SALTOS; 0 por defecto).
+  saltosProxy: number
 }
 
 // Los tokens son hexadecimales de 64 caracteres; un largo mayor es basura y no se hashea.
@@ -36,9 +49,18 @@ async function sha256Hex(texto: string): Promise<string> {
   return Array.from(new Uint8Array(resumen), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
-export async function manejar(req: Request, { admin }: Deps): Promise<Response> {
+export async function manejar(req: Request, { admin, cupo, saltosProxy }: Deps): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: preflightHeaders })
   if (req.method !== 'POST') return response({ error: 'Método no soportado.' }, 405)
+
+  // Defensa en profundidad: `cupo` ya no lanza, pero si lo hiciera tampoco se deja pasar sin contar (falla cerrado).
+  const rechazo = await cupo(ipDelCliente(req.headers, saltosProxy)).catch((): RechazoCupo => ({ status: 503, error: TEXTO_CUPO_NO_VERIFICABLE }))
+  if (rechazo) {
+    return new Response(JSON.stringify({ error: rechazo.error }), {
+      status: rechazo.status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', ...(rechazo.retryAfter === undefined ? {} : { 'Retry-After': String(rechazo.retryAfter) }) },
+    })
+  }
 
   const body = await req.json().catch(() => null) as { token?: unknown } | null
   const token = typeof body?.token === 'string' ? body.token.trim() : ''
@@ -50,9 +72,13 @@ export async function manejar(req: Request, { admin }: Deps): Promise<Response> 
   try {
     // Un token desconocido no es error: la función devuelve false y la respuesta es la misma.
     const { error } = await admin.rpc('dar_de_baja_correo_masivo', { p_token_hash: await sha256Hex(token) })
-    if (error) throw new Error(error.message)
+    if (error) {
+      registrarErrorDeBase('baja-correo-masivo: la base rechazó la baja', error)
+      return response({ error: 'No pudimos procesar la baja. Probá de nuevo en un rato.' }, 500)
+    }
   } catch (cause) {
-    console.error('baja-correo-masivo: no se pudo procesar la baja', cause instanceof Error ? cause.message : cause)
+    // Solo el nombre y el código del error: nunca su mensaje (puede traer datos de la base) ni el token.
+    console.error('baja-correo-masivo: no se pudo procesar la baja', textoDeError(cause))
     return response({ error: 'No pudimos procesar la baja. Probá de nuevo en un rato.' }, 500)
   }
   return response({ ok: true })

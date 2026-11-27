@@ -13,6 +13,7 @@ sources:
   - supabase/functions/_shared/embeddings.ts
   - supabase/functions/_shared/fetch-ia.ts
   - supabase/functions/_shared/cupo-ia.ts
+  - supabase/functions/baja-correo-masivo/handler.ts
   - supabase/functions/_shared/log-seguro.ts
   - supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql
   - supabase/migrations/20270508000000_registro_de_envios_de_correo_a_proveedores.sql
@@ -211,6 +212,10 @@ override de organización que une el criterio histórico (sufijo `organizacion_i
 - `CORREO_MASIVO_PERMITIR_LOCAL` (default `false` en el Compose; `true` solo en `infra/kestra/.env.example`) permite
   que el enlace de baja sea http/localhost. **No la definas en staging ni production.**
 - Sin verificar: que la ruta `/baja-correo/:token` exista solo en el host del panel (ver informe de frontend).
+
+## `baja-correo-masivo`: cupo por IP (lote 95, MSF-980)
+
+La función anónima de baja consume un cupo persistente de **60 pedidos por hora y visitante** (`public.consumir_cupo_baja_correo`, solo `service_role`; la base guarda el HMAC de la IP con el secreto `visitante_hmac` de Vault, nunca la IP) antes de leer el cuerpo. Sin cupo responde `429` con `Retry-After`; si no se puede contar, `503` (falla cerrada). La IP se toma de `x-forwarded-for` (último valor menos `BAJA_PROXY_SALTOS`, 0 por defecto, entero de 0 a 10; ver `supabase/functions/_shared/ip-cliente.ts`). Logs con `_shared/log-seguro.ts`. Detalle y límites en `docs/newsletter.md` («Rate limit de la baja»). Pruebas: `pnpm test:edge:baja-correo-masivo`.
 
 ## Pendientes (requieren migración o una decisión de negocio)
 
