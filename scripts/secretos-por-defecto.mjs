@@ -67,14 +67,18 @@ function esContrasenaPorDefecto(valor) {
   return CONTRASENAS_TRIVIALES.has(minuscula) || PREFIJOS_PUBLICOS.some((prefijo) => minuscula.startsWith(prefijo)) || minuscula.startsWith('change-me') || minuscula.startsWith('changeme') || minuscula.endsWith('-local');
 }
 
-// Contraseña dentro de una URL de conexión (`postgres://usuario:clave@host/db`, `jdbc:postgresql://...`). null si no hay.
+// Contraseña dentro de una URL de conexión (`postgres://usuario:clave@host/db`, `jdbc:postgresql://...`): la del userinfo o, si no hay, la de la query
+// (`?password=...&user=...`, `sslpassword`). null si no hay.
+const CLAVES_DE_QUERY = ['password', 'passwd', 'pwd', 'sslpassword'];
 export function contrasenaDeUrl(valor) {
   let texto = String(valor).trim();
   if (texto.startsWith('jdbc:')) texto = texto.slice(5);
   if (!texto.includes('://')) return null;
   try {
     const url = new URL(texto);
-    return url.password ? decodeURIComponent(url.password) : null;
+    if (url.password) return decodeURIComponent(url.password);
+    for (const [clave, valorQuery] of url.searchParams) if (CLAVES_DE_QUERY.includes(clave.toLowerCase()) && valorQuery !== '') return valorQuery;
+    return null;
   } catch {
     return null;
   }
@@ -98,8 +102,7 @@ export function motivoPorDefecto(nombre, valor) {
   return esContrasenaPorDefecto(v) ? 'contraseña o secreto por defecto (postgres, change-me*, *-local)' : null;
 }
 
-// KEY=valor de un .env (sin expandir variables). Mismo formato que scripts/preflight-deploy-vps.mjs.
-// Valor de una línea de .env: entre comillas se toma lo de adentro (lo que sigue al cierre es un comentario); sin comillas se corta en ` #`.
+// Valor de una línea: entre comillas se toma lo de adentro (lo que sigue al cierre es un comentario); sin comillas se corta en ` #`.
 export function valorDeLinea(resto) {
   const v = resto.trim();
   const comilla = v[0];
@@ -111,13 +114,18 @@ export function valorDeLinea(resto) {
   return (marca === -1 ? v : v.slice(0, marca)).trim();
 }
 
-// KEY=valor de un .env (sin expandir variables). Mismo formato que scripts/preflight-deploy-vps.mjs.
+// Pares de un archivo de variables. Acepta `KEY=valor` (.env, `docker inspect`), `- KEY=valor` (Compose, lista) y `KEY: valor` (YAML, mapa de Compose).
+// Sin expandir variables. Mismo formato que scripts/preflight-deploy-vps.mjs para los .env.
+const LINEA_YAML = /^\s*(?:-\s+)?([A-Za-z_][A-Za-z0-9_.-]*):\s+(.*)$/;
 export function leerPares(contenido) {
   const pares = [];
   for (const linea of String(contenido).split(/\r?\n/)) {
+    if (linea.trimStart().startsWith('#')) continue;
+    const yaml = LINEA_YAML.exec(linea);
+    if (yaml) { pares.push([yaml[1], valorDeLinea(yaml[2])]); continue; }
     const igual = linea.indexOf('=');
-    if (igual <= 0 || linea.trimStart().startsWith('#')) continue;
-    const nombre = linea.slice(0, igual).trim().replace(/^export\s+/, '');
+    if (igual <= 0) continue;
+    const nombre = linea.slice(0, igual).trim().replace(/^export\s+/, '').replace(/^-\s+/, '');
     if (nombre === '' || nombre.includes(' ')) continue;
     pares.push([nombre, valorDeLinea(linea.slice(igual + 1))]);
   }

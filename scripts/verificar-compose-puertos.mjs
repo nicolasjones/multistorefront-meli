@@ -106,17 +106,32 @@ export function analizarCompose(nombre, texto) {
   return hallazgos;
 }
 
-// `docker run`/`docker create` con -p/--publish sin IP, en scripts, package.json y workflows.
+// Une las continuaciones de línea de shell (`\` al final): `docker run \` con el `-p` en la línea siguiente es UN solo comando. Devuelve
+// [{ numero, texto }] con el número de la primera línea de cada comando lógico.
+export function lineasLogicas(texto) {
+  const salida = [];
+  let actual = null;
+  texto.split('\n').forEach((linea, i) => {
+    const continua = linea.endsWith('\\');
+    const contenido = continua ? linea.slice(0, -1) : linea;
+    if (actual) { actual.texto += ` ${contenido.trim()}`; } else { actual = { numero: i + 1, texto: contenido }; }
+    if (!continua) { salida.push(actual); actual = null; }
+  });
+  if (actual) salida.push(actual);
+  return salida;
+}
+
+// `docker run`/`docker create` con -p/--publish sin IP, en scripts, package.json y workflows (también con el `-p` en una línea de continuación).
 export function analizarComandos(nombre, texto) {
   const hallazgos = [];
-  texto.split('\n').forEach((linea, i) => {
-    if (!/docker (run|create)\b/.test(linea)) return;
+  for (const { numero, texto: linea } of lineasLogicas(texto)) {
+    if (!/docker (run|create)\b/.test(linea)) continue;
     const unidas = linea.replaceAll('\\"', '"');
     for (const m of unidas.matchAll(/(?:^|\s)(?:-p|--publish)(?:\s+|=)["']?([^\s"']+)/g)) {
       const motivo = hallazgoDePuerto(m[1]);
-      if (motivo) hallazgos.push(`${nombre}:${i + 1}: comando docker con -p ${m[1]} ${motivo}.`);
+      if (motivo) hallazgos.push(`${nombre}:${numero}: comando docker con -p ${m[1]} ${motivo}.`);
     }
-  });
+  }
   return hallazgos;
 }
 

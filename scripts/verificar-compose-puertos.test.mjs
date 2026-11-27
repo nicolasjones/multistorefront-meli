@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { analizarCompose, analizarComandos, analizarRaiz, hallazgoDePuerto, ipAcotada, separarPuerto } from './verificar-compose-puertos.mjs';
+import { analizarCompose, analizarComandos, analizarRaiz, lineasLogicas, hallazgoDePuerto, ipAcotada, separarPuerto } from './verificar-compose-puertos.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const compose = (...puertos) => `services:\n  db:\n    image: postgres\n    ports:\n${puertos.map((p) => `      - ${p}`).join('\n')}\n`;
@@ -83,6 +83,19 @@ test('analizarComandos: docker run -p sin IP falla, con IP pasa; otras líneas s
     ['docker run --rm img', 0], ['echo -p 8000:8000', 0], ['docker create -p 80:80 img', 1], ['docker run -v a:b img', 0],
   ];
   for (const [linea, n] of casos) assert.equal(analizarComandos('x', linea).length, n, linea);
+});
+
+test('QA: un `docker run \\` con el -p en una línea de continuación también se detecta (número de la primera línea)', () => {
+  const sh = 'echo x\ndocker run --rm \\\n  -p 8000:8000 \\\n  img\n';
+  const h = analizarComandos('x.sh', sh);
+  assert.equal(h.length, 1);
+  assert.match(h[0], /^x\.sh:2: .*8000:8000/);
+  assert.equal(analizarComandos('x.sh', 'docker run --rm \\\n  -p 127.0.0.1:8000:8000 \\\n  img\n').length, 0);
+  assert.equal(analizarComandos('x.sh', 'docker run --rm \\\n  --publish=5432:5432 img').length, 1);
+  assert.equal(analizarComandos('x.sh', 'docker run --rm \\\n  img\necho -p 80:80').length, 0, 'un -p de otro comando no cuenta');
+  assert.equal(analizarComandos('x.yml', '      run: |\n        docker create \\\n          --name a \\\n          -p 9000:9000 img\n').length, 1);
+  assert.deepEqual(lineasLogicas('a \\\nb\nc').map((l) => [l.numero, l.texto.replace(/\s+/g, ' ')]), [[1, 'a b'], [3, 'c']]);
+  assert.deepEqual(lineasLogicas('a \\').map((l) => l.numero), [1], 'una continuación al final del archivo no se pierde');
 });
 
 test('el repositorio real cumple el guard', () => {

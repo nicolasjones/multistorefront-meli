@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { analizarProducto, analizarRaiz, conDefectoPublico, interpolaciones, obligatorias } from './verificar-compose-credenciales.mjs';
+import { analizarProducto, analizarRaiz, conDefectoPublico, interpolaciones, literalesPublicos, obligatorias } from './verificar-compose-credenciales.mjs';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BASE = 'services:\n  a:\n    environment:\n      P: ${A_PASSWORD:-change-me-local}\n      Q: ${B_URL:-postgres://postgres:postgres@h:${PUERTO:-7634}/postgres}\n      R: ${C_ID:-}\n';
@@ -64,4 +64,18 @@ test('mutante sobre el repo real: quitar una obligatoria del overlay de kestra h
   const refine = path.join(tmp, 'infra', 'refine', 'compose.yaml');
   await writeFile(refine, `${await readFile(refine, 'utf8')}\n# x: \${NUEVA_PASSWORD:-change-me-local}\n`);
   assert.match(analizarRaiz(tmp).join('\n'), /infra\/refine\/compose\.yaml: NUEVA_PASSWORD/);
+});
+
+test('QA: un literal público (sin interpolación) en una variable sensible se detecta; los buenos y los no sensibles no', () => {
+  const malos = ['      POSTGRES_PASSWORD: postgres', '      - POSTGRES_PASSWORD=postgres', '    NANGO_DASHBOARD_PASSWORD: "ChangeMe1Local"', "  X_SECRET: 'change-me-local'", '      PGPASSWORD: postgres # local',
+    '      SUPERSET_SECRET_KEY: change-me-local-with-at-least-42-characters', '      JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long', '      DB_URL: postgres://postgres:postgres@db:5432/x'];
+  for (const linea of malos) assert.equal(literalesPublicos(linea).size, 1, linea);
+  const buenos = ['      POSTGRES_PASSWORD: ${DB_PASSWORD:?falta}', '      POSTGRES_PASSWORD: ${DB_PASSWORD}', '      POSTGRES_USER: postgres', '      LOG_LEVEL: postgres', '      X_PASSWORD:', '      X_PASSWORD: ""',
+    '      # POSTGRES_PASSWORD: postgres', '      POSTGRES_PASSWORD: valorPropioLargo9', '      DB_URL: postgres://app:Zx81kLm02@db:5432/x'];
+  for (const linea of buenos) assert.equal(literalesPublicos(linea).size, 0, linea);
+  // Integrado al análisis del producto: con y sin overlay.
+  const base = 'services:\n  db:\n    environment:\n      POSTGRES_PASSWORD: postgres\n';
+  assert.match(analizarProducto('p', base, 'x: 1\n').join('\n'), /POSTGRES_PASSWORD tiene un valor LITERAL por defecto/);
+  assert.match(analizarProducto('p', base, null).join('\n'), /POSTGRES_PASSWORD tiene un valor LITERAL/);
+  assert.deepEqual(analizarProducto('p', base.replace('postgres', '${DB_PASSWORD:?falta}'), 'x: 1\n'), []);
 });

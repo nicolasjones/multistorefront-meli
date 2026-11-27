@@ -77,6 +77,7 @@ test('contrasenaDeUrl', () => {
 test('leerPares: ignora comentarios, export y comillas', () => {
   const pares = leerPares('# A=1\nexport B="dos"\nC=\'tres\'\n  D = cuatro \nsin_igual\n=x\nE F=5');
   assert.deepEqual(pares, [['B', 'dos'], ['C', 'tres'], ['D', 'cuatro']]);
+  assert.deepEqual(leerPares('  POSTGRES_PASSWORD: postgres\n  - PGPASSWORD=postgres\nDB_URL: postgres://u:p@h/x?a=b\nRUTA=/a:b c'), [['POSTGRES_PASSWORD', 'postgres'], ['PGPASSWORD', 'postgres'], ['DB_URL', 'postgres://u:p@h/x?a=b'], ['RUTA', '/a:b c']]);
 });
 
 test('hallazgosPorDefecto nunca incluye el valor, solo nombre y motivo', () => {
@@ -229,4 +230,36 @@ test('M4: los dos secretos JWT públicos están en la lista y un JWT HS512 alter
   const b = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
   assert.equal(inspeccionarJwt(`${b({ alg: 'none' })}.${b({ role: 'x' })}.firma`).firmadoConSecretoPublico, false);
   assert.equal(inspeccionarJwt(`${b({ alg: 'constructor' })}.${b({ role: 'x' })}.firma`).firmadoConSecretoPublico, false);
+});
+
+test('QA: la contraseña en la query de una URL y los YAML pasados a --archivo se detectan; los buenos no', () => {
+  const malos = [
+    'DB_URL=postgresql://h:5432/x?user=u&password=postgres',
+    'DB_URL=jdbc:postgresql://h/db?user=u&password=change-me-local',
+    'DB_URL=postgres://h/db?sslpassword=postgres',
+    'DB_URL=postgres://h/db?PWD=postgres',
+    '      POSTGRES_PASSWORD: postgres',
+    '  - PGPASSWORD=postgres',
+    '      GOTRUE_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long',
+    '    DATABASE_URL: "postgres://u:postgres@h/x"',
+    '      KESTRA_BASIC_AUTH_PASSWORD: change-me-local # defecto',
+  ];
+  for (const linea of malos) assert.equal(hallazgosPorDefecto(linea).length, 1, linea);
+  const buenos = [
+    'DB_URL=postgresql://h:5432/x?user=u&password=Zx81kLm02Qq',
+    'DB_URL=postgres://h/db?password=',
+    'DB_URL=postgres://h/db?user=postgres&sslmode=require',
+    '      POSTGRES_USER: postgres',
+    '      POSTGRES_PASSWORD: ${DB_PASSWORD:?falta}',
+    '      POSTGRES_PASSWORD: valorPropioLargo9',
+    '  - WEB_PORT=4300',
+  ];
+  for (const linea of buenos) assert.deepEqual(hallazgosPorDefecto(linea), [], linea);
+  // contrasenaDeUrl: userinfo gana sobre la query; query sin clave conocida no cuenta
+  assert.equal(contrasenaDeUrl('postgres://u:uno@h/x?password=dos'), 'uno');
+  assert.equal(contrasenaDeUrl('postgres://h/x?token=abc'), null);
+  // El CLI acepta un YAML (docker compose config) por stdin y por archivo.
+  const r = spawnSync(process.execPath, [verificador, '--archivo', '-'], { encoding: 'utf8', input: 'services:\n  db:\n    environment:\n      POSTGRES_PASSWORD: postgres\n' });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /POSTGRES_PASSWORD/);
 });

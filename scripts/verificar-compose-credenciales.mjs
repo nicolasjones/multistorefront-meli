@@ -66,8 +66,25 @@ export function obligatorias(texto) {
   return new Set(interpolaciones(texto).filter((x) => x.operador === ':?' || x.operador === '?').map((x) => x.nombre));
 }
 
+// Literales (sin interpolación) con un valor público en variables sensibles: `POSTGRES_PASSWORD: postgres`, `- KESTRA_X=change-me-local`. Una credencial
+// fija en el Compose se despliega igual en todos los ambientes: no puede quedar con un valor por defecto conocido.
+export function literalesPublicos(texto) {
+  const nombres = new Map();
+  for (const linea of texto.split('\n')) {
+    if (linea.trimStart().startsWith('#')) continue;
+    const m = /^\s*(?:-\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s+|=)(.*)$/.exec(linea);
+    if (!m) continue;
+    const valor = m[2].replace(/\s+#.*$/, '').trim().replace(/^(['"])(.*)\1$/, '$2');
+    if (valor === '' || valor.includes('${')) continue;
+    const motivo = motivoPorDefecto(m[1], valor);
+    if (motivo && !nombres.has(m[1])) nombres.set(m[1], motivo);
+  }
+  return nombres;
+}
+
 export function analizarProducto(producto, base, estricto) {
   const hallazgos = [];
+  for (const [nombre, motivo] of literalesPublicos(base)) hallazgos.push(`infra/${producto}/compose.yaml: ${nombre} tiene un valor LITERAL por defecto (${motivo}): usá \${${nombre}:?...} o un valor que venga del entorno.`);
   const defectos = conDefectoPublico(base);
   if (estricto === null) {
     for (const [nombre, motivo] of defectos) hallazgos.push(`infra/${producto}/compose.yaml: ${nombre} trae un valor por defecto (${motivo}) y el producto no tiene compose.estricto.yaml.`);
