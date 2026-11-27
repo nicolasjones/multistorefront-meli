@@ -195,7 +195,9 @@ describe('ListadoProductos · resultados', () => {
     expect(within(tarjetas[0]).getByText('$ 18.455')).toBeInTheDocument()
     expect(within(tarjetas[0]).getByText('Disponible')).toBeInTheDocument()
     expect(tarjetas[0].querySelector('img')).toHaveAttribute('src', 'https://firmada.test/a.png')
-    expect(tarjetas[0].querySelector('img')).toHaveAttribute('loading', 'lazy')
+    // MSF-1002: la primera tarjeta es la candidata a LCP: sin diferir y con prioridad alta (las demás siguen lazy: ver prioridadImagen.test.tsx).
+    expect(tarjetas[0].querySelector('img')).toHaveAttribute('loading', 'eager')
+    expect(tarjetas[0].querySelector('img')).toHaveAttribute('fetchpriority', 'high')
     // Sin imagen, sin precio calculable y sin stock.
     expect(within(tarjetas[1]).getByText('Sin imagen')).toBeInTheDocument()
     expect(within(tarjetas[1]).getByTestId('tarjeta-sin-stock')).toHaveTextContent('Sin stock')

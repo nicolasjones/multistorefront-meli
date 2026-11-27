@@ -21,6 +21,24 @@ export function rutaDeArchivo(archivo: string): string[] {
   return nombre === 'inicio' ? ['/'] : [`/${nombre}`, `/${nombre}/:${nombre}Id`]
 }
 
+// ¿Este camino responde a este patrón de ruta? `:param` acepta un tramo no vacío (misma regla que las rutas de arriba).
+export function coincideRuta(patron: string, camino: string): boolean {
+  const a = patron.split('/').filter(Boolean)
+  const b = camino.split('/').filter(Boolean)
+  return a.length === b.length && a.every((tramo, i) => (tramo.startsWith(':') ? b[i].length > 0 : tramo === b[i]))
+}
+
+// MSF-1002: el chunk de la ruta (catálogo, ficha...) recién se pedía cuando terminaba de resolverse la tienda y se montaba el
+// layout: una cascada de red (JS de entrada → tienda → chunk de la ruta → datos). Se lo pide desde el arranque, EN PARALELO con la
+// resolución de la tienda; `import()` cachea el módulo, así que después `lazy` lo encuentra ya descargado. Mejor esfuerzo: un
+// fallo se ignora (la ruta lo reintenta al navegar y muestra su pantalla de error).
+export function precargarRutaActual(camino: string, cargadores: Record<string, CargadorRuta> = CARGADORES_RUTAS): void {
+  const ruta = Object.entries(cargadores)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .find(([archivo]) => rutaDeArchivo(archivo).some((patron) => coincideRuta(patron, camino)))
+  if (ruta) void ruta[1]().catch(() => undefined)
+}
+
 function ErrorDeRuta() {
   const error = useRouteError()
   console.error('No se pudo cargar la página de la tienda', error instanceof Error ? error.message : error)

@@ -318,3 +318,5 @@ diferido; las imágenes de tarjetas y miniaturas usan `loading="lazy"`.
 «Contacto» en el menú móvil lo agrega **MSF-212** junto con la página `/contacto`: el enlace ya está en
 `layout/MenuMovil.tsx`. Queda pendiente **verificarlo a 360 px** en un navegador real (Dueño: MSF-212 /
 Tiendas online). Detalle: [Tienda pública: WhatsApp y contacto](tienda-whatsapp-y-contacto.md).
+
+**Imágenes sin diferir (MSF-1002).** En el listado del catálogo y en los destacados de la home, las dos primeras tarjetas llevan `prioridad` (la primera, `fetchpriority="high"`): son las que se ven sin desplazar en celular. Detalle en `docs/tienda-movil.md`, «LCP».

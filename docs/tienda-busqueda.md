@@ -149,3 +149,5 @@ El índice `productos_nombre_busqueda_trgm` está sobre `dominio.productos`, per
 al catálogo de la tienda (`precio_final_publico` y `disponible_publico` se calculan antes de paginar). No se
 midió con `EXPLAIN` en esta corrida; queda como seguimiento a medir con un catálogo grande antes de abrir
 la tienda a mucho tráfico.
+
+> **Imágenes del listado (MSF-1002):** las dos primeras tarjetas de los resultados cargan sin diferir (la primera con `fetchpriority="high"`); las demás siguen con `loading="lazy"`.

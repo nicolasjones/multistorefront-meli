@@ -406,3 +406,5 @@ pnpm --filter @platform/web test:e2e tienda-disponibilidad
 - El buscador del encabezado es de MSF-191: ver
   [Tienda pública: inicio, búsqueda y móvil](tienda-inicio-busqueda-movil.md).
 - Los estados vacíos y la 404 se dibujan con los componentes del kit, no copiando el HTML del prototipo.
+
+**Prioridad de imágenes (MSF-1002).** `TarjetaProducto` recibe `prioridad` (`prioridadDeTarjeta`, `catalogo/prioridadImagen.ts`): las dos primeras tarjetas de una grilla cargan sin `loading="lazy"` y la primera con `fetchpriority="high"` (candidata a LCP); el resto sigue diferido. La imagen principal de la ficha (`Galeria`) también pide `fetchpriority="high"`.
