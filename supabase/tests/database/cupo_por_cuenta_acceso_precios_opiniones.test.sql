@@ -50,7 +50,8 @@ select is(publico.acceso_cliente_por_dominio('cupo.ejemplo.com'), '{"estado": "a
 select publico.acceso_cliente_por_dominio('cupo.ejemplo.com');
 select is(publico.acceso_cliente_por_dominio('cupo.ejemplo.com') ->> 'estado', 'activa', 'acceso: la 3.ª llamada (el tope) todavía responde');
 select is(publico.acceso_cliente_por_dominio('cupo.ejemplo.com') ->> 'estado', 'limite', 'acceso: la 4.ª llamada supera el cupo');
-select ok((publico.acceso_cliente_por_dominio('cupo.ejemplo.com') ->> 'espera_segundos')::int between 1 and 60, 'acceso: avisa cuántos segundos esperar');
+-- Una sola evaluación: `between` repetiría la función volátil y gastaría otra llamada del cupo.
+select ok((select (r ->> 'espera_segundos')::int between 1 and 60 from (select publico.acceso_cliente_por_dominio('cupo.ejemplo.com') as r) q), 'acceso: avisa cuántos segundos esperar');
 reset role;
 select is((select pedidos from public.limite_pedidos_publicos where visitante = 'acceso|f9400000-0000-0000-0000-000000000001' and ventana = date_trunc('minute', now())), 5,
   'acceso: el contador se persistió y cuenta también las llamadas rechazadas');

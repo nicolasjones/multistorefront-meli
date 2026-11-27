@@ -74,10 +74,14 @@ select is(
 -- ============================================================================
 -- Lista configurable: clave y estados de base
 -- ============================================================================
+-- Un estado propio de la Dos, con clave conocida: la Uno no lo ve ni lo puede elegir.
+insert into dominio.estados_consulta (organizacion_id, nombre, clave) values ('22222222-2222-2222-2222-222222222222', 'Solo Dos', 'dos-solo');
+
 select pg_temp.como('f5950000-0000-0000-0000-000000000001');
 
+select public.crear_estado_consulta('Descartada');
 select is(
-  (select e.clave = e.id::text from public.crear_estado_consulta('Descartada') c join dominio.estados_consulta e on e.id = c.id),
+  (select clave = id::text from dominio.estados_consulta where nombre = 'Descartada' and organizacion_id = '11111111-1111-1111-1111-111111111111'),
   true, 'un estado creado por el Administrador usa su id como clave'
 );
 select throws_ok(
@@ -141,7 +145,7 @@ select throws_ok(
 );
 select throws_ok(
   format($$select public.actualizar_consulta('c5950000-0000-0000-0000-000000000001', %L, null, null, now())$$,
-    (select clave from dominio.estados_consulta where organizacion_id = '22222222-2222-2222-2222-222222222222' and es_sistema limit 1)),
+    'dos-solo'),
   'PT404', 'El estado elegido no existe', 'la clave de un estado de OTRA organización no vale (aislamiento): PT404'
 );
 select throws_ok(
