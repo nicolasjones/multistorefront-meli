@@ -3,7 +3,7 @@
 // con responsable, reusando `public.actualizar_consulta` de MSF-122 (sin migración nueva).
 import { supabaseClient } from './supabase'
 import {
-  ETIQUETA_ESTADO_CONSULTA,
+  etiquetaEstadoConsulta,
   actualizarConsulta,
   type Consulta,
   type EstadoConsulta,
@@ -50,10 +50,10 @@ export function cambiosAlResponder(
 // Aviso de éxito (FR-013): dice cómo quedó la consulta, nunca que el mensaje salió.
 export function avisoRespuestaRegistrada(
   cambios: { estado: EstadoConsulta; responsableId: string | null },
-  datos: { nombreConsulta: string; nombreResponsable: string | null },
+  datos: { nombreConsulta: string; nombreResponsable: string | null; nombreEstado?: string },
   usuarioId: string,
 ): string {
-  const estadoTexto = ETIQUETA_ESTADO_CONSULTA[cambios.estado]
+  const estadoTexto = datos.nombreEstado ?? etiquetaEstadoConsulta(cambios.estado, null)
   const a = cambios.responsableId === usuarioId ? 'a tu nombre' : `a nombre de ${datos.nombreResponsable ?? 'otra persona'}`
   return `Consulta ${estadoTexto} ${a} · ${datos.nombreConsulta}`
 }

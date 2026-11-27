@@ -19,6 +19,7 @@ sources:
   - supabase/migrations/20261210130000_estados_consulta_lista.sql
   - supabase/migrations/20261210130300_consultas_aviso_emitir.sql
   - supabase/migrations/20270507000400_estados_consulta_de_sistema.sql
+  - supabase/migrations/20270510000000_estados_consulta_conectados_a_consultas.sql
 ---
 
 # Avisos y listas: modelo, RPC y flujos (MSF-189)
@@ -88,9 +89,9 @@ erDiagram
     timestamptz creado_en }
 ```
 
-La relación con `dominio.consultas` es **solo por lógica** en esta entrega: `consultas.estado` sigue siendo
-texto con `nueva|en_curso|resuelta` y `estados_consulta` todavía no tiene FK ni alimenta la bandeja (ver
-[Límites](#limites-y-deuda)). El diagrama completo y el detalle de las tablas existentes están en
+La relación con `dominio.consultas` es **por clave, sin FK** (MSF-595, migración `20270510000000`): `consultas.estado` guarda
+la `clave` del estado (`nueva`, `en_curso`, `resuelta` para los de base; el id del estado para los propios) y la bandeja
+lee la lista. Detalle en [Listas configurables](../listas-configurables.md#estados-configurables-y-consultasestado-msf-595). El diagrama completo y el detalle de las tablas existentes están en
 [Datos y DER](datos.md#avisos-y-listas-configurables-msf-189).
 
 ## Permisos y RLS
@@ -243,13 +244,10 @@ Variables del envío, solo en `.env` (nunca en Git):
 
 ## Límites y deuda
 
-- **Estados de consulta sin conectar:** `dominio.estados_consulta` y su pantalla existen, pero
-  `dominio.consultas.estado` sigue con los tres valores fijos de MSF-122. Falta una historia que haga que la
-  bandeja lea la lista y migre los estados. El mecanismo de **estados de sistema** ya existe (columna `es_sistema` y el disparador
-  `estados_consulta_proteger_sistema`, migración `20270507000400_estados_consulta_de_sistema.sql`: un estado de sistema no se
-  desactiva, renombra ni borra desde la app, error `23514`; solo una migración lo marca), pero todavía no hay ninguno sembrado
-  (detalle en [Listas configurables](../listas-configurables.md)).
-  `TODO (dueño: Producto / Consultas)`.
+- **Estados de consulta:** conectados desde MSF-595. Los tres de base se siembran por organización como **estados de sistema**
+  (columna `es_sistema` y disparador `estados_consulta_proteger_sistema`: no se desactivan, renombran ni borran desde la app,
+  error `23514`; solo una migración los marca) y `actualizar_consulta` acepta cualquier estado activo de la organización
+  (detalle en [Listas configurables](../listas-configurables.md)). Sin FK desde `consultas.estado`: la validez la decide la RPC.
 - **Preferencias por persona:** no por persona y empresa; agregar `empresa_id` a la clave sería una migración
   aditiva si el producto lo pide.
 - **Proveedor y remitente:** sin definir; sin SPF/DKIM los correos pueden caer en spam.

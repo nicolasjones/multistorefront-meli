@@ -30,8 +30,7 @@ Referencia general del módulo: [Catálogo de productos](../catalogo.md).
   Stock). El listado carga por tandas de 25 y lleva un **«Cargar más»** al pie (regla de listados: ver
   [Listados: carga infinita e imagen de producto](../tecnico/listados.md)).
 - **Filtros:** «Todos», «Inactivos», tienda y categoría (una categoría raíz incluye sus subcategorías). «Sin stock»,
-  «Stock bajo» y «Sin vincular a ML» se ven **deshabilitados** con la explicación «Se activa cuando llegue Stock /
-  Mercado Libre».
+  «Stock bajo» funciona (solo con acceso a Stock) y «Sin vincular a ML» ya no está.
 - **Empresas que lo venden:** sección en el alta y la edición, una fila por empresa con interruptor. Un producto nuevo no
   se vende en ninguna empresa hasta marcarlas.
 - **Categorías** (`/categorias`): árbol de **dos niveles**, «Expandir todo / Contraer todo», filtro de tienda, alta,
@@ -81,8 +80,8 @@ con **lectura** solo se consulta. Categorías usa su propia sección (`categoria
    indicadas, «—» en Precio, Margen y Stock, y el botón «Cargar más» al pie.
 2. Escribí un trozo de nombre o SKU en «Buscar por nombre o SKU». Tras una breve espera el listado se reduce a las
    coincidencias, sin distinguir mayúsculas. Probá con `%` o `_`: se buscan como texto, no como comodín.
-3. Elegí el chip **Inactivos**. Solo quedan los productos inactivos. Los chips «Sin stock», «Stock bajo» y «Sin vincular
-   a ML» están deshabilitados y explican cuándo se activan.
+3. Elegí el chip **Inactivos**. Solo quedan los productos inactivos. El chip «Stock bajo» (si tu rol ve Stock)
+   deja solo los productos por debajo de su mínimo; «Limpiar filtros» lo quita.
 4. Cambiá el filtro de tienda y el de categoría. Solo se ven los productos de esa empresa/categoría; con una categoría
    raíz aparecen también los de sus subcategorías.
 5. Ordená por Producto, SKU y Estado haciendo clic en el encabezado. El orden es estable y cambia la dirección.

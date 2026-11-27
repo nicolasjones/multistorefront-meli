@@ -49,6 +49,7 @@ vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaAct
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProductoList } from './list'
+import { violacionesAxe } from '../../test/axe'
 
 const FILAS = [
   { id: 'p-1', nombre: 'Joystick', sku: 'JOY-1', activo: true, imagen_ruta: 'o/p-1/frente.png', empresa_ids: ['emp-1'], categoria_id: 'cat-1', categoria_ruta: 'Joysticks > Cableados', disponibilidad: 'stock' },
@@ -376,14 +377,39 @@ describe('ProductoList', () => {
     expect(mocks.llamadas.some(([m]) => m === 'eq')).toBe(false)
   })
 
-  it('Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación', async () => {
+  it('«Stock bajo» filtra en el servidor, vuelve a la página 1 y «Limpiar filtros» lo quita; «Sin vincular a ML» ya no existe', async () => {
     abrir()
     await screen.findByText('Joystick')
-    for (const nombre of [/^Stock bajo/, /^Sin vincular a ML/]) {
-      expect(screen.getByRole('button', { name: nombre })).toHaveAttribute('aria-disabled', 'true')
-    }
-    expect(screen.getByRole('button', { name: /^Stock bajo\. El listado de productos todavía no trae el estado de stock\. Usá el filtro «Stock bajo» de la pantalla Stock\./ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^Sin vincular a ML\. Sin datos todavía/ })).toBeInTheDocument()
+    expect(screen.queryByText(/Sin vincular a ML/)).not.toBeInTheDocument()
+    const chip = screen.getByRole('button', { name: 'Stock bajo' })
+    expect(chip).toHaveAttribute('aria-pressed', 'false')
+    expect(chip).not.toHaveAttribute('aria-disabled', 'true')
+    mocks.llamadas.length = 0
+    fireEvent.click(chip)
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['eq', 'estado_stock', 'stock_bajo']))
+    expect(mocks.llamadas).toContainEqual(['range', 0, 24])
+    expect(screen.getByRole('button', { name: 'Stock bajo' })).toHaveAttribute('aria-pressed', 'true')
+    mocks.llamadas.length = 0
+    fireEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 0, 24]))
+    expect(mocks.llamadas.some(([m, columna]) => m === 'eq' && columna === 'estado_stock')).toBe(false)
+    expect(screen.getByRole('button', { name: 'Stock bajo' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('la barra de filtros con «Stock bajo» activo no tiene violaciones de axe', async () => {
+    const { container } = abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: 'Stock bajo' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Stock bajo' })).toHaveAttribute('aria-pressed', 'true'))
+    expect(await violacionesAxe(container)).toEqual([])
+  })
+
+  it('sin acceso a Stock el filtro «Stock bajo» no se ofrece (la base no le devuelve el estado)', async () => {
+    mocks.useNivelSeccion.mockImplementation((seccion: string) => ({ nivel: seccion === 'stock' ? 'ninguno' : 'edicion', isLoading: false }))
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.queryByRole('button', { name: 'Stock bajo' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Inactivos' })).toBeInTheDocument()
   })
 
   it('la columna Stock muestra la etiqueta de disponibilidad de cada producto (F-CAT-17, FR-009)', async () => {

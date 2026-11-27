@@ -169,7 +169,7 @@ describe('ListasConfigurables', () => {
     expect(screen.getByRole('button', { name: 'Desactivar Cerrada' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Renombrar Cerrada' })).toBeDisabled()
     expect(screen.getByText('De sistema')).toBeInTheDocument()
-    expect(screen.getByText(/lo necesita el cierre de las consultas/)).toBeInTheDocument()
+    expect(screen.getByText(/lo necesita el flujo de las consultas/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Desactivar Cerrada' })).toHaveAccessibleDescription(/no se puede desactivar ni renombrar/)
     expect(await violacionesAxe(document.body)).toEqual([])
     // Los demás estados siguen editables.
@@ -177,7 +177,7 @@ describe('ListasConfigurables', () => {
   })
 
   it('si la base rechaza tocar un estado de sistema, muestra su mensaje claro', async () => {
-    const mensaje = 'El estado «Cerrada» es de sistema: lo necesita el cierre de las consultas y no se puede desactivar'
+    const mensaje = 'El estado «Cerrada» es de sistema: lo necesita el flujo de las consultas y no se puede desactivar'
     mocks.rpc.mockResolvedValue({ data: null, error: { code: '23514', message: mensaje } })
     abrir()
     await within(seccionEstados()).findByText('Nueva')
@@ -188,7 +188,7 @@ describe('ListasConfigurables', () => {
   it.each([
     'No se puede cambiar si un estado es de sistema',
     'Un estado de sistema solo se crea por migración',
-    'El estado «Cerrada» es de sistema: lo necesita el cierre de las consultas y no se puede borrar',
+    'El estado «Cerrada» es de sistema: lo necesita el flujo de las consultas y no se puede borrar',
   ])('muestra el mensaje de la guarda de sistema «%s» y no el de nombre vacío', async (mensaje) => {
     mocks.rpc.mockResolvedValue({ data: null, error: { code: '23514', message: mensaje } })
     abrir()

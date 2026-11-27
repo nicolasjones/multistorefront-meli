@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
+  useOpcionesEstado: vi.fn(),
   useBandejaConsultas: vi.fn(),
   useConsulta: vi.fn(),
   useConsultasNuevas: vi.fn(),
@@ -17,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   imagenes: new Map<string, string>(),
 }))
 
+vi.mock('../../hooks/useOpcionesEstadoConsulta', () => ({ useOpcionesEstadoConsulta: mocks.useOpcionesEstado }))
 vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => mocks.imagenes }))
 
 vi.mock('../../hooks/useConsultas', () => ({
@@ -38,6 +40,7 @@ vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: () 
 
 import type { Consulta } from '../../lib/consultas'
 import { ConsultaList } from './list'
+import { violacionesAxe } from '../../test/axe'
 
 const ID_CONSULTA = 'c1000000-0000-0000-0000-000000000001'
 
@@ -106,6 +109,7 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     mocks.useItemsConsulta.mockReturnValue({ fase: 'lista', items: [], reintentar: vi.fn() })
     mocks.useBandejaConsultas.mockReturnValue(bandeja([consulta()]))
     mocks.useConsulta.mockImplementation((id: string | null) => detalle(id === ID_CONSULTA ? consulta() : null))
+    mocks.useOpcionesEstado.mockReturnValue({ opciones: null, hayError: false })
     estadoFiltro.empresaActivaId = null
     estadoFiltro.cargando = false
     estadoFiltro.hayError = false
@@ -168,6 +172,51 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar consultas' }), { target: { value: '  ana, (pérez)  ' } })
     act(() => { vi.advanceTimersByTime(300) })
     expect(ultimosFiltros()).toMatchObject({ texto: '  ana, (pérez)  ', pagina: 1 })
+  })
+
+  // MSF-595 y MSF-616: estados configurados y aclaración del contador.
+  it('los estados configurados de la organización aparecen como filtros y su nombre en la columna Estado', () => {
+    mocks.useOpcionesEstado.mockReturnValue({
+      opciones: [
+        { clave: 'nueva', nombre: 'Nueva', activo: true },
+        { clave: 'en_curso', nombre: 'En curso', activo: true },
+        { clave: 'resuelta', nombre: 'Resuelta', activo: true },
+        { clave: 'c-1', nombre: 'Descartada', activo: true },
+        { clave: 'c-2', nombre: 'Archivada', activo: false },
+      ],
+      hayError: false,
+    })
+    mocks.useBandejaConsultas.mockReturnValue(bandeja([consulta({ estado: 'c-2' })]))
+    abrir()
+    const filtros = within(screen.getByRole('group', { name: 'Filtrar por estado' }))
+    expect(filtros.getAllByRole('button').map((b) => b.textContent)).toEqual(['Todas', 'Nuevas (3)', 'En curso', 'Resuelta', 'Descartada', 'Archivada (desactivado)'])
+    expect(within(screen.getByRole('table')).getByText('Archivada')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Descartada' }))
+    expect(ultimosFiltros().estado).toBe('c-1')
+  })
+
+  it('con estados configurados y la aclaración del contador, la pantalla no tiene violaciones de axe', async () => {
+    estadoFiltro.empresaActivaId = 'e-1'
+    mocks.useOpcionesEstado.mockReturnValue({
+      opciones: [
+        { clave: 'nueva', nombre: 'Nueva', activo: true },
+        { clave: 'c-1', nombre: 'Descartada', activo: true },
+        { clave: 'c-2', nombre: 'Archivada', activo: false },
+      ],
+      hayError: false,
+    })
+    const { container } = abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Todas las tiendas' }))
+    expect(await violacionesAxe(container)).toEqual([])
+  })
+
+  it('con el filtro de pantalla distinto de la empresa de la barra superior aclara por qué «Nuevas» no coincide con el menú', () => {
+    estadoFiltro.empresaActivaId = 'e-1'
+    abrir()
+    expect(screen.queryByRole('note', { name: /Nuevas/ })).not.toBeInTheDocument()
+    expect(screen.queryByText(/El número del menú sigue a la empresa de la barra superior/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Todas las tiendas' }))
+    expect(screen.getByText(/«Nuevas» cuenta las consultas de la tienda elegida en este filtro. El número del menú sigue a la empresa de la barra superior/)).toBeInTheDocument()
   })
 
   it('filtra por estado con los chips de la épica (Todas, Nuevas (n), En curso, Resuelta)', () => {
