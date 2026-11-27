@@ -181,3 +181,7 @@ El cliente con cuenta web (F-CLI-05) ingresa y recupera su contraseña **en el d
 - Al remover a un miembro, el trigger `cortar_sesiones_miembro_removido` (migración `20270201200101`) borra sus `auth.sessions`, igual que suspender.
 - `authProvider.login` y `check` exigen membresía no suspendida o ser superadmin; si no, cierran la sesión y rechazan (mensaje genérico). `login` falla cerrado ante un error de consulta; `check` no expulsa por una caída y reutiliza un veredicto «permitido» 60 s.
 - Una cuenta de cliente de la tienda sin membresía tampoco entra al panel. La contención de datos sigue siendo RLS.
+
+## Cupo por cuenta del acceso a la tienda (MSF-1001)
+
+`publico.acceso_cliente_por_dominio` toma un cupo de 240 llamadas por minuto y cuenta de Auth; superado responde `{estado: limite}` y `consultarAcceso` lo trata como un fallo reintentable (no cierra la sesión). Detalle en [Revisión de seguridad de la tienda](seguridad-tienda-compra-y-cuentas.md).
