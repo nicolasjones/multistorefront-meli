@@ -712,9 +712,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "9c7a32a0e609c8a35e172416796de905a9c52f8fe3a9cd0d50ada222af6f5fb8",
-      "sourceHash": "bcb4d9f52330eec80140ed1cdb8c61e1b6d5ea6fe6097a39717295b67009253a",
-      "sourceAt": "af0142a09",
+      "pageHash": "21f7419ed48a9686f8f16bba505406f1c9bff481750e1ba1bf3a1c6cf3e70d8e",
+      "sourceHash": "975eb628819b50d6a63d7b02ef45273c347653dc7b03021fa2a1f2fe5aa6a76f",
+      "sourceAt": "47914a40a",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -722,11 +722,13 @@
         "scripts/gate-integracion.mjs",
         "scripts/limpiar-ci.mjs",
         "scripts/verificar-workflows.mjs",
+        "scripts/verificar-inventario-suites.mjs",
+        "scripts/migraciones-reversion.mjs",
         "scripts/verificar-validacion.mjs",
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "af0142a09"
+      "commit": "47914a40a"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -928,9 +930,9 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "0a643f8c03459947a707abd9c657696b027068299aafa29c7ed0a75499006177",
-      "sourceHash": "cc5633e76497f1708e2e0997ecb51071acf12c7fd959c888cca2c376df24651d",
-      "sourceAt": "9194f4da4",
+      "pageHash": "01374783c3e2f4cecfd8edf2436628094f705c7385f9745270a15e5f3170259f",
+      "sourceHash": "64bd14dcabce5568cc76e2d356a1646c39442e3c66aa95ca5fbfddae21193ee2",
+      "sourceAt": "47914a40a",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
@@ -949,7 +951,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "9194f4da4"
+      "commit": "47914a40a"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
@@ -995,9 +997,9 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "3e4a50cddd115dba6fa2f9e01b40a2b3edf0d845a71aed689cc06b714fd20059",
-      "sourceHash": "a5b4421cbccd504a3b2e6064b1a67565ee70c5884cf2500b11a22634822796a1",
-      "sourceAt": "e1e6da5b9",
+      "pageHash": "d9bdd86611db102b8297d383b6ab81354407dde108d412842cc81faf09882c2d",
+      "sourceHash": "1895dae6ab3f81e97ef023917b00af3800a5ddd357bd87874e4d9f604c439f72",
+      "sourceAt": "0eb04f5aa",
       "sources": [
         "apps/web/playwright.config.ts",
         "apps/web/e2e/verificar-dist.mjs",
@@ -1013,7 +1015,7 @@
         "scripts/e2e-cobertura-epicas.py"
       ],
       "owner": "tecnico",
-      "commit": "e1e6da5b9"
+      "commit": "0eb04f5aa"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -2770,14 +2772,15 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "a69ef6830005157e7b1f124784ebda03412f8588cefc4979e64e15b3a1ba2ad0",
-      "sourceHash": "bd84ab2fe82e22392fa4116aefe759501cb98392ca8635450e0722be87cf9d9d",
-      "sourceAt": "9e94da6b5",
+      "pageHash": "fad67380e89c2e366f92beeef4cdc688ab9fa4a2d98c606c907a34b1fdd31e82",
+      "sourceHash": "5320e983de5e0a2f3cbac9bbd4643cd501b353159e5b2fa69c1d2ec023fae80d",
+      "sourceAt": "6fd530583",
       "sources": [
         "scripts/tests-afectados.mjs",
         "scripts/tests-afectados.test.mjs",
         "scripts/verificar-trampas-conocidas.mjs",
         "scripts/verificar-migraciones.mjs",
+        "scripts/verificar-inventario-suites.mjs",
         "scripts/calidad.mjs",
         "apps/web/vite.config.ts",
         "apps/web/src/higieneReferenciasInternas.test.ts",
@@ -2786,7 +2789,7 @@
         ".github/workflows/quality.yml"
       ],
       "owner": "plataforma",
-      "commit": "9e94da6b5"
+      "commit": "6fd530583"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -6613,16 +6616,16 @@
     },
     "docs/verificar-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
-      "pageHash": "3cd60f4196ab53044b65a88dd6221a022ec6437441c8a98517ce80a0de421396",
+      "pageHash": "501c9984209b128e47e00dd625e05a7ad08bea35e8cb6771ebc5f5ca692f30c0",
       "sourceHash": "69fc4095ac1a90cbc9f06c45c54e5c58b0015528117ad97de1b6a9c8213df9a2",
-      "sourceAt": "15b0ce4e6",
+      "sourceAt": "6fd530583",
       "sources": [
         "scripts/verificar-migraciones.mjs",
         "scripts/migraciones-reversion.mjs",
         "scripts/inventariar-migraciones-sin-reversion.mjs"
       ],
       "owner": "plataforma",
-      "commit": "15b0ce4e6"
+      "commit": "6fd530583"
     }
   }
 }
