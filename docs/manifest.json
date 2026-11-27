@@ -456,9 +456,9 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "7aee778212256ea470bf2a60ba0d2152b7a808eb45cf6e95077e7ddd6beeaa11",
-      "sourceHash": "a8c77e7f6f75901b5a4a885db541deb5eb316ff41736ea270d12c2d4c9520444",
-      "sourceAt": "10fa9457c",
+      "pageHash": "595dfbba1b71d8fd8b8aaf1e3838e059b040fbfeb994600c5639e77368f613a2",
+      "sourceHash": "4732b7b5ecdebeb0ff4766f7c323ff70c47fcd6c1f68a2d551de07c6a39bb0ef",
+      "sourceAt": "ac3be4155",
       "sources": [
         "scripts/calidad.mjs",
         ".github/workflows/quality.yml",
@@ -469,20 +469,20 @@
         "apps/web/vite.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "10fa9457c"
+      "commit": "ac3be4155"
     },
     "docs/capturas-documentacion.md": {
       "title": "Capturas del manual de usuario",
-      "pageHash": "9afd8d4b1a29783df50d1d9d5e385a5188255af29b77c268db869e0fe66a7ef3",
-      "sourceHash": "7ea6aac9470956dabb3aec02ea876b86522b87cef15c351727a8af9e77d36133",
-      "sourceAt": "882abece",
+      "pageHash": "0240da48c964587650d8123b06dd8c4d8169661932869e8c967bc7020748de27",
+      "sourceHash": "9048245c48e6281aae711d68331059349aa7927e2e46ed02aeaef4b5f13bb3c3",
+      "sourceAt": "77b70ff50",
       "sources": [
         "apps/web/playwright.capturas.config.ts",
         "apps/web/e2e/capturas/lib.ts",
         "apps/web/package.json"
       ],
       "owner": "plataforma",
-      "commit": "882abece"
+      "commit": "77b70ff50"
     },
     "docs/catalogo-exportacion.md": {
       "title": "Catálogo · Exportar productos a CSV (F-CAT-11)",
@@ -712,9 +712,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "9c7a32a0e609c8a35e172416796de905a9c52f8fe3a9cd0d50ada222af6f5fb8",
-      "sourceHash": "bcb4d9f52330eec80140ed1cdb8c61e1b6d5ea6fe6097a39717295b67009253a",
-      "sourceAt": "af0142a09",
+      "pageHash": "21f7419ed48a9686f8f16bba505406f1c9bff481750e1ba1bf3a1c6cf3e70d8e",
+      "sourceHash": "975eb628819b50d6a63d7b02ef45273c347653dc7b03021fa2a1f2fe5aa6a76f",
+      "sourceAt": "47914a40a",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -722,11 +722,13 @@
         "scripts/gate-integracion.mjs",
         "scripts/limpiar-ci.mjs",
         "scripts/verificar-workflows.mjs",
+        "scripts/verificar-inventario-suites.mjs",
+        "scripts/migraciones-reversion.mjs",
         "scripts/verificar-validacion.mjs",
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "af0142a09"
+      "commit": "47914a40a"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -928,9 +930,9 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "e6538a6a9b0f45be53708459a7e6a5c4cbd4271bc5d0b006ba54f1a67220be1b",
-      "sourceHash": "cc5633e76497f1708e2e0997ecb51071acf12c7fd959c888cca2c376df24651d",
-      "sourceAt": "604620925",
+      "pageHash": "01374783c3e2f4cecfd8edf2436628094f705c7385f9745270a15e5f3170259f",
+      "sourceHash": "64bd14dcabce5568cc76e2d356a1646c39442e3c66aa95ca5fbfddae21193ee2",
+      "sourceAt": "47914a40a",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
@@ -949,7 +951,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "604620925"
+      "commit": "47914a40a"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
@@ -995,9 +997,9 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "3e4a50cddd115dba6fa2f9e01b40a2b3edf0d845a71aed689cc06b714fd20059",
-      "sourceHash": "a5b4421cbccd504a3b2e6064b1a67565ee70c5884cf2500b11a22634822796a1",
-      "sourceAt": "e1e6da5b9",
+      "pageHash": "d9bdd86611db102b8297d383b6ab81354407dde108d412842cc81faf09882c2d",
+      "sourceHash": "1895dae6ab3f81e97ef023917b00af3800a5ddd357bd87874e4d9f604c439f72",
+      "sourceAt": "0eb04f5aa",
       "sources": [
         "apps/web/playwright.config.ts",
         "apps/web/e2e/verificar-dist.mjs",
@@ -1013,7 +1015,7 @@
         "scripts/e2e-cobertura-epicas.py"
       ],
       "owner": "tecnico",
-      "commit": "e1e6da5b9"
+      "commit": "0eb04f5aa"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -1688,12 +1690,14 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "ac98d2963c5888d218cdbfff03176b007cf701546f5136ecf832c7a449f8917a",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "f5179a2fd0f4ec1c8db0930a464a1bc386d43a57610782fb192f19a1b5f85a64",
+      "sourceHash": "cd24b0a45f35cd51bf361166533b4e86c772fab71277357bfbc84467c18bb9a1",
+      "sourceAt": "77b70ff50",
+      "sources": [
+        "apps/web/src/components/navegacion/destinosPanel.ts"
+      ],
       "owner": "producto",
-      "commit": "432db86d"
+      "commit": "77b70ff50"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -1770,12 +1774,15 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "d6d41dc8e6a3381c7d288beb496833769c33f8caa1c05c6c964da7852d78e922",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "c2a893e323c5c05893bcfacfa0379fee4519d94cb9a0065f63967675d7363b17",
+      "sourceHash": "f9ec2552525bc275a0285f41d6d1bd710f4cddb3c535c9d66642a80ed02fe8ab",
+      "sourceAt": "77b70ff50",
+      "sources": [
+        "apps/web/src/components/navegacion/destinosPanel.ts",
+        "template-capabilities.json"
+      ],
       "owner": "producto",
-      "commit": "c35d315c"
+      "commit": "77b70ff50"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -2576,12 +2583,15 @@
     },
     "docs/producto/ventas-cierre-caja.md": {
       "title": "Cierre de caja",
-      "pageHash": "84c1d83e0eefa9f2ebba0bcc148aa796d74bc315dfdc568e4a25254556e34df2",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "36aa3a501cb17591ce63d3b3981389ef134d6c8dcb5be024a4ae586b99b5c708",
+      "sourceHash": "d4409cd5d25050ff81c9880fe53729e2c25fcecdbff952372298f0ca467e880d",
+      "sourceAt": "77b70ff50",
+      "sources": [
+        "specs/20261027-100000-ventas-mejoras",
+        "docs/tecnico/ventas-cierre-caja.md"
+      ],
       "owner": "producto",
-      "commit": "98fbbddf"
+      "commit": "77b70ff50"
     },
     "docs/producto/ventas-cobros-y-conciliacion.md": {
       "title": "Registrar cobros y controlar los pagos",
@@ -2776,14 +2786,15 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "a69ef6830005157e7b1f124784ebda03412f8588cefc4979e64e15b3a1ba2ad0",
-      "sourceHash": "bd84ab2fe82e22392fa4116aefe759501cb98392ca8635450e0722be87cf9d9d",
-      "sourceAt": "9e94da6b5",
+      "pageHash": "fad67380e89c2e366f92beeef4cdc688ab9fa4a2d98c606c907a34b1fdd31e82",
+      "sourceHash": "5320e983de5e0a2f3cbac9bbd4643cd501b353159e5b2fa69c1d2ec023fae80d",
+      "sourceAt": "6fd530583",
       "sources": [
         "scripts/tests-afectados.mjs",
         "scripts/tests-afectados.test.mjs",
         "scripts/verificar-trampas-conocidas.mjs",
         "scripts/verificar-migraciones.mjs",
+        "scripts/verificar-inventario-suites.mjs",
         "scripts/calidad.mjs",
         "apps/web/vite.config.ts",
         "apps/web/src/higieneReferenciasInternas.test.ts",
@@ -2792,7 +2803,7 @@
         ".github/workflows/quality.yml"
       ],
       "owner": "plataforma",
-      "commit": "9e94da6b5"
+      "commit": "6fd530583"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -6646,16 +6657,16 @@
     },
     "docs/verificar-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
-      "pageHash": "3cd60f4196ab53044b65a88dd6221a022ec6437441c8a98517ce80a0de421396",
+      "pageHash": "501c9984209b128e47e00dd625e05a7ad08bea35e8cb6771ebc5f5ca692f30c0",
       "sourceHash": "69fc4095ac1a90cbc9f06c45c54e5c58b0015528117ad97de1b6a9c8213df9a2",
-      "sourceAt": "15b0ce4e6",
+      "sourceAt": "6fd530583",
       "sources": [
         "scripts/verificar-migraciones.mjs",
         "scripts/migraciones-reversion.mjs",
         "scripts/inventariar-migraciones-sin-reversion.mjs"
       ],
       "owner": "plataforma",
-      "commit": "15b0ce4e6"
+      "commit": "6fd530583"
     }
   }
 }

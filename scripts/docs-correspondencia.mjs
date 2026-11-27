@@ -6,13 +6,16 @@ import path from 'node:path';
 import { claveYValor, itemDeLista, sinComentario } from './docs-lineas.mjs';
 
 const RUTAS_CODIGO = /^(apps|workers|supabase|infra|scripts|packages|\.github)\//;
-// Fuera de la correspondencia: tests, fixtures/snapshots, lockfiles y migraciones (las cubre verificar-migraciones).
-const TRIVIAL = /(\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)(__tests__|__snapshots__|tests?|e2e|fixtures)\/|\.snap$|(^|\/)(pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$|^supabase\/migrations\/)/;
+// Fuera de la correspondencia: tests, fixtures/snapshots, lockfiles, migraciones (las cubre verificar-migraciones), archivos .md
+// (son documentación: un CONTRATO.md no necesita otro doc) y los `.env.example` (plantillas de variables, no comportamiento).
+const TRIVIAL = /(\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)(__tests__|__snapshots__|tests?|e2e|fixtures)\/|\.snap$|(^|\/)(pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$|^supabase\/migrations\/|\.md$|\.env\.example$)/;
 // Un `sources:` que apunta a más de este número de rutas es demasiado amplio para exigir su doc.
 const MAX_FUENTES_POR_DOC = 40;
 
 // Fuentes que abarcan un área entera (`infra`, `.github/workflows`): no identifican un doc concreto.
-const esFuenteAmplia = (fuente) => fuente.split('/').length < 2 || fuente === '.github/workflows';
+// `infra/kestra` (90 archivos, un solo doc) es de esa clase: cada flow figura además en el `sources:` de su doc propio.
+const FUENTES_AMPLIAS = new Set(['.github/workflows', 'infra/kestra']);
+const esFuenteAmplia = (fuente) => fuente.split('/').length < 2 || FUENTES_AMPLIAS.has(fuente);
 
 const esArchivoRelevante = (ruta) => RUTAS_CODIGO.test(ruta) && !TRIVIAL.test(ruta);
 
@@ -89,4 +92,33 @@ export function archivosSinDocCorrespondiente(cambiados, docs) {
     if (correspondientes.length > 0 && !correspondientes.some((d) => tocados.has(d))) sinDoc.push({ archivo, docs: correspondientes });
   }
   return sinDoc;
+}
+
+// Excepción auditable para el modo estricto (MSF-688/869): un cambio de código que de verdad no altera nada documentable
+// (renombre interno, formato, versión de una dependencia) lo declara en el mensaje de CUALQUIER commit del PR con una línea
+// `Docs-no-aplica: <motivo>` de al menos 15 caracteres. Queda en el historial y en la lista de commits del PR, donde se revisa.
+// Parseo por líneas y `startsWith` (sin regex): tiempo lineal con mensajes hostiles.
+export const MARCA_SIN_DOC = 'Docs-no-aplica:';
+export const MOTIVO_MINIMO = 15;
+export function motivosSinDoc(mensajesDeCommits) {
+  const motivos = [];
+  for (const linea of String(mensajesDeCommits).replace(/\r/g, '').split('\n')) {
+    if (!linea.startsWith(MARCA_SIN_DOC)) continue;
+    const motivo = linea.slice(MARCA_SIN_DOC.length).trim();
+    if (motivoValido(motivo)) motivos.push(motivo);
+  }
+  return motivos;
+}
+
+// Un motivo vale si tiene >= 15 caracteres, al menos 3 palabras de 2+ letras y más de una letra distinta (rechaza «aaaa…»).
+// Es un filtro contra lo degenerado, no un juez del contenido: la revisión humana del PR debe cuestionar el motivo.
+export const PALABRAS_MINIMAS = 3;
+// `\p{L}`: cualquier letra Unicode (también CJK, que no tiene mayúsculas). Un solo carácter por prueba: tiempo lineal.
+const esLetra = (c) => /\p{L}/u.test(c);
+export function motivoValido(motivo) {
+  if (motivo.length < MOTIVO_MINIMO) return false;
+  const letras = [...motivo].filter(esLetra).map((c) => c.toLowerCase());
+  if (new Set(letras).size < 2) return false;
+  const palabras = motivo.split(/\s+/).filter((p) => [...p].filter(esLetra).length >= 2);
+  return palabras.length >= PALABRAS_MINIMAS;
 }
