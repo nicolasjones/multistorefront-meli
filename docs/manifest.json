@@ -330,9 +330,9 @@
     },
     "docs/api-publica.md": {
       "title": "API pública y avisos hacia otros sistemas (F-API-01)",
-      "pageHash": "7a3857ebd17d214ad27fc9f802878f4ecb2427d5436d983fe1dd81fcbac4b477",
-      "sourceHash": "0cd3ae78c91bde9f7934f76445c886d2c79b14df8147fb488a3a21df0c611427",
-      "sourceAt": "c7860a7c",
+      "pageHash": "e0ea2535eea8e691632ffd7ff8a58c6b84c269ed00e3e09bf0c51637de57705d",
+      "sourceHash": "c27f6326735ed73f2dd882d6af225b23a2f506f646c42984dc576b43f3035fef",
+      "sourceAt": "3dde9202c",
       "sources": [
         "specs/20270203-100000-api-e-asistente-con-ia",
         "scripts/openapi-a-markdown.mjs",
@@ -341,10 +341,11 @@
         "supabase/migrations/20270224110203_api_lectura.sql",
         "supabase/migrations/20270224110204_api_suscripciones_entregas.sql",
         "supabase/migrations/20270224110205_api_eventos_precio_venta.sql",
-        "supabase/migrations/20270224110206_exportacion_total_excluye_api.sql"
+        "supabase/migrations/20270224110206_exportacion_total_excluye_api.sql",
+        "supabase/migrations/20270516000300_pipeline_avisos_equidad_por_organizacion.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "3dde9202c"
     },
     "docs/api/inicio-rapido.md": {
       "title": "Empezar con la API",
@@ -1135,9 +1136,9 @@
     },
     "docs/exportacion-total.md": {
       "title": "Exportar todos los datos (F-OPS-06, MSF-396)",
-      "pageHash": "5be6177c9b62fd41434acd8f675712966c939189bfc27ac2ee1aacdd824a98ad",
-      "sourceHash": "2ea41ea88eac0f2f6482721710b7d907d9e952f4996bee165d87df6bd97a23ef",
-      "sourceAt": "da68ec33",
+      "pageHash": "3742115a257ad6c5880ea87823599b7b7999e50dac75e1ced90bed7abc0fdbc8",
+      "sourceHash": "af8e12a4665a2aa60a33f1d46f9bed3398cb3e58a536227431eeab8f044316be",
+      "sourceAt": "b50cda2d5",
       "sources": [
         "specs/20270215-100000-notificaciones-ayuda-y-exportacion-total",
         "infra/kestra/compose.yaml",
@@ -1147,10 +1148,12 @@
         "supabase/migrations/20270217300007_exportacion_total_conjuntos_nuevos.sql",
         "supabase/migrations/20270218500700_exportacion_total_precios_propios_historial.sql",
         "supabase/migrations/20270219170000_exportacion_total_reparaciones_service.sql",
-        "supabase/migrations/20270507180700_exportacion_total_identificadores_externos.sql"
+        "supabase/migrations/20270507180700_exportacion_total_identificadores_externos.sql",
+        "supabase/migrations/20270516000100_exportacion_total_lista_blanca_y_keyset.sql",
+        "supabase/migrations/20270516000400_resumen_semanal_a_dominio.sql"
       ],
       "owner": "tecnico",
-      "commit": "da68ec33"
+      "commit": "b50cda2d5"
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
@@ -1241,9 +1244,9 @@
     },
     "docs/higiene-base-datos.md": {
       "title": "Higiene y endurecimiento de la base de datos (lote 33)",
-      "pageHash": "9a47e800ac5d19c5d7b0d17292120db152b0d0eb9982bbb5c52651424fa9a6e3",
-      "sourceHash": "8d6eb404183c925d50b5a864c10cfc25d75747104f6572c63656ac6c4fc5968b",
-      "sourceAt": "49f522d7f",
+      "pageHash": "813c83b0e4483206b7193ead8f0bfb6d45d38fced5834c7a85552a0487d51c9c",
+      "sourceHash": "3e7d8e9fea8b59ecb89ef6e4beaf62d2df41320b73f14443627e43e4c0247774",
+      "sourceAt": "0d7cae91d",
       "sources": [
         "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
         "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
@@ -1255,6 +1258,9 @@
         "supabase/migrations/20270507270000_ventas_lectura_por_empresa_una_vez.sql",
         "supabase/migrations/20270507270100_documentar_definer_validacion_dni_cuit.sql",
         "supabase/migrations/20270507280000_registrar_actividad_empresa_por_seccion.sql",
+        "supabase/migrations/20270516000000_indices_redundantes_y_uso_acumulado.sql",
+        "supabase/migrations/20270516000400_resumen_semanal_a_dominio.sql",
+        "supabase/tests/database/higiene_indices_redundantes_lote101.test.sql",
         "supabase/tests/database/seguridad_global_higiene_base.test.sql",
         "supabase/verificacion/higiene_base.sql",
         "supabase/verificacion/higiene_base_migraciones.sql",
@@ -1262,7 +1268,7 @@
         "scripts/analizar-definer-search-path.mjs"
       ],
       "owner": "plataforma",
-      "commit": "49f522d7f"
+      "commit": "0d7cae91d"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
@@ -1314,15 +1320,17 @@
     },
     "docs/inicio-y-alertas.md": {
       "title": "Inicio y alertas",
-      "pageHash": "c1cb6efc2679289f4747f65668f5c80a034f80af5e170157051fd2eda78f767d",
-      "sourceHash": "686f63ae32a3b8f6944e1f8982d8dd2aae7483ed763d79738fc49849057bb99c",
-      "sourceAt": "da68ec33a",
+      "pageHash": "ce87920e06eb5e07ceb94872e955953ecb34d83a643353e4c5f6bc6f43fb9835",
+      "sourceHash": "2e96f0647bf539d897d40737ba951f010b7825ca54d1f4dad0b81cd1fa1efb34",
+      "sourceAt": "fd7e28864",
       "sources": [
         "specs/20261030-100000-inicio-y-alertas",
         "specs/20270305-100000-inicio-tablero-completo",
         "infra/kestra/flows/alertas-inicio.yml",
         "apps/web/src/lib/inicio.ts",
         "apps/web/src/pages/inicio",
+        "apps/web/src/tema/temaPanel.ts",
+        "apps/web/src/tema/coloresOscuros.ts",
         "apps/web/e2e/inicio.e2e.ts",
         "supabase/functions/recalcular-alertas-inicio",
         "supabase/functions/_shared/token.ts",
@@ -1333,7 +1341,7 @@
         "supabase/migrations/20270305105000_resumen_inicio_periodo.sql"
       ],
       "owner": "tecnico",
-      "commit": "da68ec33a"
+      "commit": "fd7e28864"
     },
     "docs/invitar-usuarios.md": {
       "title": "Invitar usuarios (F-USR-01, MSF-211)",
@@ -1548,9 +1556,9 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "d6de25bc9586caad2207d1a41ff6fa7448fa952cccde9bdd731eb75ec62b8479",
-      "sourceHash": "492fd6b753afae45a5c60ed1b3c5867cfb562450b377384bf1856c2f630860ec",
-      "sourceAt": "6776fb4d",
+      "pageHash": "c67761737a7ab35e539c6e52feee2a58c60c7f97dd079624a1c3343e90eda2e8",
+      "sourceHash": "3dfefdccd47ff08aa30f3e47c0e90ec4a259604ff52efc48f636e60274c9034e",
+      "sourceAt": "cdeee3d2f",
       "sources": [
         "infra/superset/compose.yaml",
         "infra/superset/compose.estricto.yaml",
@@ -1558,10 +1566,11 @@
         "infra/superset/configurar_embebido.py",
         "infra/superset/importar-dashboards.mjs",
         "infra/superset/datasets-tablero.mjs",
+        "infra/superset/verificar-csv-superset.mjs",
         "apps/web/src/components/ReporteEmbebido.tsx"
       ],
       "owner": "tecnico",
-      "commit": "6776fb4d"
+      "commit": "cdeee3d2f"
     },
     "docs/ordenes-compra.md": {
       "title": "Stock · Órdenes de compra a proveedores (F-PRV-09, MSF-454)",
@@ -2449,9 +2458,9 @@
     },
     "docs/producto/tienda-dominio-e-identidad.md": {
       "title": "Identidad, textos y dirección de la tienda",
-      "pageHash": "0524bf0080211ed8bda39e3f643545f8f2c516ec89b0985f43608008854cb050",
-      "sourceHash": "76a5ec49862b1b726dcd706a87e9f4333e68f5cd159add90ad9c0f6b32fd8901",
-      "sourceAt": "0c49705a0",
+      "pageHash": "dbfe2da846aa72a5d549dd99c62ad7ad4ed78f062694381d2706ea61175c8e79",
+      "sourceHash": "6f2cba61316b7bbd58f483fae5fc61c1d7cde1b59047bc2b26b70ef84405e7ef",
+      "sourceAt": "b208a8779",
       "sources": [
         "apps/web/src/main.tsx",
         "apps/web/src/lib/tienda.ts",
@@ -2467,7 +2476,7 @@
         "apps/web/src/pages/tienda-publica/PaginaTienda.tsx"
       ],
       "owner": "producto",
-      "commit": "0c49705a0"
+      "commit": "b208a8779"
     },
     "docs/producto/tienda-dominio-y-publicacion.md": {
       "title": "Dominio, publicación y versiones de la tienda",
@@ -2770,9 +2779,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "a69ef6830005157e7b1f124784ebda03412f8588cefc4979e64e15b3a1ba2ad0",
-      "sourceHash": "bd84ab2fe82e22392fa4116aefe759501cb98392ca8635450e0722be87cf9d9d",
-      "sourceAt": "9e94da6b5",
+      "pageHash": "0f7b3b9931b98702943b22d44c14826bd18dda084469461db09fef961e507adf",
+      "sourceHash": "5e96608883248a3717b6d487f32601eb049a2adbd35010195506393b954253bb",
+      "sourceAt": "b50cda2d5",
       "sources": [
         "scripts/tests-afectados.mjs",
         "scripts/tests-afectados.test.mjs",
@@ -2786,7 +2795,7 @@
         ".github/workflows/quality.yml"
       ],
       "owner": "plataforma",
-      "commit": "9e94da6b5"
+      "commit": "b50cda2d5"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -2863,9 +2872,9 @@
     },
     "docs/resumen-semanal-correo.md": {
       "title": "Resumen semanal por correo (F-REP-08)",
-      "pageHash": "32dff44062f680b1dfc3b243a51d17eb9fb7a4a13fd21fb552d54b59fbaa8588",
-      "sourceHash": "7723a19f30954416f8fc6b9aa1dc29685894987f98dcd6dc302a10cee42d884d",
-      "sourceAt": "2838b4734",
+      "pageHash": "cc29c77ad43effaa9e6024d114c256e6c02158ba247f4bae64759c25f8dc7bc0",
+      "sourceHash": "265305ad8a086907fba8543cd79ee5b58e05ec2837264425a1b97733e2699e46",
+      "sourceAt": "0d7cae91d",
       "sources": [
         "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
         "supabase/migrations/20270324100200_resumen_semanal.sql",
@@ -2876,13 +2885,13 @@
         "apps/web/src/pages/organizacion/ResumenSemanal.tsx"
       ],
       "owner": "tecnico",
-      "commit": "2838b4734"
+      "commit": "0d7cae91d"
     },
     "docs/revision-seguridad-analitica-avanzada.md": {
       "title": "Revisión de seguridad integral: analítica avanzada y resumen por correo (MSF-265)",
-      "pageHash": "51024181e2085653c01a43dba3ba24f9b9667955dad5a84dd0523ee7039349e4",
-      "sourceHash": "9ff51b01835011d82a78da9c8305a2b9ecec59dee95c75becb4639b9cb0a979f",
-      "sourceAt": "07a6ae4a",
+      "pageHash": "15963e4564f5c5d3771dbcd853bffc54121f67bc26237250731ecec751cb74ae",
+      "sourceHash": "5b6114edc044fee282e8f6a55cfc8a8786560f35c532e0143b81087c7fd601f1",
+      "sourceAt": "0d7cae91d",
       "sources": [
         "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
         "supabase/migrations/20270324100000_analitica_tableros_avanzados.sql",
@@ -2899,7 +2908,7 @@
         "apps/web/src/components/ReporteEmbebido.tsx"
       ],
       "owner": "tecnico",
-      "commit": "07a6ae4a"
+      "commit": "0d7cae91d"
     },
     "docs/revision-seguridad-gastos.md": {
       "title": "Revisión de seguridad integral: Gastos de la empresa y margen después de costos fijos (MSF-469)",
@@ -3652,9 +3661,9 @@
     },
     "docs/system-design/tiendas.md": {
       "title": "Tiendas y vitrinas",
-      "pageHash": "c3a8761bb4c278ec6ddfbc6b7f7a23c87eabca6d1d30c079b8640d1d645ac041",
-      "sourceHash": "381a6edc9afc0a63486f0f47830d9672f689f28c56153ecd1061dc67fb6bb268",
-      "sourceAt": "7d0de6cd",
+      "pageHash": "a1ee415174e336720331ffe3727c5b024a36d3ef7d8834ec863d9295bc877a2c",
+      "sourceHash": "ee62d444c83dfa2bb0c7af9a8eab871655787d5fb650303b6f67a2979d9576a0",
+      "sourceAt": "b208a8779",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20270125-100000-tienda-dominio-y-publicacion",
@@ -3664,7 +3673,7 @@
         "apps/web/nginx.conf"
       ],
       "owner": "tecnico",
-      "commit": "7d0de6cd"
+      "commit": "b208a8779"
     },
     "docs/system-design/ventas.md": {
       "title": "Ventas y despacho",
@@ -3780,14 +3789,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "4292f3c06316a0de73123d3cc4d12db3b24eaeae8472cef6fa7ffebdf40e972e",
-      "sourceHash": "1a4eb8922633feab8103d25881320c192c521c3135ee7fa2918b8cd0ab8b1250",
-      "sourceAt": "46f833ec2",
+      "pageHash": "b165a0997dc24d811848bbf01c29a8e651da70c14533144cb7377ab02ff013d2",
+      "sourceHash": "d5581fd890bdf80a76d2be412ba87886f02132433e209cbf1aa543c4f5132648",
+      "sourceAt": "b50cda2d5",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "46f833ec2"
+      "commit": "b50cda2d5"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -4633,9 +4642,9 @@
     },
     "docs/tecnico/notificaciones-ayuda-y-exportacion-total.md": {
       "title": "Notificaciones, ayuda y exportación total (MSF-224)",
-      "pageHash": "9fe2dd9f02a3e01c9b5c368d683ee8981397b95284c02272d958d9ff606b3565",
-      "sourceHash": "7c3235b8cef9ce20a66947e801ad158deecaf5fb964fc810200d9235cf7e265b",
-      "sourceAt": "408da936",
+      "pageHash": "173f47bf14b42262bb75acc743cee80e3e229c2edc7f11656f4a7065e3af8033",
+      "sourceHash": "846dad75832e02ad7208093ae258fb2ef27ba3100141ad09c9d4a63afd5d57dd",
+      "sourceAt": "b50cda2d5",
       "sources": [
         "specs/20270215-100000-notificaciones-ayuda-y-exportacion-total",
         "apps/web/e2e/notificaciones.e2e.ts",
@@ -4670,7 +4679,7 @@
         "supabase/tests/database/notificaciones_panel.test.sql"
       ],
       "owner": "tecnico",
-      "commit": "408da936"
+      "commit": "b50cda2d5"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
@@ -5487,9 +5496,9 @@
     },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
-      "pageHash": "236ca8853c3dc6cecf62479f8f3381b1eb436158f286050bcc9be52c7f1b5fa2",
-      "sourceHash": "153fdb17a6cc028be6c16edb0d45855ddeacee72b2284559d95f75ceace490af",
-      "sourceAt": "17870b7ad",
+      "pageHash": "c9a88a61c376e90a52c507172d88eee8c46dfdd69027b9742c09eb53e325c571",
+      "sourceHash": "4cb202b303655a7c2f427dd0d9927f75562322e71ef6fa326f8a698bb078b0a4",
+      "sourceAt": "b208a8779",
       "sources": [
         "specs/20261023-120000-tienda-catalogo-y-ficha",
         "supabase/migrations/20261023150000_tienda_categorias_publicas.sql",
@@ -5518,7 +5527,7 @@
         "apps/web/e2e/tienda-catalogo.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "17870b7ad"
+      "commit": "b208a8779"
     },
     "docs/tecnico/tienda-contenido-y-analitica.md": {
       "title": "Tienda pública: contenido, analítica y compartir (MSF-164)",
@@ -5615,9 +5624,9 @@
     },
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
-      "pageHash": "579ad6598323590d0c3b7a59824b677e12ee91dcb1243e057dd01546c8fa0639",
-      "sourceHash": "c8f92e5bcdba1288f0d614fc6dff7facc07d57992cf0b0c59c1220ea3cc47d54",
-      "sourceAt": "2cec5c74e",
+      "pageHash": "c18cf4928ef65eaa44b2d87d9f8ea88bc2e837bb46c36f60e6ed4b62fcf9c7f7",
+      "sourceHash": "62b39924206b497e89156782ac70317ef2ee5fc392906dfdaf5d4f53db905b8b",
+      "sourceAt": "b208a8779",
       "sources": [
         "apps/web/src/main.tsx",
         "apps/web/src/lib/tienda.ts",
@@ -5648,7 +5657,7 @@
         "supabase/migrations/20270303400000_tienda_categorias_imagen.sql"
       ],
       "owner": "tecnico",
-      "commit": "2cec5c74e"
+      "commit": "b208a8779"
     },
     "docs/tecnico/tienda-dominio-y-publicacion.md": {
       "title": "Tienda online: dominio, publicación y versiones (MSF-133)",
@@ -5691,9 +5700,9 @@
     },
     "docs/tecnico/tienda-inicio-busqueda-movil.md": {
       "title": "Tienda pública: inicio, búsqueda y versión móvil (MSF-191)",
-      "pageHash": "329e6e9d8942de45c9cc97602021b3d56430adbe2c7e8a1aed53220c4d9186bd",
-      "sourceHash": "5262ca2786624a9aeb03166e4d54ea97922e69b6f634f6a8b061f6c5fbe5e487",
-      "sourceAt": "7d0de6cd",
+      "pageHash": "5fc307ef9e302a95830bb2f8b161f0e368228e786a17c2210e9d1d1d79c22d21",
+      "sourceHash": "85a286e67a7ff7308cdaec88b5b37a70c4dfd7ff690ae671ce906ea8badada5f",
+      "sourceAt": "b208a8779",
       "sources": [
         "specs/20261024-120000-tienda-inicio-busqueda-movil",
         "apps/web/src/lib/tiendaInicio.ts",
@@ -5725,7 +5734,7 @@
         "supabase/migrations/20261203110300_tienda_busqueda_visitante_saltos.sql"
       ],
       "owner": "tecnico",
-      "commit": "7d0de6cd"
+      "commit": "b208a8779"
     },
     "docs/tecnico/tienda-seo-legal-y-estados.md": {
       "title": "Tienda online: estados, relacionados, SEO y legal (MSF-149)",
@@ -6196,9 +6205,9 @@
     },
     "docs/tienda-busqueda.md": {
       "title": "Búsqueda de productos de la tienda online (F-TDA-15)",
-      "pageHash": "4e7d5019d790338680ac5ca273e8b595f7fb0ef7c26872f32e2401b86024b062",
-      "sourceHash": "c61e8e249150254e6700606fef1b5bee40c7a08d3babb2d46fbb468e8f8d69ba",
-      "sourceAt": "7d0de6cd",
+      "pageHash": "af1f149092ddc00c28af3890290bae2018b0f0abe7cd292b2f5e24519efc7440",
+      "sourceHash": "09e916f17e1132196c6b79fba48190c02edbe1ba80fd6b45646b3e8b2f05e4e6",
+      "sourceAt": "b208a8779",
       "sources": [
         "specs/20261024-120000-tienda-inicio-busqueda-movil",
         "supabase/migrations/20261203110000_tienda_busqueda_base.sql",
@@ -6219,7 +6228,7 @@
         "supabase/migrations/20270323100200_tienda_envios_visitante_hmac.sql"
       ],
       "owner": "tecnico",
-      "commit": "7d0de6cd"
+      "commit": "b208a8779"
     },
     "docs/tienda-compra-y-cuentas.md": {
       "title": "Tienda online · Compra y cuentas (MSF-176)",
@@ -6266,14 +6275,18 @@
     },
     "docs/tienda-movil.md": {
       "title": "Tienda pública · versión móvil (F-TDA-17)",
-      "pageHash": "6a32277420dddb3d0ccd6805b3185d3da05fcd2f6e2b98f8f9024137a61f3fb7",
-      "sourceHash": "5615b605476406969fcb37b43d3c1096007dcafd55df16c621c03ff8e31dee94",
-      "sourceAt": "c7881777c",
+      "pageHash": "86050d6ed7cb5e89f321339ed782e887bb2973d99ba90df773580cc15c0512e6",
+      "sourceHash": "6e736355572684b0ce8bf8c03e6a581ca5d302945d234baeeac3c578e5891768",
+      "sourceAt": "b208a8779",
       "sources": [
-        "specs/20261024-120000-tienda-inicio-busqueda-movil"
+        "specs/20261024-120000-tienda-inicio-busqueda-movil",
+        "apps/web/src/pages/tienda-publica/EnrutadorTienda.tsx",
+        "apps/web/src/pages/tienda-publica/catalogo/prioridadImagen.ts",
+        "apps/web/src/pages/tienda-publica/ficha/Galeria.tsx",
+        "scripts/medir-tienda-lighthouse.mjs"
       ],
       "owner": "tecnico",
-      "commit": "c7881777c"
+      "commit": "b208a8779"
     },
     "docs/tienda-opiniones.md": {
       "title": "Opiniones de productos: moderación y tienda (MSF-467)",
