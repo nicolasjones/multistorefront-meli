@@ -55,9 +55,9 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "dfab3a28408328987a55bac4447bdb3d28445ed4df1660d699f5f94804208965",
-      "sourceHash": "6970c48c6c70b0572943f8c69eea12f2e6ffe80f440ad976e26c196b894c53b1",
-      "sourceAt": "656cd661d",
+      "pageHash": "c0c07a69b1eaa137dd4522f18298606acb7b8746c653a2817cdccb63638c17eb",
+      "sourceHash": "9fa2136cb8cf19e95f06790dac8bf93eee87e1b7f137365c6162abf1a13cb69d",
+      "sourceAt": "961875891",
       "sources": [
         "specs/20261016-120000-actividad-y-ambientes",
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
@@ -80,7 +80,7 @@
         "supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql"
       ],
       "owner": "producto",
-      "commit": "656cd661d"
+      "commit": "961875891"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -1615,9 +1615,9 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "843465f32da454bb54dc1c95da52b87c5f3a943a3435bbbd7d18881adff60b27",
-      "sourceHash": "d4b5eb0c35148feadea3b5e0a1c79ee6289ae2e0ceb1e5bca8e8459ab2106667",
-      "sourceAt": "2807e6acc",
+      "pageHash": "1b0321274487a934ebf0bcf716eeb9fde896b95ac9f07cb633ee4d077e7158ae",
+      "sourceHash": "65858f3a769ec3d5117207bae9e76391e176b12772a1fc27cf329637a9debbb9",
+      "sourceAt": "671156248",
       "sources": [
         "specs/20261013-120000-usuarios-y-roles",
         "specs/20261016-140000-permisos-por-empresa",
@@ -1646,7 +1646,7 @@
         "apps/web/src/lib/rolActual.ts"
       ],
       "owner": "producto",
-      "commit": "2807e6acc"
+      "commit": "671156248"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
@@ -2280,6 +2280,20 @@
       ],
       "owner": "producto",
       "commit": "eef6fc0df"
+    },
+    "docs/producto/service-comisiones.md": {
+      "title": "Service técnico: comisiones de los técnicos",
+      "pageHash": "21c3435b11cce6bdd0117fcdc0c3f2ac0e93dd800529ff9c50beec52c845bfc2",
+      "sourceHash": "b0a0d56bfed6de850d3b380c37fe809660ed549483c1b8ba56612cc7fa53cb9e",
+      "sourceAt": "671156248",
+      "sources": [
+        "apps/web/src/pages/service-tecnico/comisiones.tsx",
+        "apps/web/src/components/service/RepartoComision.tsx",
+        "apps/web/src/pages/roles/list.tsx",
+        "supabase/migrations/20270515020000_comisiones_rpc.sql"
+      ],
+      "owner": "producto",
+      "commit": "671156248"
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: registrar y seguir las reparaciones",
@@ -5221,6 +5235,33 @@
       ],
       "owner": "tecnico",
       "commit": "c9dc27818"
+    },
+    "docs/tecnico/service-comisiones.md": {
+      "title": "Service técnico · Comisiones de técnicos (MSF-187, MSF-953, MSF-954, MSF-957)",
+      "pageHash": "f603d9692fc5c15e3a4165d55f58fb982a250cadab11172bd6797673f8d489d5",
+      "sourceHash": "58c34c91f4c5f6d2b70a4ba23aee37a31530c4c818e737449059ca0ea499fff0",
+      "sourceAt": "671156248",
+      "sources": [
+        "supabase/migrations/20270515000000_acciones_ver_comisiones.sql",
+        "supabase/migrations/20270515010000_comisiones_reglas_y_reparto.sql",
+        "supabase/migrations/20270515020000_comisiones_rpc.sql",
+        "supabase/migrations/20270515030000_exportacion_total_comisiones.sql",
+        "supabase/tests/database/service_comisiones.test.sql",
+        "apps/web/src/lib/comisiones.ts",
+        "apps/web/src/lib/comisiones.test.ts",
+        "apps/web/src/hooks/useCargaComisiones.ts",
+        "apps/web/src/components/service/MisComisiones.tsx",
+        "apps/web/src/components/service/ComisionesEquipo.tsx",
+        "apps/web/src/components/service/ReglasComision.tsx",
+        "apps/web/src/components/service/TablaComisiones.tsx",
+        "apps/web/src/components/service/RepartoComision.tsx",
+        "apps/web/src/components/service/RepartoComision.test.tsx",
+        "apps/web/src/components/service/comisiones.test.tsx",
+        "apps/web/src/pages/service-tecnico/comisiones.tsx",
+        "apps/web/src/pages/service-tecnico/comisiones.test.tsx"
+      ],
+      "owner": "tecnico",
+      "commit": "671156248"
     },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
