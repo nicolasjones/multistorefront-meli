@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Box, FormControlLabel, Switch, ThemeProvider } from '@mui/material'
 import { temaPanelOscuro } from '../../tema/temaPanel'
+import { tokens } from '../../tema/tokens'
 
 // Modo oscuro del tablero de Inicio (RF-INI-04-7, MSF-849). El tema oscuro (`temaPanelOscuro`) se aplica solo al contenido de
 // Inicio: el resto del panel todavía lee tokens claros directo. La elección se recuerda en este navegador; sin
@@ -43,7 +44,7 @@ export function ModoOscuroInicio({ children }: { children: ReactNode }) {
         <ThemeProvider theme={temaPanelOscuro}>
           <Box
             data-modo="oscuro"
-            sx={{ bgcolor: 'background.default', color: 'text.primary', p: { xs: 1.5, md: 2 }, borderRadius: 2 }}
+            sx={{ bgcolor: 'background.default', color: 'text.primary', p: { xs: 1.5, md: 2 }, borderRadius: `${tokens.forma.radioTarjeta}px` }}
           >
             {children}
           </Box>
