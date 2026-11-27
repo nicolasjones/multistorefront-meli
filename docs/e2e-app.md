@@ -275,8 +275,9 @@ queda como paso previo al merge (T024/T026), no como evidencia ya obtenida.
   servidor de `vite preview` no los sirve ni tiene por qué. Si arrancaste excluyendo `edge-runtime`,
   Kong responde 500 (`supabase_edge_runtime_<proyecto>` no resuelve): es lo ESPERADO sin las funciones servidas, no un bug del producto. Se corre con las funciones servidas:
   `pnpm exec supabase functions serve --no-verify-jwt` en otra terminal.
-- `e2e/panel-sin-desborde.e2e.ts`: `/productos`, `/clientes` y `/consultas` sin scroll horizontal de la página a 320, 375 y
-  1280 px, y axe a 320 px en esos listados, comprobantes, proveedores, presupuestos y con el menú lateral abierto.
+- `e2e/panel-sin-desborde.e2e.ts`: `/productos`, `/clientes` y `/consultas` sin scroll horizontal de la página a 320, 375, 768,
+  1280 y 1440 px, y axe a 320 px en esos listados, comprobantes, proveedores, presupuestos y con el menú lateral abierto, y a 768 y 1440 px
+  en productos y consultas (MSF-595/MSF-611).
   Con sesión de administrador sembrada con la API admin; no deja datos.
 - Los specs de la tienda (`tienda-*`) cambian el estado de la empresa (p. ej. `tienda-seo` la desactiva un momento) y
   comparten las dos tiendas del seed: correrlos con `--workers=1`.

@@ -8,11 +8,13 @@ import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useOpcionesEstadoConsulta } from '../../hooks/useOpcionesEstadoConsulta'
 import { useBandejaConsultas, useConsulta, useConsultasNuevas } from '../../hooks/useConsultas'
 import {
-  COLOR_ESTADO_CONSULTA,
-  ESTADOS_CONSULTA,
+  ESTADOS_BASE_CONSULTA,
   ETIQUETA_ESTADO_CONSULTA,
+  colorEstadoConsulta,
+  etiquetaEstadoConsulta,
   ETIQUETA_ORIGEN_CONSULTA,
   TAMANO_PAGINA_CONSULTAS,
   formatearCuando,
@@ -56,13 +58,14 @@ export function ConsultaList() {
   const consultaId = parametro !== null && UUID.test(parametro) ? parametro : null
 
   const {
-    empresas, valor: empresaId, cambiar: elegirEmpresa, cargando: cargandoTiendas, hayError: errorTiendas,
+    empresas, valor: empresaId, cambiar: elegirEmpresa, empresaActivaId, cargando: cargandoTiendas, hayError: errorTiendas,
   } = useFiltroPorEmpresaActiva()
   const listo = !cargandoTiendas
 
   const [texto, setTexto] = useState('')
   const [textoAplicado, setTextoAplicado] = useState('')
   const [estado, setEstado] = useState<EstadoConsulta | null>(null)
+  const { opciones: opcionesEstado } = useOpcionesEstadoConsulta()
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
   const [pagina, setPagina] = useState(1)
@@ -143,7 +146,7 @@ export function ConsultaList() {
   const columnas: ColumnaAdaptable<Consulta>[] = [
     {
       clave: 'estado', encabezado: 'Estado',
-      render: (consulta) => <Chip size="small" color={COLOR_ESTADO_CONSULTA[consulta.estado]} label={ETIQUETA_ESTADO_CONSULTA[consulta.estado]} />,
+      render: (consulta) => <Chip size="small" color={colorEstadoConsulta(consulta.estado)} label={etiquetaEstadoConsulta(consulta.estado, opcionesEstado)} />,
     },
     { clave: 'cuando', encabezado: 'Cuándo', render: (consulta) => <Typography component="span" sx={{ whiteSpace: 'nowrap' }}>{formatearCuando(consulta.created_at)}</Typography> },
     { clave: 'empresa', encabezado: 'Empresa', render: (consulta) => <Chip size="small" variant="outlined" label={consulta.empresa_nombre} /> },
@@ -217,6 +220,12 @@ export function ConsultaList() {
           </Box>
         ) : null}
 
+        {listo && empresaId !== (empresaActivaId ?? null) ? (
+          <Typography variant="xs" role="note" sx={{ display: 'block', mb: 2 }}>
+            «Nuevas» cuenta las consultas de la tienda elegida en este filtro. El número del menú sigue a la empresa de la barra superior, por eso puede no coincidir.
+          </Typography>
+        ) : null}
+
         <Stack spacing={2}>
           <Stack direction="row" spacing={1.25} alignItems="center" useFlexGap flexWrap="wrap">
             <TextField
@@ -232,6 +241,7 @@ export function ConsultaList() {
               exclusive
               size="small"
               aria-label="Filtrar por estado"
+              sx={{ flexWrap: 'wrap' }}
               value={estado ?? 'todas'}
               onChange={(_, valor: string | null) => {
                 if (valor === null) return
@@ -240,11 +250,12 @@ export function ConsultaList() {
               }}
             >
               <ToggleButton value="todas">Todas</ToggleButton>
-              {ESTADOS_CONSULTA.map((valor) => (
-                <ToggleButton key={valor} value={valor}>
-                  {valor === 'nueva'
+              {/* Los estados configurados de la organización; uno desactivado se sigue ofreciendo porque puede tener consultas. */}
+              {(opcionesEstado ?? ESTADOS_BASE_CONSULTA.map((clave) => ({ clave, nombre: ETIQUETA_ESTADO_CONSULTA[clave], activo: true }))).map((opcion) => (
+                <ToggleButton key={opcion.clave} value={opcion.clave}>
+                  {opcion.clave === 'nueva'
                     ? `Nuevas${nuevas === null ? '' : ` (${nuevas})`}`
-                    : valor === 'en_curso' ? ETIQUETA_ESTADO_CONSULTA.en_curso : 'Resuelta'}
+                    : `${opcion.nombre}${opcion.activo ? '' : ' (desactivado)'}`}
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>

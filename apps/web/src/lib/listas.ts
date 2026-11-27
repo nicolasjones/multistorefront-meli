@@ -4,7 +4,7 @@ import { supabaseClient } from './supabase'
 // reutilizan dominio.motivos_movimiento y su editor (pages/stock/motivos.tsx), sin RPC propia.
 export const LARGO_MAXIMO_ITEM_LISTA = 80
 
-export type EstadoConsulta = { id: string; nombre: string; activo: boolean; orden: number; es_sistema?: boolean }
+export type EstadoConsulta = { id: string; clave: string; nombre: string; activo: boolean; orden: number; es_sistema?: boolean }
 
 export function validarNombreItem(texto: string): string | null {
   const recortado = texto.trim()
@@ -32,7 +32,7 @@ export async function listarEstadosConsulta(): Promise<EstadoConsulta[]> {
   const { data, error } = await supabaseClient
     .schema('dominio')
     .from('estados_consulta')
-    .select('id, nombre, activo, orden, es_sistema')
+    .select('id, clave, nombre, activo, orden, es_sistema')
     .order('orden', { ascending: true })
     .returns<EstadoConsulta[]>()
   if (error) throw error

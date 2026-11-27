@@ -40,6 +40,8 @@ export async function leerPreciosCliente(host: string, productoId: string): Prom
     return null
   }
   if (!data) return null
+  // MSF-1001: superado el cupo por cuenta la base responde `{estado: 'limite'}` (sin `precios`): se cae al precio público.
+  if (!Array.isArray((data as Partial<RespuestaPrecios>).precios)) return null
   const respuesta = data as RespuestaPrecios
   const producto = respuesta.precios.find((p) => p.producto_id === productoId)
   if (!producto || producto.escalas.length === 0) return null
