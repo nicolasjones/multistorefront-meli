@@ -7,7 +7,7 @@
 const PANTALLA = /^apps\/web\/src\/pages\/.+\.tsx$/s; // flag s: un nombre con salto de línea también es una pantalla
 // Fuera: tests (.test/.spec), stories y carpetas de pruebas (__tests__, __snapshots__, test, tests, e2e).
 const NO_PANTALLA = /(\.(test|spec|stories)\.[cm]?[jt]sx?$|(^|\/)(__tests__|__snapshots__|test|tests|e2e)\/)/;
-const CAPTURA = /^docs\/producto\/img\/.+\.(png|jpe?g|webp)$/i;
+const CAPTURA = /^docs\/producto\/img\/.+\.(png|jpe?g|webp)$/is; // flag s: igual que PANTALLA, un nombre con salto de línea cuenta
 
 export const pantallasCambiadas = (changed) => changed.filter((ruta) => PANTALLA.test(ruta) && !NO_PANTALLA.test(ruta));
 

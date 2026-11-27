@@ -233,6 +233,22 @@ describe('verificar-documentacion-cambios', () => {
       assert.match(borrarImagen.stderr, /1 pantalla\(s\)/);
     });
 
+    it('si falla el diff sin borrados avisa (exit 0) y vuelve a la lista completa', async () => {
+      // Precarga que hace fallar solo `git diff --diff-filter=d` en este proceso.
+      const precarga = path.join(dir, 'falla-diff-filtrado.mjs');
+      await writeFile(precarga, [
+        "import cp from 'node:child_process';",
+        "import { syncBuiltinESMExports } from 'node:module';",
+        'const original = cp.spawnSync;',
+        "cp.spawnSync = (cmd, args, ...resto) => (args?.includes('--diff-filter=d') ? { status: 1, stdout: '', stderr: 'simulado' } : original(cmd, args, ...resto));",
+        'syncBuiltinESMExports();',
+      ].join('\n'));
+      const r = await comprobar('cap-diff-falla', [pantalla, 'docs/a.md'], { nodeArgs: ['--import', precarga] });
+      assert.equal(r.status, 0, r.stderr);
+      assert.match(r.stderr, /::warning ::no se pudo calcular el diff sin borrados/);
+      assert.match(r.stderr, /::warning ::1 pantalla\(s\)/);
+    });
+
     it('modo estricto (variable o --capturas-estricto) falla con exit 1', async () => {
       const a = await comprobar('cap-estricto-env', [pantalla, 'docs/a.md'], { env: { CAPTURAS_MANUAL_ESTRICTO: '1' } });
       assert.equal(a.status, 1);

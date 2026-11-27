@@ -4,7 +4,8 @@ import { hayCapturasCambiadas, pantallasCambiadas, pantallasSinCaptura } from '.
 
 const P = 'apps/web/src/pages';
 
-// Equivalente declarado: el `^` de `(^|\/)` en NO_PANTALLA no se distingue (toda ruta empieza con apps/ y PANTALLA ya está anclada).
+// Equivalentes declarados: `[cm]?` y `[jt]sx?` de NO_PANTALLA no se distinguen porque PANTALLA exige `.tsx` (las variantes .mjs/.cts/.js nunca llegan a esa regex);
+// el `^` de `(^|\/)` en NO_PANTALLA tampoco (toda ruta empieza con apps/ y PANTALLA ya está anclada). Antes: el `^` de `(^|\/)` en NO_PANTALLA no se distingue (toda ruta empieza con apps/ y PANTALLA ya está anclada).
 // Una fila por condición (n-1 / n / n+1 donde aplica). Cada fila muere al mutar la condición que nombra.
 const PANTALLAS = [
   // [ruta, ¿cuenta como pantalla?, condición que fija]
@@ -43,6 +44,8 @@ const CAPTURAS = [
   ['docs/producto/img/ventas/01.jpeg', true, 'jpeg'],
   ['docs/producto/img/ventas/01.webp', true, 'webp'],
   ['docs/producto/img/ventas/captura ñ 1.png', true, 'espacios y unicode'],
+  ['docs/producto/img/ventas/sal\nto.png', true, 'nombre con salto de línea (flag s)'],
+  ['docs/producto/img/.png', false, 'el nombre no puede ser vacío (.+ y no .*)'],
   ['docs/producto/img/ventas/01.gif', false, 'extensiones permitidas'],
   ['docs/producto/img/ventas/notas.md', false, 'solo imágenes'],
   ['docs/producto/img/ventas/01.png.txt', false, 'termina en la extensión ($)'],

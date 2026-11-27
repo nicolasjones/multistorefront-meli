@@ -66,6 +66,10 @@ try {
 const capturasEstricto = process.env.CAPTURAS_MANUAL_ESTRICTO === '1' || process.argv.includes('--capturas-estricto');
 // Sin borrados: eliminar una pantalla no exige rehacer capturas (ni borrar una imagen cuenta como rehacerla).
 const sinBorrados = run(['-c', 'core.quotepath=off', 'diff', '--name-only', '--diff-filter=d', '-z', `${base}...HEAD`]);
+if (sinBorrados.status !== 0) {
+  // Sin el diff filtrado se vuelve a la lista completa (cuenta los borrados): el aviso puede sobrar, pero no se rompe el CI.
+  console.error(anotacion('warning', {}, 'no se pudo calcular el diff sin borrados; el aviso de capturas (MSF-644) cuenta también los archivos borrados.'));
+}
 const sinCaptura = pantallasSinCaptura(sinBorrados.status === 0 ? sinBorrados.stdout.split('\0').filter(Boolean) : changed);
 if (sinCaptura.length > 0) {
   console.error(anotacion(capturasEstricto ? 'error' : 'warning', {}, `${sinCaptura.length} pantalla(s) del panel cambiaron y ninguna captura de docs/producto/img/ se rehízo: corré pnpm docs:capturas o declará en el PR por qué no corresponde (MSF-644).`));
