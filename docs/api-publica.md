@@ -9,6 +9,7 @@ sources:
   - supabase/migrations/20270224110204_api_suscripciones_entregas.sql
   - supabase/migrations/20270224110205_api_eventos_precio_venta.sql
   - supabase/migrations/20270224110206_exportacion_total_excluye_api.sql
+  - supabase/migrations/20270516000300_pipeline_avisos_equidad_por_organizacion.sql
 ---
 
 # API pública y avisos hacia otros sistemas (F-API-01)
@@ -145,8 +146,13 @@ La base gobierna los reintentos: **5 intentos en total** (el original y 4 reinte
 el destino respondió 2xx). Kestra no reintenta la llamada HTTP por su cuenta:
 cada reclamo de la entrega es un intento. El flow `entregar-webhooks-api` corre
 cada minuto y reparte hasta `API_WEBHOOKS_LOTE` eventos (total, no por tipo) y
-entregas por corrida (por defecto 20: unas 20 entregas por minuto, global; una ráfaga mayor se encola, seguimiento
-MSF-840). Una entrega `agotada` **no se reintenta sola**: el Administrador la devuelve a la cola con **Reintentar** en
+entregas por corrida (por defecto 20: unas 20 entregas por minuto, global; una ráfaga mayor se encola). **Equidad por organización
+(MSF-840, `20270516000300`)**: el lote se arma por rondas, una fila de cada organización por vez (primero la más antigua de cada una,
+luego la segunda…), tanto para los eventos (`private.reclamar_eventos_interno`) como para las entregas (`private.api_reclamar_entregas`);
+una importación de 5.000 precios de una organización ya no hace esperar horas a las demás: con un lote de 20 y dos organizaciones con
+pendientes, cada una recibe 10. Dentro de una organización se conserva el orden por antigüedad. **Sigue pendiente** (medir con volumen
+real antes de decidir): prioridad por tipo de evento y equidad por destino dentro de una organización (un destino lento ocupa una de
+las 2 ranuras del flow). Una entrega `agotada` **no se reintenta sola**: el Administrador la devuelve a la cola con **Reintentar** en
 Administración → API → Entregas recientes (`public.reintentar_entrega_api`: solo una entrega agotada de su organización,
 con los 5 intentos de nuevo y el último error conservado; si la suscripción está pausada, espera a que se reanude; tope de
 200 entregas de la organización esperando para enviarse a la vez, para que un script no sature la cola global). Lo que
