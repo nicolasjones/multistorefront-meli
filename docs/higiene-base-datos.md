@@ -11,6 +11,9 @@ sources:
   - supabase/migrations/20270507270000_ventas_lectura_por_empresa_una_vez.sql
   - supabase/migrations/20270507270100_documentar_definer_validacion_dni_cuit.sql
   - supabase/migrations/20270507280000_registrar_actividad_empresa_por_seccion.sql
+  - supabase/migrations/20270516000000_indices_redundantes_y_uso_acumulado.sql
+  - supabase/migrations/20270516000400_resumen_semanal_a_dominio.sql
+  - supabase/tests/database/higiene_indices_redundantes_lote101.test.sql
   - supabase/tests/database/seguridad_global_higiene_base.test.sql
   - supabase/verificacion/higiene_base.sql
   - supabase/verificacion/higiene_base_migraciones.sql
@@ -172,7 +175,7 @@ select proconfig from pg_proc where oid = 'private.is_superadmin()'::regprocedur
 Esperado tras reconciliar: todos los controles de `verificar-higiene-base.mjs` en su valor esperado y `--versiones` sin
 huérfanas.
 
-## Diagnóstico y plan (MSF-920 / MSF-921) — sin migrar tablas de negocio en este lote
+## Diagnóstico y plan (MSF-920 / MSF-921) — el lote 33 no migró tablas; lo hecho después está en «Lote 101»
 
 ### MSF-920: 97 % del almacenamiento en índices
 
@@ -211,7 +214,7 @@ select c.relname from pg_class c where c.relnamespace = 'public'::regnamespace a
 
 Clasificar cada una (plataforma legítima en `public` vs negocio que debe vivir en `dominio`); las de negocio se mueven de a
 una en lotes propios (`alter table … set schema dominio` + vista de compatibilidad en `public` mientras la app y los workers
-migran, grants, RLS, exportación total y pgTAP). **No se migra ninguna en este lote**: cambia el contrato (PostgREST, RPC, exportaciones, workers).
+migran, grants, RLS, exportación total y pgTAP). El lote 33 no migró ninguna; el lote 101 inventarió todas y movió las que se podían sin cambiar contrato (siguiente sección).
 
 ## Lote 38: lecturas por columna en `dominio.empresas`
 
@@ -249,3 +252,56 @@ Migraciones `20270507240000` a `20270507240200`, con pgTAP `lote42_*` (cada uno 
   sección `proveedores` ve solo nombre y estado; ver `20261018190500`); las 137 claves foráneas sin índice y la revisión de las
   tablas con RLS sin política (MSF-918) piden decisión caso por caso; la deriva del ACL de `publico.crear_consulta_publica` en
   la base DEV (MSF-653) es operativa, no de repo.
+
+## Lote 101: índices redundantes, uso de índices y tablas a `dominio` (MSF-919 / MSF-920 / MSF-921)
+
+Migraciones `20270516000000` (índices) y `20270516000400` (resumen semanal), pgTAP `higiene_indices_redundantes_lote101`.
+Todo lo de abajo se midió en una base local con el esquema de dokploy; lo que solo se mide en DEV está dicho como tal.
+
+### MSF-919: el `insert` de 3,8 s en `organizaciones` y el lookup del bucket
+
+- **No se reproduce en local.** `explain (analyze)` de `insert into organizaciones` sobre la base con el esquema completo: ~48 ms
+  en total, todo en los 8 triggers `after insert` (permisos 19,6 ms, consumidor final 10 ms, servicio 7,1 ms, transiciones de
+  comprobante 6,3 ms, el resto < 2 ms). Con 60 organizaciones seguidas el insert no se degrada (20–70 ms). Cada alta siembra
+  unas 440 filas de `permisos_rol` + `permisos_rol_accion`, no más. Los 3,8 s de DEV con 39 llamadas son entonces del entorno
+  (disco, contención con corridas pgTAP en paralelo y 149 claves foráneas hacia `organizaciones`), no de un índice faltante ni de un
+  trigger con trabajo evitable. **Qué falta medir en DEV**: repetir `explain (analyze, timing on)` del insert en una transacción
+  con `rollback` (muestra el tiempo de cada trigger) y mirar `pg_stat_activity` / `pg_locks` durante la alta.
+- **Lookup `storage.objects ... name collate "C" = any(...)` (342 ms):** es una consulta del servicio Storage de Supabase sobre
+  su propio esquema (`storage`), no de esta app, y el esquema `storage` no se versiona acá. No se tocó. En DEV: `explain` de esa
+  consulta y verificar que exista el índice `(bucket_id, name collate "C")` de Storage y que `storage.objects` no esté inflada.
+
+### MSF-920: 97 % del almacenamiento en índices
+
+- **Retirados (migración `…000000`):** 32 índices btree no únicos cuyas columnas son prefijo exacto de otro índice de la misma
+  tabla (mismas clases de operador, orden y predicado; sin expresiones; no respaldan constraints). Casi todos son índices de una
+  columna anteriores a los `*_fk_idx` compuestos `(columna, organizacion_id)` del lote 33, que los cubren. Cada retiro tiene su
+  `create index` en el comentario «Reversión». La pgTAP lista los 32 por nombre, y `private.indices_redundantes()` (la definición
+  única de «redundante») debe devolver 0 filas: si alguien vuelve a crear uno cubierto, falla.
+- **No se retiran, a propósito:** los dos GIN trigram de `dominio.productos` (`productos_nombre_trgm_idx` sobre `nombre` y
+  `productos_nombre_busqueda_trgm` sobre `private.normalizar_busqueda(nombre)`): los usan consultas distintas (listado del
+  catálogo y búsqueda global/tienda) y hay pgTAP que exige a cada uno. `productos_org_nombre_idx` (`lower(nombre)`) frente a
+  `productos_org_nombre_orden_idx` (`nombre`): sirven órdenes distintos; se decide con `idx_scan` de DEV.
+- **Tamaño de `dominio.productos`:** con 2.289 filas de prueba el heap pesa 1,5 MB y los 16 índices 9,6 MB (los dos GIN de
+  nombre 3,7 MB cada uno); los 34 MB de DEV son casi 4× lo que da una carga limpia: es **bloat** por actualizaciones/recargas.
+  Remedio operativo, no de migración: `reindex index concurrently` de los GIN y `vacuum` (ver el plan de arriba, punto 5).
+- **Telemetría que sobrevive al recreate:** `private.registrar_uso_indices()` acumula `idx_scan` de `public` y `dominio` en
+  `private.uso_indices_acumulado` (si el contador bajó por un reset suma el valor actual completo, no un delta negativo).
+  Correrla antes de cada recreate del stack y a diario (cron/Kestra); después de un ciclo de uso real:
+  `select * from private.uso_indices_acumulado where escaneos_acumulados = 0 order by esquema, tabla, indice;` da los candidatos
+  a retiro (excluir únicos, PK y FK de cascada). **Qué falta medir en DEV**: ese ciclo, y recién entonces decidir.
+
+### MSF-921: inventario de tablas de `public` con `organizacion_id` sin gemela en `dominio` (63: 47 tablas y 16 vistas; quedan 45 tablas tras el traslado)
+
+Query del inventario: la de arriba (agregar `'v'` a `relkind` para ver las vistas). Resultado y decisión por tabla:
+
+| Grupo | Tablas | Decisión |
+|---|---|---|
+| **Movidas** (negocio, solo las tocan funciones definer; sin contrato público) | `resumen_semanal_config`, `resumen_semanal_envios` | A `dominio` en `20270516000400`, con barrido de funciones, `service_role` según la convención y exclusión de la exportación total actualizada. Sin vista de compatibilidad: nadie las pide por PostgREST. |
+| **Negocio, no movidas** (cambia el contrato) | `clientes_identificadores_externos` (la usa el panel de migración y un fixture E2E por PostgREST: pediría `.schema('dominio')` o una vista), `clientes_empresas` y `cuentas_cliente` (41 y 47 migraciones las nombran, 32 y 27 pgTAP, políticas RLS de otras tablas las consultan) | Una por lote: `set schema` + barrido de funciones + vista en `public` mientras migran el panel y los workers. Costo alto, riesgo de RLS: no se hizo a ciegas. |
+| **Plataforma** (legítimas en `public`) | accesos y roles (`usuarios_organizacion`, `usuarios_empresas`, `invitaciones_organizacion`, `permisos_rol`, `permisos_rol_accion`, `superadmin_*`, `solicitudes_acceso`); orquestación (`capacidades_ejecucion`, `ejecuciones_worker`, `despachos_ejecucion`, `programacion_ejecucion`, `excepciones_flow_generico`, `procesos_masivos`, `procesos_masivos_errores`, `migracion_cargas`, `cola_eventos`, `avisos_pendientes`); conexiones y API (`conexiones`, `conexiones_oauth`, `credenciales_mcp`, `servidores_organizacion`, `api_claves`, `api_suscripciones`, `api_entregas`, `api_llamadas`); monitoreo y auditoría (`alertas`, `alertas_monitoreo`, `eventos_*`, `registro_actividad`, `organizaciones_features`, `reportes_organizaciones`, `reportes_organizaciones_roles`, `proveedor_capacidad_*`); IA (`conversaciones_chat_ia`, `documentos`, `fragmentos_indexados`) | Se quedan: no son el catálogo, las ventas ni el stock del negocio; son infraestructura de la plataforma multi-organización. |
+| **Vistas** (16: `v_productos_listado`, `precios_empresa_*`, `ia_consulta_*`, `stock_*`…) | — | Son el contrato de lectura que PostgREST publica a propósito (`security_invoker`); no se mueven. |
+
+Corrección al ticket: `public.clientes` ya está en `dominio` desde MSF-505 (`20270418000401`); la lista del ticket
+(`clientes`, `conexiones`, `conversaciones_chat_ia`...) mezcla tablas de plataforma con la del traslado ya hecho. La deuda real
+de negocio que queda son 3 tablas, no 11.

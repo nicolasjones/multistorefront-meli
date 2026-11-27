@@ -1,7 +1,8 @@
 import { createTheme } from '@mui/material'
+import { coloresOscuros, type Paleta } from './coloresOscuros'
 import { tokens } from './tokens'
 
-const { color, tipografia, forma } = tokens
+const { tipografia, forma } = tokens
 const { escala } = tipografia
 
 const titulo = { fontFamily: tipografia.titulos }
@@ -18,7 +19,7 @@ const variante = (estilo: EstiloEscala, familia: string, tono?: string) => ({
 })
 
 // Escala del prototipo (.t1/.t2/.t3/.b/.bl/.s/.xs/.kpi) servida como variantes (FR-003).
-const variantesEscala = {
+const variantesEscala = (color: Paleta) => ({
   t1: variante(escala.t1, tipografia.titulos),
   t2: variante(escala.t2, tipografia.titulos),
   t3: variante(escala.t3, tipografia.titulos),
@@ -27,7 +28,7 @@ const variantesEscala = {
   bl: variante(escala.bl, tipografia.texto),
   s: variante(escala.s, tipografia.texto, color.textoSecundario),
   xs: variante(escala.xs, tipografia.texto, color.textoSecundario),
-}
+})
 
 const alerta = (tono: { fondo: string; texto: string; icono: string }) => ({
   backgroundColor: tono.fondo,
@@ -35,10 +36,11 @@ const alerta = (tono: { fondo: string; texto: string; icono: string }) => ({
   '& .MuiAlert-icon': { color: tono.icono },
 })
 
-// Tema del panel: extiende el tema base de MUI/Refine con los tokens.
-export const temaPanel = createTheme({
+// Tema del panel: extiende el tema base de MUI/Refine con los tokens. `crearTemaPanel` recibe la paleta (clara u oscura)
+// para que los componentes que leen `color.*` en sus overrides sigan el modo (RF-INI-04-7, MSF-849).
+const crearTemaPanel = (color: Paleta, modo: 'light' | 'dark') => createTheme({
   palette: {
-    mode: 'light',
+    mode: modo,
     primary: { main: color.accion, dark: color.accionHover },
     error: { main: color.peligro },
     success: { main: color.exito },
@@ -60,7 +62,7 @@ export const temaPanel = createTheme({
     h6: titulo,
     subtitle1: titulo,
     button: { textTransform: 'none' },
-    ...variantesEscala,
+    ...variantesEscala(color),
   },
   components: {
     MuiButton: {
@@ -317,3 +319,12 @@ export const temaPanel = createTheme({
     },
   },
 })
+
+/** Tema claro: el del panel completo. */
+export const temaPanel = crearTemaPanel(tokens.color, 'light')
+
+/**
+ * Tema oscuro. Hoy se aplica al tablero de Inicio (ver `ModoOscuroInicio`): el resto del panel todavía lee tokens claros
+ * directo (docs/inicio-y-alertas.md, «Modo oscuro»).
+ */
+export const temaPanelOscuro = crearTemaPanel(coloresOscuros, 'dark')

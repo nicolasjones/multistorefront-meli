@@ -4,6 +4,7 @@ import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useInicioTienda } from '../../../lib/tiendaInicio'
 import { GrillaProductos } from '../catalogo/GrillaProductos'
 import { TarjetaProducto } from '../catalogo/TarjetaProducto'
+import { prioridadDeTarjeta } from '../catalogo/prioridadImagen'
 import type { PropsSeccionTienda } from '../PaginaTienda'
 import { useCelular } from '../useAnchoCelular'
 import { useCategoriaInicio } from './categoriaInicio'
@@ -46,9 +47,9 @@ export default function DestacadosInicio({ host }: PropsSeccionTienda) {
         </Typography>
       ) : (
         <GrillaProductos columnas={4}>
-          {visibles.map((p) => (
+          {visibles.map((p, indice) => (
             <li key={p.id}>
-              <TarjetaProducto producto={p} urlImagen={p.imagen ? inicio.imagenes[p.imagen] : undefined} />
+              <TarjetaProducto producto={p} urlImagen={p.imagen ? inicio.imagenes[p.imagen] : undefined} prioridad={prioridadDeTarjeta(indice)} />
             </li>
           ))}
         </GrillaProductos>

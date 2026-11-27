@@ -44,7 +44,8 @@ export function Galeria({ imagenes, urls, nombre }: { imagenes: ImagenFicha[]; u
         aria-label="Ampliar imagen"
         sx={(tema) => ({ ...estiloMarco(tema), display: 'flex', alignItems: 'center', justifyContent: 'center' })}
       >
-        <Box component="img" src={actual.url} alt={nombre} onError={() => marcarFallida(actual.url)} sx={{ maxWidth: '88%', maxHeight: '88%', objectFit: 'contain' }} />
+        {/* MSF-1002: es el elemento del LCP de la ficha: se pide con prioridad alta y sin diferir. */}
+        <Box component="img" src={actual.url} alt={nombre} fetchPriority="high" decoding="async" onError={() => marcarFallida(actual.url)} sx={{ maxWidth: '88%', maxHeight: '88%', objectFit: 'contain' }} />
       </ButtonBase>
       {disponibles.length > 1 ? (
         <Box role="group" aria-label="Miniaturas" sx={{ display: 'flex', gap: '12px', mt: '14px', overflowX: 'auto', pb: 0.5 /* estilos-sueltos: ok */ }}>

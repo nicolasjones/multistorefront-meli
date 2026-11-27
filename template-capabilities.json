@@ -86,7 +86,7 @@
     },
     {
       "id": "operable-refine-panel",
-      "version": "1.10.0",
+      "version": "1.10.1",
       "title": "Kit operable y extensible del panel",
       "paths": [
         "apps/web/src/components/navegacion/",

@@ -7,7 +7,11 @@ const SALTO = '\r\n';
 
 // Las hojas de cálculo interpretan como fórmula un texto que empieza con = + - @ (o tab / retorno);
 // se le antepone un apóstrofo (OWASP, «CSV injection»). Solo aplica a texto, nunca a un número.
+// Un texto que es únicamente un número con signo (`-5.25`, `+5491155551234`) no es una fórmula: no se toca. Así los importes
+// negativos que salen como texto (numeric y bigint van sin pasar por double) y los teléfonos solo de dígitos no se corrompen.
+const NUMERO_CON_SIGNO = /^[+-][0-9]+(\.[0-9]+)?$/;
 export function neutralizarFormula(valor: string): string {
+  if (NUMERO_CON_SIGNO.test(valor)) return valor;
   return /^[=+\-@\t\r]/.test(valor) ? `'${valor}` : valor;
 }
 

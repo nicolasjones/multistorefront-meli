@@ -226,13 +226,13 @@ select ok((select 'precio_promocional' = any(columnas) and 'desde' = any(columna
 
 select pg_temp.sesion('f1000000-0000-0000-0000-000000000001');
 select is((select count(*)::int
-             from jsonb_array_elements(private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'comprobantes_venta_lineas', 0, 100)) f
+             from jsonb_array_elements((private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'comprobantes_venta_lineas', null, 100)->'filas')) f
             where f->>'precio_referencia' = '1000.00' and f->>'precio_unitario' = '800.00' and f->>'promocion_id' is not null), 2,
   'las filas exportadas traen la línea promocional (factura y su nota de crédito heredera) con precio 800, referencia 1000 y su promoción');
-select is(jsonb_array_length(private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'comprobantes_venta_lineas', 0, 100)), 4,
+select is(jsonb_array_length((private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'comprobantes_venta_lineas', null, 100)->'filas')), 4,
   'la exportación de líneas trae exactamente las 4 líneas de la organización del test (V1, su nota, V2 y V3), no las de otras organizaciones');
 select is((select count(*)::int
-             from jsonb_array_elements(private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'comprobantes_venta_lineas', 0, 100)) f
+             from jsonb_array_elements((private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'comprobantes_venta_lineas', null, 100)->'filas')) f
             where f ? 'precio_referencia' and f ? 'promocion_id'
               and f->>'organizacion_id' = '11111111-1111-1111-1111-111111111111'), 4,
   'las 4 filas exportadas de línea tienen las dos claves nuevas (null en las sin promoción)');

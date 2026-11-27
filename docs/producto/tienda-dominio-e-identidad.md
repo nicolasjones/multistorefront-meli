@@ -159,3 +159,5 @@ Cada tienda toma sus propios colores, tipografías, logo, eslogan y textos. La b
 | **No pudimos subir el logo / el banner… no se guardó nada y la imagen anterior se conserva.** | Revisá tu conexión y probá de nuevo. |
 | **… no puede superar los N caracteres.** | Acortá el texto. |
 | **No pudimos cargar la identidad visual.** | Usá **Reintentar**. |
+
+> **Carga más rápida (MSF-1002):** al abrir una tienda, el navegador empieza a descargar la pantalla pedida mientras se resuelve la tienda por su dominio; no cambia lo que ve la persona, solo cuánto tarda.

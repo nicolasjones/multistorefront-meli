@@ -5,6 +5,7 @@ import type { ProductoListado } from '../../../lib/tiendaListado'
 import { PrecioTachado } from './PrecioTachado'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
 import { LINEA_SUAVE } from '../layout/medidas'
+import type { PrioridadImagen } from './prioridadImagen'
 
 // Tarjeta de producto de la tienda (F-TDA-12, FR-037; MSF-847, prototipo `MJC_Catalogo`/`MJC_Home`/`MJC_Producto`):
 // borde de 1 px, radio 8 y fondo blanco; área de imagen cuadrada con el fondo de superficie y la imagen COMPLETA
@@ -13,7 +14,10 @@ import { LINEA_SUAVE } from '../layout/medidas'
 // nodo de React (se escapa solo). «Sin stock» se distingue además del texto con la insignia sobre la imagen atenuada.
 // Si la URL firmada vence (1 h) o la imagen falla al cargar, `onError` cae a «Sin imagen» en vez de dejar el ícono roto.
 // En celular las medidas son las de `MJC_M_Catalogo` (cuerpo de 10 px, nombre de 14 px, precio de 18 px).
-export function TarjetaProducto({ producto, urlImagen }: { producto: ProductoListado; urlImagen?: string }) {
+// MSF-1002: `prioridad` marca las tarjetas que se ven sin desplazar (la imagen del primer producto suele ser el elemento del LCP):
+// esas imágenes no llevan `loading="lazy"` (el navegador esperaba a calcular el layout para pedirlas) y la primera pide
+// `fetchpriority="high"`. El resto sigue diferido (`prioridadDeTarjeta`). Ver docs/tienda-movil.md, «LCP».
+export function TarjetaProducto({ producto, urlImagen, prioridad }: { producto: ProductoListado; urlImagen?: string; prioridad?: PrioridadImagen }) {
   const sinStock = !producto.disponible
   const [fallo, setFallo] = useState<string | null>(null)
   const mostrarImagen = Boolean(urlImagen) && fallo !== urlImagen
@@ -39,7 +43,7 @@ export function TarjetaProducto({ producto, urlImagen }: { producto: ProductoLis
       >
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {mostrarImagen ? (
-          <Box component="img" src={urlImagen} alt="" loading="lazy" onError={() => setFallo(urlImagen ?? null)} sx={{ maxWidth: '86%', maxHeight: '86%', objectFit: 'contain', opacity: sinStock ? 0.45 : 1 }} />
+          <Box component="img" src={urlImagen} alt="" loading={prioridad ? 'eager' : 'lazy'} fetchPriority={prioridad === 'alta' ? 'high' : undefined} decoding="async" onError={() => setFallo(urlImagen ?? null)} sx={{ maxWidth: '86%', maxHeight: '86%', objectFit: 'contain', opacity: sinStock ? 0.45 : 1 }} />
         ) : (
           <Typography component="span" sx={{ color: 'text.secondary', fontSize: 13 /* estilos-sueltos: ok */ }}>Sin imagen</Typography>
         )}

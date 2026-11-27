@@ -2,6 +2,10 @@
 owner: tecnico
 sources:
   - specs/20261024-120000-tienda-inicio-busqueda-movil
+  - apps/web/src/pages/tienda-publica/EnrutadorTienda.tsx
+  - apps/web/src/pages/tienda-publica/catalogo/prioridadImagen.ts
+  - apps/web/src/pages/tienda-publica/ficha/Galeria.tsx
+  - scripts/medir-tienda-lighthouse.mjs
 ---
 
 # Tienda pública · versión móvil (F-TDA-17)
@@ -45,6 +49,30 @@ productos por tienda, Lighthouse 13.6 en perfil móvil (390×844, CPU ×4, «4G 
 | Home | sin medir | No entra en la medición del job `medir` |
 | Catálogo | 10.866 ms (Mundo JC) · 10.903 ms (San Javucho) | No cumple el objetivo de 3 s |
 | Ficha | 10.503 ms (Mundo JC) · 10.500 ms (San Javucho) | No cumple el objetivo de 3 s |
+
+**Cambios de MSF-1002 (lote 101), sin medición de LCP todavía.** El entorno de desarrollo no tiene el stack con el seed ni
+Lighthouse, así que lo que sigue son cambios de código con la causa que explican, no una mejora medida:
+
+- **Cascada de red.** El chunk de la pantalla (catálogo, ficha…) recién se pedía cuando terminaba de resolverse la tienda y se
+  montaba el layout: JS de entrada → tienda → chunk de la ruta → datos. `precargarRutaActual` (`EnrutadorTienda.tsx`, llamada
+  desde `main.tsx`) lo pide desde el arranque, en paralelo con la resolución de la tienda; el módulo queda cacheado y `lazy` lo
+  encuentra descargado. Quita un viaje de red completo del camino crítico (en «4G lento» un viaje son ~150 ms de latencia más
+  la descarga del chunk).
+- **Imagen candidata a LCP.** Todas las imágenes de tarjeta eran `loading="lazy"`, también las de la primera fila: el navegador
+  espera al layout para pedirlas. Las dos primeras tarjetas (`prioridadDeTarjeta`, `TARJETAS_CON_PRIORIDAD = 2`, la primera fila
+  en celular) cargan sin diferir y la primera con `fetchpriority="high"`; la imagen principal de la ficha también
+  (`ficha/Galeria.tsx`). Las miniaturas y el resto de la grilla siguen diferidas.
+- **Bytes críticos medidos en local** (`vite build`, `index.html` + sus `modulepreload`, mismo comando antes y después):
+  710.839 B (232.452 B gzip) antes y 711.231 B (232.599 B gzip) después (+392 B del emparejador de rutas). **No se redujo el
+  JavaScript**: el cuello de 10,8 s de render delay con CPU ×4 sigue siendo ejecutar ~830 KB de JS (el chunk `supabase` pesa
+  213 KB y el de entrada 179 KB, más MUI). Reducirlo es el trabajo grande que queda (sacar `@supabase/supabase-js` de la ruta
+  crítica con un cliente PostgREST mínimo para las RPC públicas, partir el entorno de MUI que usa la tienda).
+
+Método para medir antes/después (cuando haya stack): `pnpm medir:tienda` (Lighthouse 13.6 móvil, CPU ×4, «4G lento», 3
+corridas por ruta, mediana) sobre la rama y sobre `dokploy` con el mismo seed; comparar LCP y, en el reporte, los desgloses
+«Retraso de carga del recurso» y «Retraso de renderizado» del LCP: la precarga de la ruta mueve lo primero, la prioridad de
+imagen mueve lo segundo solo si el LCP es una imagen. Hasta tener esas cifras el objetivo de 3 s sigue sin cumplirse y la línea
+base de regresión (`LCP_BASE_MS`) no cambia.
 
 Antes de cargar el panel de forma diferida el LCP era de 15,6 a 16,0 s (run `45474509678`). El detalle (cifras
 por ruta, FCP, CLS, TBT, entorno y fuente) está en

@@ -130,7 +130,7 @@ El lote 20 sumó pruebas directas para treinta módulos más: `formasRma`, `esca
 
 ## Checks de trampas conocidas
 
-`scripts/verificar-trampas-conocidas.mjs` convierte en checks deterministas (sin red, sin secretos, segundos) errores que ya costaron vueltas de CI. Mira el diff contra `origin/dokploy` como `verificar-migraciones.mjs`; corre dentro de `pnpm docs:check` (job `chequeos` de `validate.yml`) y en `pnpm prepush` cuando el diff toca migraciones, pgTAP o E2E. `--todo` revisa el árbol completo como si todo fuera nuevo (sirve para comprobar que no hay falsos positivos). Su prueba es `scripts/verificar-trampas-conocidas.test.mjs`, dentro de `pnpm test:docs:check`.
+`scripts/verificar-trampas-conocidas.mjs` convierte en checks deterministas (sin red, sin secretos, segundos) errores que ya costaron vueltas de CI. Mira el diff contra `origin/dokploy` como `verificar-migraciones.mjs`; corre dentro de `pnpm docs:check` (job `chequeos` de `validate.yml`) y en `pnpm prepush` cuando el diff toca migraciones, pgTAP o E2E. `--todo` revisa el árbol completo como si todo fuera nuevo (sirve para comprobar que no hay falsos positivos). Su prueba es `scripts/verificar-trampas-conocidas.test.mjs`, dentro de `pnpm test:docs:check`. Desde MSF-817 la exportación total decide columna por columna en `private.exportacion_total_columnas`: T4 acepta filas ahí como cobertura de una tabla nueva y T6 falla si una migración posterior redefine `conjuntos_exportacion_total()` con lista propia de tablas sobre la versión que lee esa tabla.
 
 Requisitos y límites del check:
 

@@ -8,6 +8,7 @@ import { instalarDestinoActividad } from './lib/destinoActividad'
 import { iniciarErrores } from './lib/erroresWeb'
 import { esHostDeTienda } from './lib/tienda'
 import { TiendaPublicaApp } from './pages/tienda-publica'
+import { precargarRutaActual } from './pages/tienda-publica/EnrutadorTienda'
 
 // El panel administrativo va en su propio chunk (FR-047 / SC-009): el visitante de la tienda no
 // descarga Refine ni las pantallas del panel. Antes el import era estático y el chunk de entrada
@@ -36,6 +37,9 @@ const esTiendaPublica = esHostDeTienda(host)
 // La tienda pública no la hereda: su sesión termina por salida explícita («Salir») o por el tope de 30 días
 // del servidor. El control no se instala en un host de tienda: el visitante no ve cierre ni redirección.
 instalarVencimientoDeSesion(esTiendaPublica)
+
+// Tienda pública (MSF-1002): se empieza a descargar el chunk de la pantalla pedida sin esperar a que se resuelva la tienda.
+if (esTiendaPublica) precargarRutaActual(window.location.pathname)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

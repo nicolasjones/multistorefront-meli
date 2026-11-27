@@ -19,6 +19,7 @@ import { GrillaProductos } from '../catalogo/GrillaProductos'
 import { Ordenar } from '../catalogo/Ordenar'
 import { PanelFiltros } from '../catalogo/PanelFiltros'
 import { TarjetaProducto } from '../catalogo/TarjetaProducto'
+import { prioridadDeTarjeta } from '../catalogo/prioridadImagen'
 import type { PropsSeccionCatalogo } from '../seccionesCatalogo'
 import { useCelular } from '../useAnchoCelular'
 import { ErrorConReintento } from '../ErrorConReintento'
@@ -166,9 +167,9 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
                   filtros está cerrado) el orden de encabezados saltaba de h1 a h3 (axe «heading-order»). */}
               <Typography component="h2" sx={SOLO_LECTORES}>{q ? 'Resultados' : 'Productos'}</Typography>
               <GrillaProductos columnas={3}>
-                {catalogo.pagina.productos.map((p) => (
+                {catalogo.pagina.productos.map((p, indice) => (
                   <li key={p.id}>
-                    <TarjetaProducto producto={p} urlImagen={p.imagen ? catalogo.imagenes[p.imagen] : undefined} />
+                    <TarjetaProducto producto={p} urlImagen={p.imagen ? catalogo.imagenes[p.imagen] : undefined} prioridad={prioridadDeTarjeta(indice)} />
                   </li>
                 ))}
               </GrillaProductos>

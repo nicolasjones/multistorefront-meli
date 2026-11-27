@@ -94,6 +94,35 @@ class ConfiguracionCsv(unittest.TestCase):
         self.assertEqual(r.d, b"\xef\xbb\xbfa;b")
         self.assertEqual(modulo._anteponer_bom_csv(r).d, b"\xef\xbb\xbfa;b")
 
+    def test_bom_no_toca_lo_que_no_es_csv_200_en_memoria(self):
+        # MSF-761: cada condición del hook se muta por separado (mimetype, passthrough, status).
+        modulo = cargar_config()
+
+        def respuesta(mimetype="text/csv", passthrough=False, status=200, datos=b"a;b"):
+            class R:
+                def __init__(s):
+                    s.mimetype, s.direct_passthrough, s.status_code, s.d = mimetype, passthrough, status, datos
+                def get_data(s): return s.d
+                def set_data(s, d): s.d = d
+            return R()
+
+        for kwargs in (
+            {"mimetype": "application/json"},
+            {"mimetype": "text/plain"},
+            {"passthrough": True},
+            {"status": 500},
+            {"status": 304},
+            {"status": 199},
+        ):
+            r = modulo._anteponer_bom_csv(respuesta(**kwargs))
+            self.assertEqual(r.d, b"a;b", kwargs)
+        # Frontera del BOM: los dos primeros bytes de un BOM no cuentan como BOM y se antepone el completo.
+        r = modulo._anteponer_bom_csv(respuesta(datos=b"\xef\xbbx"))
+        self.assertEqual(r.d, b"\xef\xbb\xbf\xef\xbbx")
+        # Un CSV vacío 200 también lleva BOM (Excel abre bien el archivo vacío) y no se duplica.
+        r = modulo._anteponer_bom_csv(respuesta(datos=b""))
+        self.assertEqual(r.d, b"\xef\xbb\xbf")
+
     def test_ningun_consumidor_del_repo_parsea_csv_de_superset(self):
         # CSV_EXPORT es global (cambia Ventas y Rentabilidad): si algún código
         # versionado leyera CSV bajados de Superset esperando "," y ".", se

@@ -64,3 +64,5 @@ consulta, arma una lista de pedido o pide un presupuesto.
 Mercado Libre se agrega como canal: publicaciones sincronizadas por workers
 con outbox, credenciales OAuth gestionadas en Nango, y el mismo stock único
 para evitar sobreventa.
+
+> **Arranque de la tienda pública (MSF-1002):** `main.tsx` llama a `precargarRutaActual` antes de renderizar: pide el chunk de la ruta actual en paralelo con `resolverTienda`, así el camino crítico deja de ser JS de entrada → tienda → chunk de la ruta → datos. Ver `docs/tienda-movil.md`, «LCP».

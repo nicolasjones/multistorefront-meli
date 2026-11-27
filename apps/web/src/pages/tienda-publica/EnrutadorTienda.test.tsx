@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({ categorias: vi.fn() }))
 
 vi.mock('../../lib/tiendaCategorias', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../lib/tiendaCategorias')>()), leerCategoriasPublicas: mocks.categorias }))
 
-import { EnrutadorTienda, rutaDeArchivo } from './EnrutadorTienda'
+import { coincideRuta, EnrutadorTienda, precargarRutaActual, rutaDeArchivo } from './EnrutadorTienda'
 import { PaginaNoEncontrada } from './PaginaNoEncontrada'
 
 const tienda = { tiendaId: 't-1', empresaNombre: 'Mundo JC', estado: 'publicada' }
@@ -212,5 +212,54 @@ describe('PaginaNoEncontrada (FR-007)', () => {
     montar('/otra/cosa')
     expect((await screen.findByTestId('pagina-no-encontrada')).textContent).toBe(texto)
     expect(PaginaNoEncontrada).toBeTypeOf('function')
+  })
+})
+
+// MSF-1002: precarga del chunk de la ruta en paralelo con la resolución de la tienda.
+describe('precargarRutaActual', () => {
+  const crear = () => {
+    const pedidos: string[] = []
+    const cargador = (nombre: string) => () => { pedidos.push(nombre); return Promise.resolve({ default: () => null }) }
+    return {
+      pedidos,
+      cargadores: {
+        './rutas/inicio.tsx': cargador('inicio'),
+        './rutas/catalogo.tsx': cargador('catalogo'),
+        './rutas/producto.tsx': cargador('producto'),
+        './rutas/newsletter.confirmar.tsx': cargador('newsletter.confirmar'),
+      },
+    }
+  }
+
+  it.each([
+    ['/', 'inicio'],
+    ['/catalogo', 'catalogo'],
+    ['/catalogo/', 'catalogo'],
+    ['/producto/abc', 'producto'],
+    ['/producto', 'producto'],
+    ['/newsletter/confirmar/tok', 'newsletter.confirmar'],
+  ])('%s pide solo el chunk de %s', (camino, esperado) => {
+    const { pedidos, cargadores } = crear()
+    precargarRutaActual(camino, cargadores)
+    expect(pedidos).toEqual([esperado])
+  })
+
+  it.each(['/desconocida', '/producto/a/b', '/catalogo/x/y', '/newsletter/confirmar', '/newsletter/confirmar/a/b'])('%s no pide ningún chunk', (camino) => {
+    const { pedidos, cargadores } = crear()
+    precargarRutaActual(camino, cargadores)
+    expect(pedidos).toEqual([])
+  })
+
+  it('un fallo de descarga se ignora (no lanza ni deja una promesa sin atrapar)', async () => {
+    const cargadores = { './rutas/catalogo.tsx': () => Promise.reject(new Error('sin red')) }
+    expect(() => precargarRutaActual('/catalogo', cargadores)).not.toThrow()
+    await new Promise((r) => setTimeout(r, 0))
+  })
+
+  it('coincideRuta: un parámetro no vacío y el mismo largo', () => {
+    expect(coincideRuta('/producto/:productoId', '/producto/1')).toBe(true)
+    expect(coincideRuta('/producto/:productoId', '/producto/')).toBe(false)
+    expect(coincideRuta('/producto/:productoId', '/producto/1/2')).toBe(false)
+    expect(coincideRuta('/', '/')).toBe(true)
   })
 })

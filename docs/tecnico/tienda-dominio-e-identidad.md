@@ -257,3 +257,5 @@ pnpm --filter @platform/web test:e2e tienda-dos-dominios
   empresa.
 - Las pestañas General, Precios y moneda y Mercado Libre no se dibujan.
 - El bloque «Información de contacto visible» no se implementa.
+
+**Precarga de la ruta (MSF-1002).** `main.tsx` ejecuta `precargarRutaActual(window.location.pathname)` en hosts de tienda: descarga el chunk de la pantalla pedida en paralelo con `resolverTienda` (mejor esfuerzo; un fallo se ignora y la ruta lo reintenta al navegar).

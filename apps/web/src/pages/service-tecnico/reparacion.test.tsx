@@ -371,7 +371,7 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
     expect(await screen.findByTestId('adjuntos')).toHaveAttribute('data-puede-editar', 'false')
   })
 
-  it('integra la sección «Comisión de técnicos» en el detalle y no la ofrece en el alta (MSF-953)', async () => {
+  it('integra la sección «Comisión de técnicos» en el detalle y no la ofrece en el alta', async () => {
     mocks.obtenerReparacion.mockResolvedValue(REPARACION)
     const detalle = abrirDetalle()
     expect(await screen.findByRole('region', { name: 'Comisión de técnicos' })).toBeInTheDocument()

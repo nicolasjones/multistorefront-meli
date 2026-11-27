@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  filasConjuntosExportacion, grantsServiceRole, inalterablesDe, perdidasDeclaradas, revisar, revisarE2E, revisarExportacionTotal, revisarGrants, revisarSupersetExportacion, revisarVariablesPsql, revisarFechasBuenosAires, recorrerSql, tablasCreadas, sinBase,
+  filasConjuntosExportacion, leeListaBlanca, grantsServiceRole, inalterablesDe, perdidasDeclaradas, revisar, revisarE2E, revisarExportacionTotal, revisarGrants, revisarSupersetExportacion, revisarVariablesPsql, revisarFechasBuenosAires, recorrerSql, tablasCreadas, sinBase,
 } from './verificar-trampas-conocidas.mjs';
 
 const mig = (version, sql) => ({ ruta: `supabase/migrations/${version}_prueba.sql`, sql });
@@ -75,6 +75,34 @@ const defineExportacion = (version, filas, extra = '') => mig(version, `${extra}
 const BASE = [['public', 'organizaciones'], ['dominio', 'gastos']];
 const VIGENTE = defineExportacion('20270334000002', BASE);
 const LISTAS = defineExportacion('20270340000100', [...BASE, ['dominio', 'listas_precios']]);
+
+// MSF-817: la función vigente puede leer la lista blanca por columna (sin lista propia de tablas).
+const BLANCA = mig('20270516000100', 'create or replace function private.conjuntos_exportacion_total() returns table (esquema text, tabla text) language sql as $$ select d.esquema, d.tabla from private.exportacion_total_columnas d where d.exportar $$;');
+
+test('leeListaBlanca distingue la definición por tabla de decisiones de la de lista propia (y no cuenta un comentario)', () => {
+  assert.equal(leeListaBlanca(BLANCA.sql), true);
+  assert.equal(leeListaBlanca(VIGENTE.sql), false);
+  assert.equal(leeListaBlanca('-- usa private.exportacion_total_columnas\nselect 1'), false);
+});
+
+test('una definición que lee la lista blanca no se compara con filas y pasa', () => {
+  assert.deepEqual(revisarSupersetExportacion({ migracionesDiff: [BLANCA], todasMigraciones: [VIGENTE, LISTAS, BLANCA] }), []);
+});
+
+test('redefinir con lista propia sobre la vigente por tabla de decisiones falla y explica qué hacer', () => {
+  const vieja = defineExportacion('20270517000000', [...BASE, ['dominio', 'listas_precios']]);
+  const p = revisarSupersetExportacion({ migracionesDiff: [vieja], todasMigraciones: [VIGENTE, LISTAS, BLANCA, vieja] });
+  assert.equal(p.length, 1);
+  assert.match(p[0], /lee private\.exportacion_total_columnas/);
+  assert.match(p[0], /20270516000100_prueba\.sql/);
+});
+
+test('una tabla nueva con organizacion_id cubierta por filas en la lista blanca no falla', () => {
+  const crea = mig('20270518000000', 'create table dominio.cosas (id uuid, organizacion_id uuid);');
+  const filas = mig('20270518000001', "insert into private.exportacion_total_columnas (esquema, tabla, columna, exportar) values ('dominio', 'cosas', 'id', true);");
+  assert.deepEqual(revisarExportacionTotal({ migracionesDiff: [crea, filas] }), []);
+  assert.equal(revisarExportacionTotal({ migracionesDiff: [crea] }).length, 1);
+});
 
 test('una redefinición de la exportación total que parte de una versión vieja y pierde una fila falla', () => {
   const nueva = defineExportacion('20270343000200', [...BASE, ['dominio', 'gastos_pagos']]);

@@ -20,7 +20,7 @@ Cada **lunes a las 08:00 (hora de Buenos Aires)** los administradores de cada or
 
 1. **Kestra** (`infra/kestra/flows/resumen-semanal.yml`): dos disparadores en la zona `America/Argentina/Buenos_Aires` —`lunes_0800` (`0 8 * * 1`) y `reintentos` (`*/15 * * * *`)— que hacen `POST {"barrer": true}` a la Edge Function con el secreto compartido. Es solo el «disparo»: el repo no dispara HTTP desde SQL (`docs/adoptar-ciclo-ejecuciones.md` §3.1).
 2. **Edge Function** `enviar-resumen-semanal` (patrón de `enviar-resumen-reposicion`): para cada organización pendiente llama a `generar_resumen_semanal`, arma el texto en castellano y lo envía por el SMTP del proyecto (`SMTP_*`), y cierra el resumen con `cerrar_resumen_semanal`.
-3. **Base** (`supabase/migrations/20270324100200_resumen_semanal.sql`): calcula y registra. `public.resumen_semanal_envios` guarda un resumen **por organización y semana** (`unique`), con el contenido congelado, el estado, los intentos y el error.
+3. **Base** (`supabase/migrations/20270324100200_resumen_semanal.sql`): calcula y registra. `dominio.resumen_semanal_envios` guarda un resumen **por organización y semana** (`unique`), con el contenido congelado, el estado, los intentos y el error.
 
 ### Ventana y semana cubierta
 
@@ -69,7 +69,7 @@ Ningún valor real está en Git (solo `.env.example`).
 
 ## Operación
 
-- Registro de una semana: `select estado, intentos, ultimo_error from public.resumen_semanal_envios where semana_desde = '<lunes>' order by organizacion_id;` (como superusuario).
+- Registro de una semana: `select estado, intentos, ultimo_error from dominio.resumen_semanal_envios where semana_desde = '<lunes>' order by organizacion_id;` (como superusuario).
 - Un resumen `fallido` conserva un motivo fijo y sin datos de conexión; el detalle del SMTP está en los registros de la función.
 - Reenviar a mano una organización: `POST {"organizacion_id": "<uuid>"}` a la función con el token (solo dentro de la ventana y si no está `enviado`).
 - Despliegue: migraciones `20270324*` → secretos de la función → Edge Function `enviar-resumen-semanal` → variables y flow `resumen-semanal` de Kestra. Una función nueva con la base sin migrar falla en el barrido (502) sin enviar nada.

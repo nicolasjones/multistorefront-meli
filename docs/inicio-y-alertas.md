@@ -6,6 +6,8 @@ sources:
   - infra/kestra/flows/alertas-inicio.yml
   - apps/web/src/lib/inicio.ts
   - apps/web/src/pages/inicio
+  - apps/web/src/tema/temaPanel.ts
+  - apps/web/src/tema/coloresOscuros.ts
   - apps/web/e2e/inicio.e2e.ts
   - supabase/functions/recalcular-alertas-inicio
   - supabase/functions/_shared/token.ts
@@ -106,8 +108,14 @@ se muestra.
   pueden diferir si el tablero usa otra tienda); (3) con depósito, «Sin stock»/«Stock bajo» del tablero se
   calculan por depósito y solo con productos activos, mientras la lista de Stock filtra por el estado global
   (`stock_estados`): el número del indicador y el listado pueden no coincidir.
-- **Modo oscuro (RF-INI-04-7)**: el tema del panel no tiene esquema oscuro, así que hoy no hay modo oscuro que
-  verificar; el gráfico usa los colores del tema y lo hereda cuando exista. Desvío trazado en MSF-849.
+- **Modo oscuro (RF-INI-04-7, MSF-849)**: Inicio tiene un interruptor «Modo oscuro» (`ModoOscuroInicio`) que aplica
+  `temaPanelOscuro` solo al contenido de Inicio (indicadores, gráfico, tabla accesible, bloques y tarjetas); la elección se recuerda en
+  el navegador (`localStorage`, sin romper si está bloqueado). La paleta es `tema/coloresOscuros.ts`, con el mismo contrato que los
+  tokens claros: el gráfico sigue usando `palette.primary.main` (barras) y `palette.warning.main` (línea de stock), ahora `#8FA8FF` y
+  `#F2B24A` sobre `#1B1F26`. El contraste WCAG AA se verifica **numéricamente** (`coloresOscuros.test.ts`: texto >= 4.5:1; barras, línea
+  y bordes de control >= 3:1) porque axe en jsdom no calcula contraste; axe corre sobre Inicio en claro y en oscuro. **Qué falta**: el
+  resto del panel (menú lateral, formularios, otras pantallas) lee tokens claros directo en unas 16 piezas; un modo oscuro global exige
+  migrarlas al tema y es un cambio aparte. Una captura de cada modo queda pendiente (no hay app levantada con datos en el desarrollo).
 - **Estados**: carga, error («No pudimos cargar este dato») con «Reintentar» y vacío; mientras llegan los datos
   de otros filtros no se muestran los anteriores ni un error previo. El ticket promedio también se compara con
   el del período anterior. El gráfico queda vacío («Sin datos en el período») si no hubo ventas en ningún día
@@ -362,7 +370,7 @@ Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de l
 
 | Desvío | Seguimiento |
 |---|---|
-| El tema del panel no tiene modo oscuro: no hay modo oscuro que verificar en el gráfico (RF-INI-04-7) | **MSF-849** |
+| ~~El tema del panel no tiene modo oscuro~~ | Resuelto para Inicio en MSF-849 (`ModoOscuroInicio`, `temaPanelOscuro`); el modo oscuro global del panel queda como trabajo aparte |
 | ~~«Resumen por tienda» y «Salidas por depósito» comparten una lectura~~ | Resuelto en MSF-850: lecturas independientes con `p_seccion` (migración `20270324120200`) |
 | Sin E2E de Playwright de los bloques, el listado y el diálogo del dólar: no se pudo correr Supabase local en las sesiones de desarrollo | **MSF-851** |
 | Los indicadores de stock sin filtro propio y «Ajustes de stock» enlazan sin filtrar; el enlace a Reportes lleva solo el período (Reportes no admite tienda ni depósito) | Documentado arriba (Enlaces); sin seguimiento: es alcance de esas pantallas |

@@ -7,6 +7,7 @@ sources:
   - infra/superset/configurar_embebido.py
   - infra/superset/importar-dashboards.mjs
   - infra/superset/datasets-tablero.mjs
+  - infra/superset/verificar-csv-superset.mjs
   - apps/web/src/components/ReporteEmbebido.tsx
 ---
 
@@ -361,10 +362,11 @@ y `FLASK_APP_MUTATOR` (vuelve al formato por defecto de Superset).
 Inyección de fórmulas (CWE-1236): el exportador de Superset (`df_to_escaped_csv`,
 `superset.utils.csv.escape_value`) antepone `'` a los textos que empiezan con `=`,
 `+`, `-` o `@`, así que un nombre de cliente o producto no se ejecuta en Excel. No
-se agrega código propio. **Pendiente de verificación manual** (ninguna prueba
-automática la cubre, no hay Superset en CI): sobre `apache/superset:6.1.0`, cargar
-un cliente `=1+1` y verificar que el CSV lo trae como `'=1+1` (paso 4); lo mismo
-para los bytes `EF BB BF` iniciales (paso 3).
+se agrega código propio. **Sigue pendiente de verificación manual** contra un Superset real (CI no tiene
+Superset ni pandas; MSF-761): sobre `apache/superset:6.1.0`, cargar un cliente `=1+1`, bajar el CSV y correr
+`node infra/superset/verificar-csv-superset.mjs <archivo.csv>`, que comprueba los bytes `EF BB BF` iniciales (y que no estén
+duplicados) y que la celda salió como `'=1+1` (pasos 3 y 4). La lógica del verificador tiene pruebas
+(`verificar-csv-superset.test.mjs`) y el hook del BOM se prueba por condición (mimetype, passthrough, estado, frontera del BOM).
 
 Regresión de formato: al ser global, Ventas y Rentabilidad también salen con `;` y
 `,`. Ningún código del repo (workers, Kestra, web) consume esos CSV; la prueba
@@ -381,14 +383,25 @@ Procedimiento manual de verificación (tras `pnpm dev:superset`):
    decimales con coma, y solo con las filas filtradas.
 4. Con un cliente cuyo nombre sea `=1+1`, el CSV debe traerlo como `'=1+1` (texto,
    no fórmula). Si no, Superset no escapa en esta versión y hay que neutralizar
-   en la vista/dataset.
+   en la vista/dataset. Los pasos 3 y 4 se automatizan sobre el archivo descargado:
+   `node infra/superset/verificar-csv-superset.mjs reporte.csv --celda "=1+1"` (sale con 1 y dice qué falló). Dejar la salida
+   en el informe de la tarea (criterio de cierre de MSF-761).
 
 ## Tableros analíticos de la galería (F-REP-07, MSF-265)
 
 Directorio `infra/superset/dashboards/analitica-avanzada/`: dos tableros nuevos —«Analítica · Ventas por tienda y categoría» (sección `reportes`, vista `analitica.ventas_empresa_categoria`) y «Analítica · Margen real por tienda, categoría y producto» (sección `rentabilidad`, vista `analitica.margen_real_categoria`)—, los dos con `filtro_empresa: true` y los filtros nativos `NATIVE_FILTER-rango`/`NATIVE_FILTER-empresa` que preselecciona la pantalla `/reportes/tableros`. Se importan con
 `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/analitica-avanzada --entorno <entorno>` (el workflow de despliegue lo hace en staging y producción) y la migración `20270324100100` los asigna a todas las organizaciones (prefijo «Analítica · »). El administrador **elige** entre tableros ya armados: no entra a Superset ni los edita, así que no cambia nada de la regla de la spec 007. Ver [Analítica avanzada](analitica-avanzada.md).
 
-Pendiente de verificación manual tras el primer despliegue (los YAML se probaron contra un Superset simulado, no contra uno real): abrir cada tablero embebido y comprobar que los 6 gráficos rendericen y que los filtros de período y tienda respondan.
+Verificado en código (MSF-949, `infra/superset/analitica-avanzada.test.mjs`): cada gráfico usa solo columnas y métricas de su dataset, los filtros nativos de período (`NATIVE_FILTER-rango`, columna `fecha`), tienda (`NATIVE_FILTER-empresa`, columna `empresa_nombre`) y agrupación apuntan al dataset de todos los gráficos de su tablero y no excluyen ninguno, y el paquete se importa contra un Superset simulado.
+
+**Runbook de la verificación en un Superset real** (sigue pendiente: exige un Superset dev/staging; no hay en el entorno de desarrollo):
+
+1. Importar: `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/analitica-avanzada --entorno dev` (o dejar que lo haga el workflow de despliegue en staging).
+2. En `/reportes/tableros` abrir cada uno de los dos tableros y comprobar que los 3 gráficos de cada uno renderizan (barras por período, pivote tienda × categoría y tabla por producto) sin error de columna.
+3. Cambiar «Rango de fechas», «Empresa» (tienda) y «Agrupar por»: los 3 gráficos deben responder; elegir una tienda con la pantalla debe preseleccionar el filtro `NATIVE_FILTER-empresa`.
+4. Con dos organizaciones, comprobar con el guest token que cada una ve solo sus filas y que el tablero de ventas no muestra costo ni margen.
+5. Resumen semanal de punta a punta (Kestra + SMTP) en un entorno con correo: [Resumen semanal por correo](resumen-semanal-correo.md).
+6. Anotar el resultado y capturas en el informe de MSF-949.
 
 ## Importador: la cookie de sesión también va al habilitar el embebido
 
