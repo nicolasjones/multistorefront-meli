@@ -51,7 +51,7 @@ export function limiteDeCupo(valor: string | undefined, porDefecto: number = LIM
 // Retry-After en segundos enteros. La SQL devuelve entre 1 y 3600 (hasta la próxima hora en punto UTC); acá: un valor finito mayor que 0 se
 // redondea hacia arriba (0.5 -> 1, 1.2 -> 2, 59.01 -> 60) y no pasa de 3600; todo lo demás (no numérico, NaN, Infinity, 0, negativos) cae a
 // 3600, el máximo posible de la ventana.
-function segundosDeEspera(valor: unknown): number {
+export function segundosDeEspera(valor: unknown): number {
   const segundos = Number(valor)
   if (!Number.isFinite(segundos) || segundos <= 0) return 3600
   return Math.min(3600, Math.ceil(segundos))
