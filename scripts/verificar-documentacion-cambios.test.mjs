@@ -203,6 +203,36 @@ describe('verificar-documentacion-cambios', () => {
       assert.match(r.stderr, /pantalla\(s\)/);
     });
 
+    it('nombres de pantalla hostiles no inyectan comandos de Actions (y no se filtran con espacios o unicode)', async () => {
+      const malos = ['q%0A::add-mask::secret.tsx', 'x\n::error::pwned.tsx', 'con espacio ñ.tsx'];
+      for (const estricto of [false, true]) {
+        const r = await comprobar(`cap-inyeccion-${estricto}`, [...malos.map((m) => `apps/web/src/pages/v/${m}`), 'docs/a.md'], { args: estricto ? ['--capturas-estricto'] : [] });
+        assert.equal(r.status, estricto ? 1 : 0, r.stderr);
+        assert.match(r.stderr, /3 pantalla\(s\)/);
+        assert.match(r.stderr, /- apps\/web\/src\/pages\/v\/con espacio ñ\.tsx/);
+        // La única línea que empieza con `::` es la anotación del script.
+        assert.equal(r.stderr.split('\n').filter((l) => /^\s*::/.test(l) && !/^::(warning|error) ::/.test(l)).length, 0, r.stderr);
+        assert.match(r.stderr, /q%0A:\u200b:add-mask:\u200b:secret\.tsx/);
+        assert.match(r.stderr, /x\\n:\u200b:error:\u200b:pwned\.tsx/);
+      }
+    });
+
+    it('una captura en mayúsculas (.PNG) cuenta como rehecha', async () => {
+      const r = await comprobar('cap-mayusculas', [pantalla, 'docs/producto/img/ventas/01.PNG']);
+      assert.equal(r.status, 0, r.stderr);
+      assert.doesNotMatch(r.stderr, /pantalla\(s\)/);
+    });
+
+    it('borrar una pantalla no exige rehacer capturas, y borrar una imagen no cuenta como rehacerla', async () => {
+      const base = { [pantalla]: 'v0', 'docs/producto/img/ventas/01.png': 'img', 'docs/a.md': 'a' };
+      const borrarPantalla = await comprobar('cap-borra-pantalla', { 'docs/a.md': 'a2' }, { base, antes: async (cwd) => { await rm(path.join(cwd, pantalla)); } });
+      assert.equal(borrarPantalla.status, 0, borrarPantalla.stderr);
+      assert.doesNotMatch(borrarPantalla.stderr, /pantalla\(s\)/);
+      const borrarImagen = await comprobar('cap-borra-imagen', { [pantalla]: 'v1' }, { base, antes: async (cwd) => { await rm(path.join(cwd, 'docs/producto/img/ventas/01.png')); } });
+      assert.equal(borrarImagen.status, 0, borrarImagen.stderr);
+      assert.match(borrarImagen.stderr, /1 pantalla\(s\)/);
+    });
+
     it('modo estricto (variable o --capturas-estricto) falla con exit 1', async () => {
       const a = await comprobar('cap-estricto-env', [pantalla, 'docs/a.md'], { env: { CAPTURAS_MANUAL_ESTRICTO: '1' } });
       assert.equal(a.status, 1);

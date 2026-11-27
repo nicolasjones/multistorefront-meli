@@ -928,13 +928,14 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "14d0b0b8b228f4229172d4b89cf1b0e4c4f56201280b864285f9afc407a456eb",
-      "sourceHash": "1ca2bdcb759988ec8ea6b606ab8425de29760b685c5853fdc5f0235a6b02f3cd",
+      "pageHash": "49e448a1f94c0fd99ddd146749b5644ea2f648eb2f59162f7f9a5f5f73fceb68",
+      "sourceHash": "459a18d0eab0455c4cf44592f46e48c10d58a55830125d2b2813590dadc6d93c",
       "sourceAt": "30f6d00dc",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
-        "scripts/capturas-manual.mjs",
+        "scripts/docs-capturas-manual.mjs",
+        "scripts/docs-capturas-manual.test.mjs",
         "scripts/docs-correspondencia.mjs",
         "scripts/docs-correspondencia.test.mjs",
         "scripts/docs-lineas.mjs",
@@ -5132,8 +5133,8 @@
     },
     "docs/tecnico/sandbox.md": {
       "title": "Sandbox de onboarding",
-      "pageHash": "8e7f0806abf9ef9e1a2d7c226d7ae18584052043ecf0f3c337cec0dde007db0a",
-      "sourceHash": "47bbe7df5ad447db90ee3a8b4d38566db6bc135518d37e9712b47b85e194774c",
+      "pageHash": "5d36a3650483411203e3043af0b13b7b144199e0b1ef5fb042effffd7fb80c41",
+      "sourceHash": "ca0e25d7482675526ca2955153c8c7f820da225aefa72b349fcd058faf7d1919",
       "sourceAt": "30f6d00dc",
       "sources": [
         "supabase/seed.sql",

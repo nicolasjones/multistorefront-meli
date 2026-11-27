@@ -79,7 +79,7 @@ Solo corre contra un Supabase **local**; si la URL no es `localhost/127.0.0.1/ho
 ## 6. Pruebas del guion (MSF-587)
 
 `pnpm demo:seed` aborta si `SUPABASE_URL` no es un Supabase local (`localhost`, `127.0.0.1` o `host.docker.internal`) y dice
-cuál era: URL y host. Un error de tipeo hacía imprimir el constructor global `URL` en vez de la dirección; lo vigila
+cuál era: el origen (protocolo y host, sin usuario, clave ni ruta de la URL) y el host. Un error de tipeo hacía imprimir el constructor global `URL` en vez de la dirección; lo vigila
 `scripts/demo-sandbox.test.mjs` (`pnpm test:docs:check`), que corre el guion como proceso hijo sin red (host no local, URL
 inválida y `--dry-run`). La siembra de `dominio.*` con la service-role key funciona porque la migración
 `20270302105000` le concede uso del esquema `dominio`; no se ejecutó en este cambio (sin stack local). El dataset completo
