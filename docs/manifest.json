@@ -456,9 +456,9 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "d7379ed2a4f427881f0ce20f208ce268150a99559636f59daeffe20a8b87aa95",
-      "sourceHash": "df623edb5c25155e9f624674d1cadf643d156c038731068cda496817b59136ae",
-      "sourceAt": "2dbd6b0ab",
+      "pageHash": "bbf26fae10e9b73cb6bd9dddc6d8541f8b8b8a62cee08958fa9e9bce51cba299",
+      "sourceHash": "20488afafcfe6ef4c09737fa0fbb55726d95e754531dbf3ad103336410e8e9d7",
+      "sourceAt": "f5a33da5b",
       "sources": [
         "scripts/calidad.mjs",
         ".github/workflows/quality.yml",
@@ -469,20 +469,20 @@
         "apps/web/vite.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "2dbd6b0ab"
+      "commit": "f5a33da5b"
     },
     "docs/capturas-documentacion.md": {
       "title": "Capturas del manual de usuario",
-      "pageHash": "9afd8d4b1a29783df50d1d9d5e385a5188255af29b77c268db869e0fe66a7ef3",
-      "sourceHash": "7ea6aac9470956dabb3aec02ea876b86522b87cef15c351727a8af9e77d36133",
-      "sourceAt": "882abece",
+      "pageHash": "0240da48c964587650d8123b06dd8c4d8169661932869e8c967bc7020748de27",
+      "sourceHash": "9048245c48e6281aae711d68331059349aa7927e2e46ed02aeaef4b5f13bb3c3",
+      "sourceAt": "882abece9",
       "sources": [
         "apps/web/playwright.capturas.config.ts",
         "apps/web/e2e/capturas/lib.ts",
         "apps/web/package.json"
       ],
       "owner": "plataforma",
-      "commit": "882abece"
+      "commit": "882abece9"
     },
     "docs/catalogo-exportacion.md": {
       "title": "Catálogo · Exportar productos a CSV (F-CAT-11)",
@@ -928,9 +928,9 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "339f42b324a2787e670ed94632eede235df7fd6882de14cb454dfafabc32f78e",
+      "pageHash": "cb65e3d8a6d725f89cf67df7452590d87507d2ce52a072dc8f3babd29861d2f2",
       "sourceHash": "7d47b45962d1b0d366180fc31ad35cfe8c3d019cfaeeb25a481c4d83a4db3441",
-      "sourceAt": "a067b6413",
+      "sourceAt": "f5a33da5b",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/verificar-documentacion-cambios.test.mjs",
@@ -949,7 +949,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "a067b6413"
+      "commit": "f5a33da5b"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
@@ -1724,12 +1724,14 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "ac98d2963c5888d218cdbfff03176b007cf701546f5136ecf832c7a449f8917a",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "f5179a2fd0f4ec1c8db0930a464a1bc386d43a57610782fb192f19a1b5f85a64",
+      "sourceHash": "cd24b0a45f35cd51bf361166533b4e86c772fab71277357bfbc84467c18bb9a1",
+      "sourceAt": "c35d315c7",
+      "sources": [
+        "apps/web/src/components/navegacion/destinosPanel.ts"
+      ],
       "owner": "producto",
-      "commit": "432db86d"
+      "commit": "c35d315c7"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -1806,12 +1808,15 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "d6d41dc8e6a3381c7d288beb496833769c33f8caa1c05c6c964da7852d78e922",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "c2a893e323c5c05893bcfacfa0379fee4519d94cb9a0065f63967675d7363b17",
+      "sourceHash": "6e83f865b05f0bc85e1de8c4b7f0ef349133db0624a60a86b414ba4631a62de9",
+      "sourceAt": "05682e781",
+      "sources": [
+        "apps/web/src/components/navegacion/destinosPanel.ts",
+        "template-capabilities.json"
+      ],
       "owner": "producto",
-      "commit": "c35d315c"
+      "commit": "05682e781"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -2598,12 +2603,15 @@
     },
     "docs/producto/ventas-cierre-caja.md": {
       "title": "Cierre de caja",
-      "pageHash": "84c1d83e0eefa9f2ebba0bcc148aa796d74bc315dfdc568e4a25254556e34df2",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "pageHash": "36aa3a501cb17591ce63d3b3981389ef134d6c8dcb5be024a4ae586b99b5c708",
+      "sourceHash": "301832bf8069af17829b0224b37f46097c8229aaa344694bb324c3f741016f22",
+      "sourceAt": "98fbbddf8",
+      "sources": [
+        "specs/20261027-100000-ventas-mejoras",
+        "docs/tecnico/ventas-cierre-caja.md"
+      ],
       "owner": "producto",
-      "commit": "98fbbddf"
+      "commit": "98fbbddf8"
     },
     "docs/producto/ventas-cobros-y-conciliacion.md": {
       "title": "Registrar cobros y controlar los pagos",
